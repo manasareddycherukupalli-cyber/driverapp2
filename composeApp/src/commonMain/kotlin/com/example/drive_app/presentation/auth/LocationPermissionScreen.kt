@@ -1,18 +1,18 @@
 package com.example.drive_app.presentation.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import com.example.drive_app.presentation.navigation.AppNavigator
 import com.example.drive_app.presentation.navigation.Screen
 import com.example.drive_app.presentation.theme.*
+import drive_app.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * LocationPermissionScreen — Shown after login.
@@ -71,61 +73,15 @@ fun LocationPermissionScreen(navigator: AppNavigator) {
         Spacer(Modifier.height(24.dp))
 
         // ---- Illustration ----
-        Box(
+        Image(
+            painter = painterResource(Res.drawable.location_illustration),
+            contentDescription = "Enable location illustration",
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 40.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color(0xFFEBF0FF))
+                .padding(horizontal = 24.dp)
                 .height(300.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            // Decorative circles
-            Box(
-                modifier = Modifier
-                    .size(220.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(0xFFD6E2FF)),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(140.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFFBDD0FF)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Phone + pin icon representation
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.LocationOn,
-                            contentDescription = null,
-                            tint = Orange500,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .width(60.dp)
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Orange500.copy(alpha = 0.3f))
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .width(44.dp)
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Orange500.copy(alpha = 0.2f))
-                        )
-                    }
-                }
-            }
-        }
+            contentScale = ContentScale.Fit
+        )
 
         Spacer(Modifier.height(48.dp))
 
