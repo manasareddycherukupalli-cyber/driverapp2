@@ -18,6 +18,7 @@ sealed interface Screen {
     data object DocumentUpload : Screen
     data object VehicleDetailsInput : Screen
     data object VerificationStatus : Screen
+    data object LocationPermission : Screen
 
     // ---- Main Tabs (Bottom Nav) ----
     data object Home : Screen

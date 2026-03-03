@@ -130,7 +130,7 @@ fun LoginScreen(navigator: AppNavigator) {
 
         // ---- Log In Button ----
         Button(
-            onClick = { navigator.navigateAndClearStack(Screen.Home) },
+            onClick = { navigator.navigateTo(Screen.LocationPermission) },
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = CarryBlue)
@@ -162,7 +162,7 @@ fun LoginScreen(navigator: AppNavigator) {
 
         // ---- Continue as Guest ----
         OutlinedButton(
-            onClick = { navigator.navigateAndClearStack(Screen.Home) },
+            onClick = { navigator.navigateTo(Screen.LocationPermission) },
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = CarryBlue)

@@ -76,6 +76,7 @@ fun AppNavHost(navigator: AppNavigator) {
                     Screen.DocumentUpload -> DocumentUploadScreen(navigator)
                     Screen.VehicleDetailsInput -> VehicleDetailsScreen(navigator)
                     Screen.VerificationStatus -> VerificationStatusScreen(navigator)
+                    Screen.LocationPermission -> LocationPermissionScreen(navigator)
 
                     // ---- Main Tabs ----
                     Screen.Home -> HomeScreen(navigator)
