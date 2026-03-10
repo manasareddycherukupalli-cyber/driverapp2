@@ -5,8 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,6 +23,10 @@ import com.example.drive_app.presentation.navigation.Screen
 import com.example.drive_app.presentation.theme.*
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.truck_illustration
+import drive_app.composeapp.generated.resources.ic_nav_home
+import drive_app.composeapp.generated.resources.ic_nav_message
+import drive_app.composeapp.generated.resources.ic_nav_person
+import drive_app.composeapp.generated.resources.ic_nav_search
 import org.jetbrains.compose.resources.painterResource
 
 /**
@@ -128,5 +131,77 @@ fun OnboardingScreen(navigator: AppNavigator) {
                 Text("Log In", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = CarryBlue)
             }
         }
+
+        // ---- Bottom Navigation Bar ----
+        OnboardingBottomBar()
+    }
+}
+
+/**
+ * OnboardingBottomBar — Static bottom navigation bar for onboarding/auth screens
+ */
+@Composable
+fun OnboardingBottomBar() {
+    NavigationBar(
+        containerColor = Color.White,
+        contentColor = Color.Gray,
+        modifier = Modifier.height(64.dp)
+    ) {
+        NavigationBarItem(
+            selected = false,
+            onClick = { },
+            icon = {
+                Image(
+                    painter = painterResource(Res.drawable.ic_nav_search),
+                    contentDescription = "Search",
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = { },
+            icon = {
+                Image(
+                    painter = painterResource(Res.drawable.ic_nav_message),
+                    contentDescription = "Chat",
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            selected = true,
+            onClick = { },
+            icon = {
+                Image(
+                    painter = painterResource(Res.drawable.ic_nav_home),
+                    contentDescription = "Home",
+                    modifier = Modifier.size(28.dp)
+                )
+            },
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = { },
+            icon = {
+                Image(
+                    painter = painterResource(Res.drawable.ic_nav_person),
+                    contentDescription = "Profile",
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
+            )
+        )
     }
 }

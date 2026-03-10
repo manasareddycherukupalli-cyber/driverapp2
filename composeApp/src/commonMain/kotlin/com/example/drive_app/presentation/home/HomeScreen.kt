@@ -138,7 +138,7 @@ private fun HomeHeader(
                         )
                         Text(
                             text = if (isOnline) "You're online" else "You're offline",
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = Color.White,
                             fontSize = 13.sp
                         )
                     }
@@ -191,7 +191,7 @@ private fun HomeHeader(
                         )
                         Text(
                             text = if (isOnline) "Receiving job requests" else "Tap to go online",
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = Color.White.copy(alpha = 0.9f),
                             fontSize = 12.sp
                         )
                     }

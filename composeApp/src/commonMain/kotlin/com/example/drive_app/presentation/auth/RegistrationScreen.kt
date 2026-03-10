@@ -1,11 +1,11 @@
 package com.example.drive_app.presentation.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -16,198 +16,315 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.drive_app.presentation.navigation.AppNavigator
 import com.example.drive_app.presentation.navigation.Screen
-import com.example.drive_app.presentation.theme.*
 import drive_app.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
+// ── Figma design tokens ──────────────────────────────────────
+private val RegBlue  = Color(0xFF2F80ED)
+private val RegBlack = Color(0xFF16161E)
+private val RegGray  = Color(0xFF828282)
+
 /**
- * RegistrationScreen — Sign Up screen matching the Carry On design system.
+ * RegistrationScreen — Sign Up screen using the same Figma
+ * design tokens and component patterns as LoginScreen (node 143:3000).
  */
 @Composable
 fun RegistrationScreen(navigator: AppNavigator) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+    var name                  by remember { mutableStateOf("") }
+    var email                 by remember { mutableStateOf("") }
+    var password              by remember { mutableStateOf("") }
+    var confirmPassword       by remember { mutableStateOf("") }
+    var passwordVisible        by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var passwordMismatchError  by remember { mutableStateOf(false) }
+
+    // Enable once all four fields have content
+    val signUpEnabled = name.isNotBlank() &&
+                        email.isNotBlank() &&
+                        password.isNotBlank() &&
+                        confirmPassword.isNotBlank()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 28.dp)
+            .padding(horizontal = 39.dp)
     ) {
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(35.dp))
 
-        // ---- Heading ----
+        // ── Heading ────────────────────────────────────────────
         Text(
             text = buildAnnotatedString {
-                append("Welcome to ")
-                withStyle(SpanStyle(color = CarryBlue, fontWeight = FontWeight.Bold)) { append("Carry On") }
-                append("!")
-            },
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF1A1A2E)
+                withStyle(SpanStyle(color = RegBlack, fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
+                    append("Welcome to ")
+                }
+                withStyle(SpanStyle(color = RegBlue, fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
+                    append("Carry On")
+                }
+                withStyle(SpanStyle(color = Color(0xFF333333), fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
+                    append("!")
+                }
+            }
         )
-        Spacer(Modifier.height(6.dp))
-        Text("Hello there, Sign in to Continue", fontSize = 14.sp, color = Color(0xFF6B6B6B))
 
-        Spacer(Modifier.height(28.dp))
-
-        // ---- Name ----
-        Text("Name", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Color(0xFF1A1A2E))
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = name,
+
+        Text(
+            text     = "Hello there, Sign in to Continue",
+            fontSize = 16.sp,
+            color    = RegBlack.copy(alpha = 0.8f)
+        )
+
+        Spacer(Modifier.height(25.dp))
+
+        // ── Name field ────────────────────────────────────────
+        RegInputField(
+            label         = "Name",
+            value         = name,
             onValueChange = { name = it },
-            placeholder = { Text("Enter your Name", color = Color(0xFFAAAAAA)) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CarryBlue, unfocusedBorderColor = Color(0xFFE0E0E0))
+            placeholder   = "Enter your Name"
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(25.dp))
 
-        // ---- Email ----
-        Text("Email Address", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Color(0xFF1A1A2E))
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = email,
+        // ── Email field ────────────────────────────────────────
+        RegInputField(
+            label         = "Email Address",
+            value         = email,
             onValueChange = { email = it },
-            placeholder = { Text("Enter your email", color = Color(0xFFAAAAAA)) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CarryBlue, unfocusedBorderColor = Color(0xFFE0E0E0))
+            placeholder   = "Enter your email",
+            keyboardType  = KeyboardType.Email
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(25.dp))
 
-        // ---- Password ----
-        Text("Password", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Color(0xFF1A1A2E))
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            placeholder = { Text("Password", color = Color(0xFFAAAAAA)) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
-            singleLine = true,
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff, contentDescription = null, tint = Color(0xFFAAAAAA))
-                }
-            },
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CarryBlue, unfocusedBorderColor = Color(0xFFE0E0E0))
+        // ── Password field ─────────────────────────────────────
+        RegInputField(
+            label            = "Password",
+            value            = password,
+            onValueChange    = { password = it },
+            placeholder      = "Password",
+            keyboardType     = KeyboardType.Password,
+            isPassword       = true,
+            passwordVisible  = passwordVisible,
+            onTogglePassword = { passwordVisible = !passwordVisible }
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(25.dp))
 
-        // ---- Confirm Password ----
-        Text("Confirm Password", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Color(0xFF1A1A2E))
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            placeholder = { Text("Password", color = Color(0xFFAAAAAA)) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
-            singleLine = true,
-            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                    Icon(if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff, contentDescription = null, tint = Color(0xFFAAAAAA))
-                }
-            },
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CarryBlue, unfocusedBorderColor = Color(0xFFE0E0E0))
+        // ── Confirm Password field ─────────────────────────────
+        RegInputField(
+            label            = "Confirm Password",
+            value            = confirmPassword,
+            onValueChange    = { confirmPassword = it; passwordMismatchError = false },
+            placeholder      = "Password",
+            keyboardType     = KeyboardType.Password,
+            isPassword       = true,
+            passwordVisible  = confirmPasswordVisible,
+            onTogglePassword = { confirmPasswordVisible = !confirmPasswordVisible }
         )
 
-        Spacer(Modifier.height(24.dp))
+        if (passwordMismatchError) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text     = "Passwords do not match",
+                color    = Color(0xFFE53935),
+                fontSize = 13.sp,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
 
-        // ---- Sign Up Button ----
+        Spacer(Modifier.height(40.dp))
+
+        // ── Sign Up button ─────────────────────────────────────
         Button(
-            onClick = { navigator.navigateTo(Screen.OtpVerification) },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = CarryBlue),
-            enabled = name.isNotBlank() && email.isNotBlank() && password.isNotBlank() && confirmPassword == password
+            onClick = {
+                if (password != confirmPassword) {
+                    passwordMismatchError = true
+                } else {
+                    passwordMismatchError = false
+                    navigator.navigateTo(Screen.OtpVerification)
+                }
+            },
+            modifier  = Modifier
+                .fillMaxWidth()
+                .height(60.dp),
+            shape     = RoundedCornerShape(10.dp),
+            enabled   = signUpEnabled,
+            colors    = ButtonDefaults.buttonColors(
+                containerColor         = RegBlue,
+                disabledContainerColor = Color(0xFFE0E0E0)
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 2.dp,
+                pressedElevation = 4.dp
+            )
         ) {
-            Text("Sign Up", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            Text(
+                text       = "Sign Up",
+                fontWeight = FontWeight.SemiBold,
+                fontSize   = 18.sp
+            )
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(30.dp))   // outer gap-[30px] between form and options
 
-        // ---- Or Divider ----
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        // ── Or divider ─────────────────────────────────────────
+        Row(
+            modifier          = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
-            Text("  Or  ", fontSize = 14.sp, color = Color(0xFFAAAAAA))
+            Text(
+                text     = "Or",
+                modifier = Modifier.padding(horizontal = 9.dp),
+                color    = RegGray,
+                fontSize = 16.sp
+            )
             HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
         }
 
         Spacer(Modifier.height(20.dp))
 
-        // ---- Social Login Icons ----
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            SignUpSocialIcon(Res.drawable.ic_apple) {}
-            Spacer(Modifier.width(20.dp))
-            SignUpSocialIcon(Res.drawable.ic_google) {}
-            Spacer(Modifier.width(20.dp))
-            SignUpSocialIcon(Res.drawable.ic_facebook) {}
+        // ── Social icons (Apple · Google · Facebook) ──────────
+        Row(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment     = Alignment.CenterVertically
+        ) {
+            RegSocialButton(Res.drawable.ic_apple) {}
+            Spacer(Modifier.width(10.dp))
+            RegSocialButton(Res.drawable.ic_google) {}
+            Spacer(Modifier.width(10.dp))
+            RegSocialButton(Res.drawable.ic_facebook) {}
         }
 
         Spacer(Modifier.height(20.dp))
 
-        // ---- Continue as Guest ----
+        // ── Continue as a Guest ────────────────────────────────
         OutlinedButton(
-            onClick = { navigator.navigateAndClearStack(Screen.Home) },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = CarryBlue)
+            onClick  = { navigator.navigateAndClearStack(Screen.Home) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp),
+            shape    = RoundedCornerShape(10.dp),
+            border   = BorderStroke(1.dp, RegBlue),
+            colors   = ButtonDefaults.outlinedButtonColors(contentColor = RegBlue)
         ) {
-            Text("Continue as a Guest", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = CarryBlue)
+            Text(
+                text       = "Continue as a Guest",
+                fontWeight = FontWeight.SemiBold,
+                fontSize   = 16.sp,
+                color      = RegBlue
+            )
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(28.dp))   // bottom padding
     }
 }
 
+// ── Input field — white card with drop shadow ────────────────
 @Composable
-private fun SignUpSocialIcon(resource: org.jetbrains.compose.resources.DrawableResource, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(52.dp)
-            .clip(CircleShape)
-            .background(Color(0xFFF5F5F5))
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
+private fun RegInputField(
+    label            : String,
+    value            : String,
+    onValueChange    : (String) -> Unit,
+    placeholder      : String,
+    keyboardType     : KeyboardType = KeyboardType.Text,
+    isPassword       : Boolean      = false,
+    passwordVisible  : Boolean      = false,
+    onTogglePassword : (() -> Unit)? = null
+) {
+    Text(
+        text       = label,
+        fontWeight = FontWeight.Medium,
+        fontSize   = 18.sp,
+        color      = RegBlack
+    )
+    Spacer(Modifier.height(8.dp))
+    Surface(
+        shape           = RoundedCornerShape(10.dp),
+        shadowElevation = 4.dp,
+        tonalElevation  = 0.dp,
+        color           = Color.White,
+        modifier        = Modifier
+            .fillMaxWidth()
+            .height(55.dp)
     ) {
-        Image(
-            painter = painterResource(resource),
-            contentDescription = null,
-            modifier = Modifier.size(28.dp),
-            contentScale = ContentScale.Fit
+        TextField(
+            value         = value,
+            onValueChange = onValueChange,
+            placeholder   = {
+                Text(text = placeholder, color = RegGray, fontSize = 16.sp)
+            },
+            modifier             = Modifier.fillMaxSize(),
+            singleLine           = true,
+            keyboardOptions      = KeyboardOptions(keyboardType = keyboardType),
+            visualTransformation = if (isPassword && !passwordVisible)
+                PasswordVisualTransformation() else VisualTransformation.None,
+            trailingIcon = if (isPassword) {{
+                IconButton(onClick = { onTogglePassword?.invoke() }) {
+                    Icon(
+                        imageVector        = if (passwordVisible) Icons.Filled.Visibility
+                                             else Icons.Filled.VisibilityOff,
+                        contentDescription = if (passwordVisible) "Hide password"
+                                             else "Show password",
+                        tint               = RegGray
+                    )
+                }
+            }} else null,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor   = Color.White,
+                unfocusedContainerColor = Color.White,
+                disabledContainerColor  = Color.White,
+                focusedIndicatorColor   = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor  = Color.Transparent,
+                focusedTextColor        = RegBlack,
+                unfocusedTextColor      = RegBlack
+            )
         )
+    }
+}
+
+// ── Social login button — white card 80×60 with shadow ───────
+@Composable
+private fun RegSocialButton(
+    resource : DrawableResource,
+    onClick  : () -> Unit
+) {
+    Surface(
+        shape           = RoundedCornerShape(10.dp),
+        shadowElevation = 4.dp,
+        tonalElevation  = 0.dp,
+        color           = Color.White,
+        modifier        = Modifier
+            .width(80.dp)
+            .height(60.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Image(
+                painter            = painterResource(resource),
+                contentDescription = null,
+                modifier           = Modifier.size(32.dp),
+                contentScale       = ContentScale.Fit
+            )
+        }
     }
 }

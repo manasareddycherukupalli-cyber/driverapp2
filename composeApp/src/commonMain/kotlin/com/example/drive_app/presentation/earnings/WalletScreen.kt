@@ -126,7 +126,7 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
                 .padding(24.dp)
         ) {
             Column {
-                Text("Available Balance", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+                Text("Available Balance", color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = "₹${wallet.balance.toInt()}",
@@ -137,7 +137,7 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
                 if (wallet.pendingAmount > 0) {
                     Text(
                         text = "₹${wallet.pendingAmount.toInt()} pending",
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = Color.White.copy(alpha = 0.9f),
                         fontSize = 13.sp
                     )
                 }
@@ -155,7 +155,7 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = "💳 Bank account ****${wallet.bankAccountLast4}",
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = Color.White.copy(alpha = 0.9f),
                         fontSize = 12.sp
                     )
                 }

@@ -147,7 +147,7 @@ private fun EarningsHeaderCard(earnings: EarningsSummary, period: EarningsPeriod
             Column {
                 Text(
                     text = "${period.displayName}'s Earnings",
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = Color.White,
                     fontSize = 14.sp
                 )
                 Spacer(Modifier.height(4.dp))

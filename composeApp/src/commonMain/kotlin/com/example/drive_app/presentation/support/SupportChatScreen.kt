@@ -144,7 +144,7 @@ private fun ChatBubble(message: ChatMessage) {
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = if (isDriver) "You" else "Support Agent",
-                    color = if (isDriver) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isDriver) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
