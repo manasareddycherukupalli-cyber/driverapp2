@@ -26,8 +26,7 @@ import com.example.drive_app.presentation.theme.*
  * Shows list of documents with status indicators and upload buttons.
  */
 @Composable
-fun DocumentUploadScreen(navigator: AppNavigator) {
-    val viewModel = remember { AuthViewModel() }
+fun DocumentUploadScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
     val uploadState by viewModel.documentUploadState.collectAsState()
     val uploadedDocs by viewModel.uploadedDocuments.collectAsState()
 

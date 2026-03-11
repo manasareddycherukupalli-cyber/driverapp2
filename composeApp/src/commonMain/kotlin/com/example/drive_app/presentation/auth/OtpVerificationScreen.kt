@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
  * Matches the Carry On design with back button and resend option.
  */
 @Composable
-fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel = remember { AuthViewModel() }) {
+fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     val otpLength = 6
     var otpValues by remember { mutableStateOf(List(otpLength) { "" }) }
     var resendTimer by remember { mutableStateOf(30) }

@@ -49,7 +49,7 @@ private val DesignGray  = Color(0xFF828282)
  * "SIGN IN [In Active]" screen (node 1:258).
  */
 @Composable
-fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel = remember { AuthViewModel() }) {
+fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     var email           by remember { mutableStateOf("") }
     var isLoading       by remember { mutableStateOf(false) }
     var errorMessage    by remember { mutableStateOf<String?>(null) }

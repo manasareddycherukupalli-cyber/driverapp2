@@ -28,8 +28,7 @@ import com.example.drive_app.presentation.theme.*
  * Vehicle type selection chips, make, model, license plate, etc.
  */
 @Composable
-fun VehicleDetailsScreen(navigator: AppNavigator) {
-    val viewModel = remember { AuthViewModel() }
+fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
     val vehicleState by viewModel.vehicleState.collectAsState()
 
     var selectedType by remember { mutableStateOf(VehicleType.BIKE) }

@@ -47,7 +47,7 @@ private val RegGray  = Color(0xFF828282)
  * design tokens and component patterns as LoginScreen (node 143:3000).
  */
 @Composable
-fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel = remember { AuthViewModel() }) {
+fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     var name         by remember { mutableStateOf("") }
     var email        by remember { mutableStateOf("") }
     var phone        by remember { mutableStateOf("") }

@@ -27,8 +27,7 @@ import com.example.drive_app.presentation.theme.*
  * Displays document review status, vehicle verification, and overall status.
  */
 @Composable
-fun VerificationStatusScreen(navigator: AppNavigator) {
-    val viewModel = remember { AuthViewModel() }
+fun VerificationStatusScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
     val verificationState by viewModel.verificationState.collectAsState()
 
     LaunchedEffect(Unit) {

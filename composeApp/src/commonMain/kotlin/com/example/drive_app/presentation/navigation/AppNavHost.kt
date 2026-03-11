@@ -44,6 +44,7 @@ val bottomNavItems = listOf(
 fun AppNavHost(navigator: AppNavigator) {
     val currentScreen = navigator.currentScreen
     val showBottomBar = currentScreen in mainTabScreens
+    val authViewModel = remember { AuthViewModel() }
 
     Scaffold(
         bottomBar = {
@@ -70,12 +71,12 @@ fun AppNavHost(navigator: AppNavigator) {
 
                     // ---- Auth Flow ----
                     Screen.Onboarding -> OnboardingScreen(navigator)
-                    Screen.Login -> LoginScreen(navigator)
-                    Screen.OtpVerification -> OtpVerificationScreen(navigator)
-                    Screen.Registration -> RegistrationScreen(navigator)
-                    Screen.DocumentUpload -> DocumentUploadScreen(navigator)
-                    Screen.VehicleDetailsInput -> VehicleDetailsScreen(navigator)
-                    Screen.VerificationStatus -> VerificationStatusScreen(navigator)
+                    Screen.Login -> LoginScreen(navigator, authViewModel)
+                    Screen.OtpVerification -> OtpVerificationScreen(navigator, authViewModel)
+                    Screen.Registration -> RegistrationScreen(navigator, authViewModel)
+                    Screen.DocumentUpload -> DocumentUploadScreen(navigator, authViewModel)
+                    Screen.VehicleDetailsInput -> VehicleDetailsScreen(navigator, authViewModel)
+                    Screen.VerificationStatus -> VerificationStatusScreen(navigator, authViewModel)
                     Screen.LocationPermission -> LocationPermissionScreen(navigator)
 
                     // ---- Main Tabs ----
