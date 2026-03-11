@@ -157,7 +157,7 @@ private fun EarningsHeaderCard(earnings: EarningsSummary, period: EarningsPeriod
                     EarningsPeriod.THIS_MONTH -> earnings.monthlyEarnings
                 }
                 Text(
-                    text = "₹${amount.toInt()}",
+                    text = "RM${amount.toInt()}",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 36.sp
@@ -169,11 +169,11 @@ private fun EarningsHeaderCard(earnings: EarningsSummary, period: EarningsPeriod
                         Text("Deliveries", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
                     }
                     Column {
-                        Text("₹${earnings.tipEarnings.toInt()}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("RM${earnings.tipEarnings.toInt()}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Text("Tips", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
                     }
                     Column {
-                        Text("₹${earnings.bonusEarnings.toInt()}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("RM${earnings.bonusEarnings.toInt()}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Text("Bonus", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
                     }
                 }
@@ -204,7 +204,7 @@ private fun EarningsStatsGrid(earnings: EarningsSummary) {
         )
         StatCard(
             title = "Bonus",
-            value = "₹${earnings.bonusEarnings.toInt()}",
+            value = "RM${earnings.bonusEarnings.toInt()}",
             icon = Icons.Filled.Star,
             iconTint = Yellow500,
             modifier = Modifier.weight(1f)
@@ -281,7 +281,7 @@ fun TransactionItem(transaction: Transaction) {
                 )
             }
             Text(
-                text = "${if (transaction.amount >= 0) "+" else ""}₹${transaction.amount.toInt()}",
+                text = "${if (transaction.amount >= 0) "+" else ""}RM${transaction.amount.toInt()}",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
                 color = if (transaction.amount >= 0) Green500 else Red500

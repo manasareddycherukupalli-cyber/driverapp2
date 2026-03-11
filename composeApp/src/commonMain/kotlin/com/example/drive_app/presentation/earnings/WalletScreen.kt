@@ -129,14 +129,14 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
                 Text("Available Balance", color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "₹${wallet.balance.toInt()}",
+                    text = "RM${wallet.balance.toInt()}",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 36.sp
                 )
                 if (wallet.pendingAmount > 0) {
                     Text(
-                        text = "₹${wallet.pendingAmount.toInt()} pending",
+                        text = "RM${wallet.pendingAmount.toInt()} pending",
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 13.sp
                     )
@@ -172,14 +172,14 @@ private fun WalletStatsRow(wallet: WalletInfo) {
     ) {
         StatCard(
             title = "Lifetime",
-            value = "₹${(wallet.lifetimeEarnings / 1000).toInt()}K",
+            value = "RM ${(wallet.lifetimeEarnings / 1000).toInt()}K",
             icon = Icons.Filled.TrendingUp,
             iconTint = Green500,
             modifier = Modifier.weight(1f)
         )
         StatCard(
             title = "Last Payout",
-            value = "₹${wallet.lastPayout.toInt()}",
+            value = "RM ${(wallet.lastPayout ?: 0.0).toInt()}",
             icon = Icons.Filled.Payment,
             iconTint = Blue500,
             modifier = Modifier.weight(1f)
@@ -201,7 +201,7 @@ private fun WithdrawDialog(
         text = {
             Column {
                 Text(
-                    text = "Available: ₹${maxAmount.toInt()}",
+                    text = "Available: RM${maxAmount.toInt()}",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -209,12 +209,12 @@ private fun WithdrawDialog(
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Amount (₹)") },
+                    label = { Text("Amount (RM)") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    leadingIcon = { Text("₹", fontWeight = FontWeight.Bold, fontSize = 18.sp) }
+                    leadingIcon = { Text("RM", fontWeight = FontWeight.Bold, fontSize = 18.sp) }
                 )
             }
         },

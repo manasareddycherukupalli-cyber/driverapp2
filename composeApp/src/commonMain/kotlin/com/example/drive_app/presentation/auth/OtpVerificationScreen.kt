@@ -18,21 +18,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.drive_app.data.network.SupabaseConfig
 import com.example.drive_app.presentation.navigation.AppNavigator
 import com.example.drive_app.presentation.navigation.Screen
 import com.example.drive_app.presentation.theme.*
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.OtpType
+import io.github.jan.supabase.auth.providers.builtin.OTP
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * OtpVerificationScreen — 6-digit code entry with custom phone keypad.
  * Matches the Carry On design with back button and resend option.
  */
 @Composable
-fun OtpVerificationScreen(navigator: AppNavigator) {
+fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel = remember { AuthViewModel() }) {
     val otpLength = 6
     var otpValues by remember { mutableStateOf(List(otpLength) { "" }) }
     var resendTimer by remember { mutableStateOf(30) }
     var canResend by remember { mutableStateOf(false) }
+    var isVerifying by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         while (resendTimer > 0) {
@@ -74,12 +82,12 @@ fun OtpVerificationScreen(navigator: AppNavigator) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "A verification code has been sent to",
+                text = "A verification code has been sent to your email",
                 fontSize = 14.sp,
                 color = Color(0xFF6B6B6B)
             )
             Text(
-                text = "xxxxxxx",
+                text = authViewModel.driverEmail.ifEmpty { "your email" },
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF1A1A2E)
@@ -137,6 +145,16 @@ fun OtpVerificationScreen(navigator: AppNavigator) {
                         canResend = false
                         resendTimer = 30
                         otpValues = List(otpLength) { "" }
+                        errorMessage = null
+                        coroutineScope.launch {
+                            try {
+                                SupabaseConfig.client.auth.signInWith(OTP) {
+                                    email = authViewModel.driverEmail
+                                }
+                            } catch (e: Exception) {
+                                errorMessage = e.message ?: "Failed to resend code"
+                            }
+                        }
                     }
                 )
             } else {
@@ -146,18 +164,61 @@ fun OtpVerificationScreen(navigator: AppNavigator) {
 
         Spacer(Modifier.height(24.dp))
 
+        // ---- Error Message ----
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage ?: "",
+                fontSize = 13.sp,
+                color = Color(0xFFE53935),
+                modifier = Modifier.padding(horizontal = 28.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
         // ---- Next Button ----
         Button(
-            onClick = { navigator.navigateAndClearStack(Screen.Home) },
+            onClick = {
+                errorMessage = null
+                isVerifying = true
+                val otp = otpValues.joinToString("")
+                coroutineScope.launch {
+                    try {
+                        SupabaseConfig.client.auth.verifyEmailOtp(
+                            type = OtpType.Email.EMAIL,
+                            email = authViewModel.driverEmail,
+                            token = otp
+                        )
+                        val accessToken = SupabaseConfig.client.auth.currentSessionOrNull()?.accessToken
+                        if (accessToken != null) {
+                            authViewModel.onSupabaseTokenReceived(accessToken)
+                            navigator.navigateAndClearStack(Screen.Home)
+                        } else {
+                            errorMessage = "Verification succeeded but no session found"
+                            isVerifying = false
+                        }
+                    } catch (e: Exception) {
+                        errorMessage = e.message ?: "OTP verification failed"
+                        isVerifying = false
+                    }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
                 .padding(horizontal = 28.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = CarryBlue),
-            enabled = otpValues.all { it.isNotEmpty() }
+            enabled = otpValues.all { it.isNotEmpty() } && !isVerifying
         ) {
-            Text("Next", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            if (isVerifying) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Next", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            }
         }
 
         Spacer(Modifier.weight(1f))

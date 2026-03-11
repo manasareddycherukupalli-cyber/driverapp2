@@ -138,7 +138,7 @@ fun JobRequestPopup(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("💰", fontSize = 20.sp)
                         Text(
-                            text = "₹${job.estimatedEarnings.toInt()}",
+                            text = "RM${job.estimatedEarnings.toInt()}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             color = Green500

@@ -27,8 +27,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.drive_app.data.model.UiState
+import com.example.drive_app.data.network.SupabaseConfig
 import com.example.drive_app.presentation.navigation.AppNavigator
 import com.example.drive_app.presentation.navigation.Screen
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.OTP
+import kotlinx.coroutines.launch
 import drive_app.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -44,10 +49,28 @@ private val DesignGray  = Color(0xFF828282)
  * "SIGN IN [In Active]" screen (node 1:258).
  */
 @Composable
-fun LoginScreen(navigator: AppNavigator) {
+fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel = remember { AuthViewModel() }) {
     var email           by remember { mutableStateOf("") }
-    var password        by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+    var isLoading       by remember { mutableStateOf(false) }
+    var errorMessage    by remember { mutableStateOf<String?>(null) }
+    val coroutineScope  = rememberCoroutineScope()
+
+    val otpSendState by authViewModel.otpSendState.collectAsState()
+
+    LaunchedEffect(otpSendState) {
+        when (otpSendState) {
+            is UiState.Success -> {
+                isLoading = false
+                navigator.navigateTo(Screen.OtpVerification)
+            }
+            is UiState.Error -> {
+                isLoading = false
+                errorMessage = (otpSendState as UiState.Error).message
+            }
+            is UiState.Loading -> { isLoading = true }
+            else -> {}
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -92,54 +115,70 @@ fun LoginScreen(navigator: AppNavigator) {
             keyboardType  = KeyboardType.Email
         )
 
-        Spacer(Modifier.height(25.dp))
+        Spacer(Modifier.height(8.dp))
 
-        // ── Password field ─────────────────────────────────────
-        CarryInputField(
-            label            = "Password",
-            value            = password,
-            onValueChange    = { password = it },
-            placeholder      = "Password",
-            keyboardType     = KeyboardType.Password,
-            isPassword       = true,
-            passwordVisible  = passwordVisible,
-            onTogglePassword = { passwordVisible = !passwordVisible }
+        Text(
+            text = "We'll send a verification code to your email",
+            fontSize = 13.sp,
+            color = DesignGray
         )
 
-        // ── Forgot Password ────────────────────────────────────
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+        if (errorMessage != null) {
+            Spacer(Modifier.height(8.dp))
             Text(
-                text       = "Forgot Password ?",
-                color      = DesignBlue,
-                fontSize   = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier   = Modifier
-                    .padding(top = 10.dp)
-                    .clickable { }
+                text = errorMessage ?: "",
+                fontSize = 13.sp,
+                color = Color(0xFFE53935)
             )
         }
 
         Spacer(Modifier.height(30.dp))
 
-        // ── Log In button ──────────────────────────────────────
+        // ── Send OTP button ──────────────────────────────────
         Button(
-            onClick   = { navigator.navigateTo(Screen.LocationPermission) },
+            onClick = {
+                errorMessage = null
+                authViewModel.driverEmail = email
+                authViewModel.setOtpLoading()
+                coroutineScope.launch {
+                    try {
+                        SupabaseConfig.client.auth.signInWith(OTP) {
+                            this.email = email
+                        }
+                        authViewModel.onOtpSent(email)
+                    } catch (e: Exception) {
+                        authViewModel.onOtpSendError(e.message ?: "Failed to send OTP")
+                    }
+                }
+            },
             modifier  = Modifier
                 .fillMaxWidth()
                 .height(60.dp),
             shape     = RoundedCornerShape(10.dp),
-            colors    = ButtonDefaults.buttonColors(containerColor = DesignBlue),
+            enabled   = email.isNotBlank() && !isLoading,
+            colors    = ButtonDefaults.buttonColors(
+                containerColor = DesignBlue,
+                disabledContainerColor = Color(0xFFE0E0E0)
+            ),
             elevation = ButtonDefaults.buttonElevation(
                 defaultElevation = 2.dp,
                 pressedElevation = 4.dp
             )
         ) {
-            Text(
-                text       = "Log In",
-                fontWeight = FontWeight.SemiBold,
-                fontSize   = 18.sp,
-                color      = Color.White
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text       = "Send Verification Code",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize   = 18.sp,
+                    color      = Color.White
+                )
+            }
         }
 
         Spacer(Modifier.height(30.dp))

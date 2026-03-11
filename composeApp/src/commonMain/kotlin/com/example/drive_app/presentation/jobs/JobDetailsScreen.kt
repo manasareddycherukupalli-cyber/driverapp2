@@ -99,7 +99,7 @@ private fun JobDetailsContent(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "₹${job.estimatedEarnings.toInt()}",
+                        text = "RM${job.estimatedEarnings.toInt()}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 28.sp,
                         color = Orange600

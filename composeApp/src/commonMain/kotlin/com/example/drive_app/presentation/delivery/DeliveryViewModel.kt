@@ -49,10 +49,10 @@ class DeliveryViewModel : ViewModel() {
         viewModelScope.launch {
             _proofState.value = UiState.Loading
             val proof = ProofOfDelivery(
-                photoUrl = if (photoTaken) "photo_${jobId}_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}.jpg" else null,
+                photoUrl = if (photoTaken) "photo_${jobId}.jpg" else null,
                 otpCode = otpCode.ifBlank { null },
                 recipientName = recipientName.ifBlank { null },
-                deliveredAt = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
+                deliveredAt = null // Server sets the timestamp
             )
             jobRepository.submitProof(jobId, proof)
                 .onSuccess { _proofState.value = UiState.Success(it) }

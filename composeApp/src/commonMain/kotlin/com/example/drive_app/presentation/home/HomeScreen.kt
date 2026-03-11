@@ -252,7 +252,7 @@ private fun TodayEarningsCard(
                     }
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "₹${earnings.todayEarnings.toInt()}",
+                        text = "RM${earnings.todayEarnings.toInt()}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 32.sp,
                         color = Orange500
@@ -264,7 +264,7 @@ private fun TodayEarningsCard(
                     ) {
                         MiniStat("Deliveries", "${earnings.todayDeliveries}")
                         MiniStat("Online Hrs", "${earnings.onlineHours}h")
-                        MiniStat("Tips", "₹${earnings.tipEarnings.toInt()}")
+                        MiniStat("Tips", "RM${earnings.tipEarnings.toInt()}")
                     }
                 }
             }
@@ -347,7 +347,7 @@ private fun ActiveJobCard(job: DeliveryJob, onClick: () -> Unit) {
                     backgroundColor = Orange100
                 )
                 Text(
-                    text = "₹${job.estimatedEarnings.toInt()}",
+                    text = "RM${job.estimatedEarnings.toInt()}",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = Orange500

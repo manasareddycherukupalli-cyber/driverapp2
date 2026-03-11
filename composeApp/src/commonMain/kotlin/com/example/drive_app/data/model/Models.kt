@@ -1,5 +1,6 @@
 package com.example.drive_app.data.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 // ============================================================
@@ -12,36 +13,46 @@ data class Driver(
     val name: String = "",
     val phone: String = "",
     val email: String = "",
-    val profileImageUrl: String? = null,
+    @SerialName("photo") val profileImageUrl: String? = null,
     val rating: Double = 0.0,
-    val totalDeliveries: Int = 0,
+    @SerialName("totalTrips") val totalDeliveries: Int = 0,
     val isOnline: Boolean = false,
     val isVerified: Boolean = false,
     val verificationStatus: VerificationStatus = VerificationStatus.PENDING,
-    val vehicleDetails: VehicleDetails? = null,
+    @SerialName("vehicle") val vehicleDetails: VehicleDetails? = null,
     val documents: List<Document> = emptyList(),
     val emergencyContact: String = "",
-    val joinedAt: Long = 0L
+    val createdAt: String? = null
 )
 
 @Serializable
 data class AuthResponse(
     val success: Boolean = false,
-    val token: String = "",
     val driver: Driver? = null,
-    val message: String = ""
+    val isNewDriver: Boolean = false
 )
 
 @Serializable
 data class OtpRequest(
-    val phone: String,
-    val countryCode: String = "+91"
+    val email: String
 )
 
 @Serializable
 data class OtpVerifyRequest(
-    val phone: String,
+    val email: String,
     val otp: String
+)
+
+@Serializable
+data class SyncRequest(
+    val name: String = ""
+)
+
+@Serializable
+data class RegisterRequest(
+    val name: String,
+    val phone: String = "",
+    val emergencyContact: String = ""
 )
 
 // ============================================================
@@ -77,7 +88,7 @@ data class Document(
     val type: DocumentType = DocumentType.DRIVERS_LICENSE,
     val imageUrl: String = "",
     val status: DocumentStatus = DocumentStatus.PENDING,
-    val uploadedAt: Long = 0L,
+    val uploadedAt: String? = null,
     val rejectionReason: String? = null
 )
 
@@ -112,13 +123,13 @@ data class DeliveryJob(
     val packageSize: PackageSize = PackageSize.SMALL,
     val estimatedEarnings: Double = 0.0,
     val distance: Double = 0.0,
-    val estimatedDuration: Int = 0, // minutes
-    val createdAt: Long = 0L,
-    val scheduledAt: Long? = null,
-    val acceptedAt: Long? = null,
-    val pickedUpAt: Long? = null,
-    val deliveredAt: Long? = null,
-    val completedAt: Long? = null,
+    val estimatedDuration: Int = 0,
+    val createdAt: String? = null,
+    val scheduledAt: String? = null,
+    val acceptedAt: String? = null,
+    val pickedUpAt: String? = null,
+    val deliveredAt: String? = null,
+    val completedAt: String? = null,
     val notes: String? = null,
     val proofOfDelivery: ProofOfDelivery? = null
 )
@@ -160,7 +171,7 @@ data class ProofOfDelivery(
     val photoUrl: String? = null,
     val signatureUrl: String? = null,
     val otpCode: String? = null,
-    val deliveredAt: Long = 0L,
+    val deliveredAt: String? = null,
     val recipientName: String? = null
 )
 
@@ -186,7 +197,7 @@ data class Transaction(
     val type: TransactionType = TransactionType.DELIVERY_EARNING,
     val amount: Double = 0.0,
     val description: String = "",
-    val timestamp: Long = 0L,
+    @SerialName("createdAt") val timestamp: String? = null,
     val jobId: String? = null,
     val status: TransactionStatus = TransactionStatus.COMPLETED
 )
@@ -209,8 +220,8 @@ data class WalletInfo(
     val balance: Double = 0.0,
     val pendingAmount: Double = 0.0,
     val lifetimeEarnings: Double = 0.0,
-    val lastPayout: Double = 0.0,
-    val lastPayoutDate: Long? = null,
+    val lastPayout: Double? = null,
+    val lastPayoutDate: String? = null,
     val bankAccountLinked: Boolean = false,
     val bankAccountLast4: String? = null
 )
@@ -225,7 +236,7 @@ data class AppNotification(
     val title: String = "",
     val message: String = "",
     val type: NotificationType = NotificationType.SYSTEM,
-    val timestamp: Long = 0L,
+    @SerialName("createdAt") val timestamp: String? = null,
     val isRead: Boolean = false,
     val actionData: String? = null
 )
@@ -257,7 +268,7 @@ data class FeedbackItem(
     val customerName: String = "",
     val rating: Int = 5,
     val comment: String? = null,
-    val timestamp: Long = 0L,
+    val timestamp: String? = null,
     val jobId: String = ""
 )
 
@@ -279,8 +290,8 @@ data class SupportTicket(
     val category: TicketCategory = TicketCategory.GENERAL,
     val description: String = "",
     val status: TicketStatus = TicketStatus.OPEN,
-    val createdAt: Long = 0L,
-    val updatedAt: Long = 0L,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
     val messages: List<ChatMessage> = emptyList()
 )
 
@@ -299,8 +310,8 @@ data class ChatMessage(
     val id: String = "",
     val senderId: String = "",
     val message: String = "",
-    val timestamp: Long = 0L,
-    val isFromDriver: Boolean = true
+    @SerialName("createdAt") val timestamp: String? = null,
+    @SerialName("isStaff") val isFromDriver: Boolean = false
 )
 
 @Serializable
@@ -317,4 +328,15 @@ data class HelpArticle(
     val title: String = "",
     val content: String = "",
     val category: String = ""
+)
+
+// ============================================================
+// API RESPONSE WRAPPERS
+// ============================================================
+
+@Serializable
+data class ApiResponse<T>(
+    val success: Boolean = false,
+    val data: T? = null,
+    val message: String? = null
 )

@@ -164,7 +164,7 @@ private fun JobListCard(job: DeliveryJob, onClick: () -> Unit) {
                     )
                 }
                 Text(
-                    text = "₹${job.estimatedEarnings.toInt()}",
+                    text = "RM${job.estimatedEarnings.toInt()}",
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
                     color = Orange500

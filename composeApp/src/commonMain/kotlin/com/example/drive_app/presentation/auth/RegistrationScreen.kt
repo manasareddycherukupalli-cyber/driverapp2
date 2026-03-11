@@ -27,9 +27,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.drive_app.data.network.SupabaseConfig
 import com.example.drive_app.presentation.navigation.AppNavigator
 import com.example.drive_app.presentation.navigation.Screen
 import drive_app.composeapp.generated.resources.*
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.OTP
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -43,20 +47,15 @@ private val RegGray  = Color(0xFF828282)
  * design tokens and component patterns as LoginScreen (node 143:3000).
  */
 @Composable
-fun RegistrationScreen(navigator: AppNavigator) {
-    var name                  by remember { mutableStateOf("") }
-    var email                 by remember { mutableStateOf("") }
-    var password              by remember { mutableStateOf("") }
-    var confirmPassword       by remember { mutableStateOf("") }
-    var passwordVisible        by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
-    var passwordMismatchError  by remember { mutableStateOf(false) }
+fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel = remember { AuthViewModel() }) {
+    var name         by remember { mutableStateOf("") }
+    var email        by remember { mutableStateOf("") }
+    var phone        by remember { mutableStateOf("") }
+    var isLoading    by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
-    // Enable once all four fields have content
-    val signUpEnabled = name.isNotBlank() &&
-                        email.isNotBlank() &&
-                        password.isNotBlank() &&
-                        confirmPassword.isNotBlank()
+    val signUpEnabled = name.isNotBlank() && email.isNotBlank()
 
     Column(
         modifier = Modifier
@@ -113,39 +112,29 @@ fun RegistrationScreen(navigator: AppNavigator) {
 
         Spacer(Modifier.height(25.dp))
 
-        // ── Password field ─────────────────────────────────────
+        // ── Phone field ────────────────────────────────────────
         RegInputField(
-            label            = "Password",
-            value            = password,
-            onValueChange    = { password = it },
-            placeholder      = "Password",
-            keyboardType     = KeyboardType.Password,
-            isPassword       = true,
-            passwordVisible  = passwordVisible,
-            onTogglePassword = { passwordVisible = !passwordVisible }
+            label         = "Phone Number",
+            value         = phone,
+            onValueChange = { phone = it },
+            placeholder   = "+60 12 345 6789",
+            keyboardType  = KeyboardType.Phone
         )
 
-        Spacer(Modifier.height(25.dp))
+        Spacer(Modifier.height(8.dp))
 
-        // ── Confirm Password field ─────────────────────────────
-        RegInputField(
-            label            = "Confirm Password",
-            value            = confirmPassword,
-            onValueChange    = { confirmPassword = it; passwordMismatchError = false },
-            placeholder      = "Password",
-            keyboardType     = KeyboardType.Password,
-            isPassword       = true,
-            passwordVisible  = confirmPasswordVisible,
-            onTogglePassword = { confirmPasswordVisible = !confirmPasswordVisible }
+        Text(
+            text = "We'll send a verification code to your email",
+            fontSize = 13.sp,
+            color = RegGray
         )
 
-        if (passwordMismatchError) {
-            Spacer(Modifier.height(6.dp))
+        if (errorMessage != null) {
+            Spacer(Modifier.height(8.dp))
             Text(
-                text     = "Passwords do not match",
-                color    = Color(0xFFE53935),
+                text = errorMessage ?: "",
                 fontSize = 13.sp,
-                modifier = Modifier.padding(start = 4.dp)
+                color = Color(0xFFE53935)
             )
         }
 
@@ -154,18 +143,29 @@ fun RegistrationScreen(navigator: AppNavigator) {
         // ── Sign Up button ─────────────────────────────────────
         Button(
             onClick = {
-                if (password != confirmPassword) {
-                    passwordMismatchError = true
-                } else {
-                    passwordMismatchError = false
-                    navigator.navigateTo(Screen.OtpVerification)
+                errorMessage = null
+                isLoading = true
+                authViewModel.driverName = name
+                authViewModel.driverEmail = email
+                authViewModel.driverPhone = phone
+                coroutineScope.launch {
+                    try {
+                        SupabaseConfig.client.auth.signInWith(OTP) {
+                            this.email = email
+                        }
+                        authViewModel.onOtpSent(email)
+                        navigator.navigateTo(Screen.OtpVerification)
+                    } catch (e: Exception) {
+                        errorMessage = e.message ?: "Failed to send OTP"
+                        isLoading = false
+                    }
                 }
             },
             modifier  = Modifier
                 .fillMaxWidth()
                 .height(60.dp),
             shape     = RoundedCornerShape(10.dp),
-            enabled   = signUpEnabled,
+            enabled   = signUpEnabled && !isLoading,
             colors    = ButtonDefaults.buttonColors(
                 containerColor         = RegBlue,
                 disabledContainerColor = Color(0xFFE0E0E0)
@@ -175,11 +175,19 @@ fun RegistrationScreen(navigator: AppNavigator) {
                 pressedElevation = 4.dp
             )
         ) {
-            Text(
-                text       = "Sign Up",
-                fontWeight = FontWeight.SemiBold,
-                fontSize   = 18.sp
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text       = "Sign Up",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize   = 18.sp
+                )
+            }
         }
 
         Spacer(Modifier.height(30.dp))   // outer gap-[30px] between form and options

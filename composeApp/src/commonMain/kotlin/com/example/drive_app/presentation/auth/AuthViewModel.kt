@@ -6,14 +6,14 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.drive_app.data.model.*
+import com.example.drive_app.data.network.SupabaseConfig
+import com.example.drive_app.data.network.getToken
+import com.example.drive_app.data.network.saveToken
 import com.example.drive_app.di.ServiceLocator
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-/**
- * AuthViewModel — Handles all authentication and onboarding state.
- * Manages OTP flow, registration, document upload, and vehicle details.
- */
 class AuthViewModel : ViewModel() {
 
     private val repository = ServiceLocator.authRepository
@@ -41,52 +41,87 @@ class AuthViewModel : ViewModel() {
     private val _verificationState = MutableStateFlow<UiState<Driver>>(UiState.Idle)
     val verificationState: StateFlow<UiState<Driver>> = _verificationState.asStateFlow()
 
+    // ---- Session State ----
+    private val _hasValidSession = MutableStateFlow(false)
+    val hasValidSession: StateFlow<Boolean> = _hasValidSession.asStateFlow()
+
     // ---- Form Fields ----
-    var phoneNumber by mutableStateOf("")
+    var driverEmail by mutableStateOf("")
     var otpCode by mutableStateOf("")
     var driverName by mutableStateOf("")
-    var driverEmail by mutableStateOf("")
+    var driverPhone by mutableStateOf("")
     var emergencyContact by mutableStateOf("")
 
     // ---- Uploaded Documents Tracker ----
     private val _uploadedDocuments = MutableStateFlow<List<Document>>(emptyList())
     val uploadedDocuments: StateFlow<List<Document>> = _uploadedDocuments.asStateFlow()
 
-    /** Send OTP to the provided phone number */
-    fun sendOtp(phone: String, countryCode: String = "+91") {
-        phoneNumber = phone
+    init {
+        repository.checkExistingSession()
+        checkExistingSupabaseSession()
+    }
+
+    private fun checkExistingSupabaseSession() {
         viewModelScope.launch {
-            _otpSendState.value = UiState.Loading
-            repository.sendOtp(phone, countryCode)
-                .onSuccess { _otpSendState.value = UiState.Success(true) }
-                .onFailure { _otpSendState.value = UiState.Error(it.message ?: "Failed to send OTP") }
+            try {
+                val session = SupabaseConfig.client.auth.currentSessionOrNull()
+                if (session != null) {
+                    saveToken(session.accessToken)
+                    _hasValidSession.value = true
+                }
+            } catch (_: Exception) {
+                // No valid session — user needs to log in
+            }
         }
     }
 
-    /** Verify OTP code entered by user */
-    fun verifyOtp(otp: String) {
-        otpCode = otp
+    /**
+     * Called after Supabase OTP sends successfully.
+     * The OTP is sent directly via Supabase SDK on the client side.
+     * This just updates the UI state.
+     */
+    fun onOtpSent(email: String) {
+        driverEmail = email
+        _otpSendState.value = UiState.Success(true)
+    }
+
+    fun onOtpSendError(error: String) {
+        _otpSendState.value = UiState.Error(error)
+    }
+
+    fun setOtpLoading() {
+        _otpSendState.value = UiState.Loading
+    }
+
+    /**
+     * Called after Supabase OTP verification succeeds.
+     * Saves the Supabase token and syncs driver with backend.
+     */
+    fun onSupabaseTokenReceived(token: String) {
+        saveToken(token)
         viewModelScope.launch {
             _otpVerifyState.value = UiState.Loading
-            repository.verifyOtp(phoneNumber, otp)
+            repository.syncDriver()
                 .onSuccess { response ->
-                    if (response.success) {
-                        _otpVerifyState.value = UiState.Success(response)
-                    } else {
-                        _otpVerifyState.value = UiState.Error(response.message)
-                    }
+                    _otpVerifyState.value = UiState.Success(response)
                 }
-                .onFailure { _otpVerifyState.value = UiState.Error(it.message ?: "Verification failed") }
+                .onFailure {
+                    _otpVerifyState.value = UiState.Error(it.message ?: "Sync failed")
+                }
         }
     }
 
-    /** Register a new driver */
+    fun onOtpVerifyError(error: String) {
+        _otpVerifyState.value = UiState.Error(error)
+    }
+
+    /** Register a new driver with details */
     fun registerDriver() {
         viewModelScope.launch {
             _registrationState.value = UiState.Loading
             val driver = Driver(
                 name = driverName,
-                phone = phoneNumber,
+                phone = driverPhone,
                 email = driverEmail,
                 emergencyContact = emergencyContact
             )
@@ -96,15 +131,14 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    /** Upload a driver document (license, registration, etc.) */
+    /** Upload a driver document */
     fun uploadDocument(type: DocumentType) {
         viewModelScope.launch {
             _documentUploadState.value = UiState.Loading
-            val document = Document(type = type, imageUrl = "dummy_image_url_${type.name}")
+            val document = Document(type = type, imageUrl = "placeholder")
             repository.uploadDocument(document)
                 .onSuccess { doc ->
                     _documentUploadState.value = UiState.Success(doc)
-                    // Update local documents list
                     val current = _uploadedDocuments.value.toMutableList()
                     val existingIndex = current.indexOfFirst { it.type == doc.type }
                     if (existingIndex >= 0) current[existingIndex] = doc
