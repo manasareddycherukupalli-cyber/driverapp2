@@ -32,6 +32,10 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.firebase.messaging)
+            implementation(libs.credentials)
+            implementation(libs.credentials.play.services)
+            implementation(libs.googleid)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -52,6 +56,7 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.supabase.auth.kt)
+            implementation(libs.supabase.compose.auth)
             implementation(libs.supabase.storage.kt)
             implementation(libs.supabase.realtime.kt)
         }
@@ -62,11 +67,11 @@ kotlin {
 }
 
 android {
-    namespace = "com.example.drive_app"
+    namespace = "com.company.carryon"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.example.drive_app"
+        applicationId = "com.company.carryon"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
@@ -90,7 +95,5 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.messaging)
 }
 

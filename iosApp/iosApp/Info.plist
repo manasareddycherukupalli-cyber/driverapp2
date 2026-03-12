@@ -8,5 +8,16 @@
 	<string>Required to upload your driver documents for verification.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Required to take photos of your driver documents for verification.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.company.carryon</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.company.carryon</string>
+		</dict>
+	</array>
 </dict>
 </plist>
