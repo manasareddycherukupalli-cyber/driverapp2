@@ -1,9 +1,11 @@
 package com.company.carryon.data.network
 
+import io.github.jan.supabase.auth.auth
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.*
+import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
@@ -14,6 +16,27 @@ object HttpClientFactory {
     val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
+        encodeDefaults = true  // Required to serialize fields with default values (e.g., Document.type)
+    }
+
+    /**
+     * Gets the current valid access token from Supabase.
+     * Supabase SDK handles token refresh automatically.
+     */
+    fun getCurrentAccessToken(): String? {
+        return try {
+            val session = SupabaseConfig.client.auth.currentSessionOrNull()
+            val token = session?.accessToken
+            if (token != null) {
+                println("[Auth] Got fresh token from Supabase session")
+            } else {
+                println("[Auth] No Supabase session, falling back to stored token")
+            }
+            token ?: getToken()
+        } catch (e: Exception) {
+            println("[Auth] Error getting Supabase session: ${e.message}, using stored token")
+            getToken()
+        }
     }
 
     val client: HttpClient by lazy {
@@ -21,19 +44,29 @@ object HttpClientFactory {
             install(ContentNegotiation) {
                 json(json)
             }
+            install(Logging) {
+                logger = object : Logger {
+                    override fun log(message: String) {
+                        println("[HTTP] $message")
+                    }
+                }
+                level = LogLevel.BODY
+            }
             install(HttpTimeout) {
                 requestTimeoutMillis = 30_000
                 connectTimeoutMillis = 15_000
                 socketTimeoutMillis = 30_000
             }
+            // Set base URL in defaultRequest, but NOT the token
             defaultRequest {
                 url(apiBaseUrl())
-                getToken()?.let { headers.append("Authorization", "Bearer $it") }
             }
             HttpResponseValidator {
                 validateResponse { response ->
+                    println("[HTTP] Response status: ${response.status.value}")
                     if (response.status.value >= 400) {
                         val body = response.bodyAsText()
+                        println("[HTTP] Error response body: $body")
                         val message = try {
                             json.parseToJsonElement(body).jsonObject["message"]?.jsonPrimitive?.content
                                 ?: "Request failed"
@@ -45,5 +78,19 @@ object HttpClientFactory {
                 }
             }
         }
+    }
+}
+
+/**
+ * Extension function to add auth header with fresh token to any request.
+ * Use this instead of relying on defaultRequest for auth.
+ */
+fun HttpRequestBuilder.withAuth() {
+    val token = HttpClientFactory.getCurrentAccessToken()
+    if (token != null) {
+        println("[HTTP] Adding auth token: ${token.take(20)}...")
+        headers.append("Authorization", "Bearer $token")
+    } else {
+        println("[HTTP] WARNING: No auth token available!")
     }
 }

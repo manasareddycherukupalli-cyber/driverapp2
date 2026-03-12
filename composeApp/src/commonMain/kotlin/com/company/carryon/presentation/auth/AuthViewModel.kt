@@ -13,6 +13,7 @@ import com.company.carryon.di.ServiceLocator
 import com.company.carryon.presentation.navigation.Screen
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -21,6 +22,12 @@ enum class AuthFlowType { LOGIN, SIGNUP }
 class AuthViewModel : ViewModel() {
 
     private val repository = ServiceLocator.authRepository
+
+    // Global exception handler for coroutines to prevent unhandled crashes on iOS
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        println("AuthViewModel coroutine exception: ${throwable.message}")
+        throwable.printStackTrace()
+    }
 
     // ---- OTP Flow State ----
     private val _otpSendState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
@@ -140,30 +147,44 @@ class AuthViewModel : ViewModel() {
 
     /** Upload a driver document — uploads image to Supabase Storage, then saves metadata to backend */
     fun uploadDocument(type: DocumentType, imageBytes: ByteArray) {
-        viewModelScope.launch {
+        viewModelScope.launch(exceptionHandler) {
             try {
                 _documentUploadState.value = UiState.Loading
+                println("Starting document upload for type: ${type.name}")
 
                 // 1. Upload image bytes to Supabase Storage
                 val sanitizedEmail = driverEmail.replace("@", "_").replace(".", "_").ifEmpty { "unknown" }
                 val path = "drivers/$sanitizedEmail/${type.name.lowercase()}.jpg"
+                println("Uploading to Supabase Storage: $path")
+                
                 val bucket = SupabaseConfig.client.storage.from("driver-documents")
                 bucket.upload(path, imageBytes) { upsert = true }
                 val publicUrl = bucket.publicUrl(path)
+                println("Supabase upload successful. URL: $publicUrl")
 
                 // 2. Save document metadata (with real URL) to backend
                 val document = Document(type = type, imageUrl = publicUrl)
+                println("Saving document metadata to backend...")
+                
                 repository.uploadDocument(document)
                     .onSuccess { doc ->
+                        println("Backend save successful: ${doc.id}")
                         _documentUploadState.value = UiState.Success(doc)
                         val current = _uploadedDocuments.value.toMutableList()
                         val existingIndex = current.indexOfFirst { it.type == doc.type }
                         if (existingIndex >= 0) current[existingIndex] = doc
                         else current.add(doc)
                         _uploadedDocuments.value = current
+                        println("Updated uploaded documents list. Count: ${_uploadedDocuments.value.size}")
                     }
-                    .onFailure { _documentUploadState.value = UiState.Error(it.message ?: "Upload failed") }
+                    .onFailure { error ->
+                        println("Backend save failed: ${error.message}")
+                        error.printStackTrace()
+                        _documentUploadState.value = UiState.Error(error.message ?: "Upload failed")
+                    }
             } catch (t: Throwable) {
+                println("Document upload exception: ${t.message}")
+                t.printStackTrace()
                 _documentUploadState.value = UiState.Error(t.message ?: "Upload failed")
             }
         }

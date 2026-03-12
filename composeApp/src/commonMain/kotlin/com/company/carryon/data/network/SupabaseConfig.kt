@@ -10,7 +10,7 @@ import io.github.jan.supabase.storage.Storage
 
 object SupabaseConfig {
     // Web Client ID from Google Cloud Console (OAuth 2.0 > Web application)
-    const val GOOGLE_WEB_CLIENT_ID = "955810867262-ttbg70n8ttmp8jb3vv1he6abr9qkrn06.apps.googleusercontent.com  "
+    const val GOOGLE_WEB_CLIENT_ID = "955810867262-ttbg70n8ttmp8jb3vv1he6abr9qkrn06.apps.googleusercontent.com"
 
     // Deep link scheme for iOS OAuth callback
     const val DEEP_LINK_SCHEME = "com.company.carryon"

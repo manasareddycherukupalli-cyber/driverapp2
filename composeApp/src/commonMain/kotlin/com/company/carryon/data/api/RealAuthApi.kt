@@ -2,6 +2,7 @@ package com.company.carryon.data.api
 
 import com.company.carryon.data.model.*
 import com.company.carryon.data.network.HttpClientFactory
+import com.company.carryon.data.network.withAuth
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -18,6 +19,7 @@ class RealAuthApi : AuthApi {
         // OTP verification happens via Supabase client-side
         // After that, we call sync to create/find driver in our backend
         val response: AuthResponse = client.post("/api/driver/auth/sync") {
+            withAuth()
             contentType(ContentType.Application.Json)
             setBody(SyncRequest())
         }.body()
@@ -26,6 +28,7 @@ class RealAuthApi : AuthApi {
 
     override suspend fun registerDriver(driver: Driver): Result<AuthResponse> = runCatching {
         val response: AuthResponse = client.post("/api/driver/auth/register") {
+            withAuth()
             contentType(ContentType.Application.Json)
             setBody(RegisterRequest(
                 name = driver.name,
@@ -37,15 +40,19 @@ class RealAuthApi : AuthApi {
     }
 
     override suspend fun uploadDocument(driverId: String, document: Document): Result<Document> = runCatching {
+        println("[RealAuthApi] Uploading document: type=${document.type}, imageUrl=${document.imageUrl}")
         val response: ApiResponse<Document> = client.post("/api/driver/documents") {
+            withAuth()
             contentType(ContentType.Application.Json)
             setBody(document)
         }.body()
-        response.data ?: throw Exception("Upload failed")
+        println("[RealAuthApi] Upload response: success=${response.success}, data=${response.data}")
+        response.data ?: throw Exception(response.message ?: "Upload failed - no data returned")
     }
 
     override suspend fun updateVehicleDetails(driverId: String, vehicle: VehicleDetails): Result<VehicleDetails> = runCatching {
         val response: ApiResponse<VehicleDetails> = client.post("/api/driver/vehicle") {
+            withAuth()
             contentType(ContentType.Application.Json)
             setBody(vehicle)
         }.body()
@@ -53,17 +60,22 @@ class RealAuthApi : AuthApi {
     }
 
     override suspend fun getVerificationStatus(driverId: String): Result<Driver> = runCatching {
-        val response: ApiResponse<Driver> = client.get("/api/driver/profile").body()
+        val response: ApiResponse<Driver> = client.get("/api/driver/profile") {
+            withAuth()
+        }.body()
         response.data ?: throw Exception("Failed to get profile")
     }
 
     override suspend fun getDriverProfile(driverId: String): Result<Driver> = runCatching {
-        val response: ApiResponse<Driver> = client.get("/api/driver/profile").body()
+        val response: ApiResponse<Driver> = client.get("/api/driver/profile") {
+            withAuth()
+        }.body()
         response.data ?: throw Exception("Failed to get profile")
     }
 
     override suspend fun updateDriverProfile(driver: Driver): Result<Driver> = runCatching {
         val response: ApiResponse<Driver> = client.put("/api/driver/profile") {
+            withAuth()
             contentType(ContentType.Application.Json)
             setBody(driver)
         }.body()
@@ -72,6 +84,7 @@ class RealAuthApi : AuthApi {
 
     override suspend fun toggleOnlineStatus(driverId: String, isOnline: Boolean): Result<Boolean> = runCatching {
         client.post("/api/driver/profile/toggle-online") {
+            withAuth()
             contentType(ContentType.Application.Json)
             setBody(mapOf("isOnline" to isOnline))
         }
@@ -80,6 +93,7 @@ class RealAuthApi : AuthApi {
 
     override suspend fun updateFcmToken(driverId: String, fcmToken: String): Result<Boolean> = runCatching {
         client.put("/api/driver/profile/fcm-token") {
+            withAuth()
             contentType(ContentType.Application.Json)
             setBody(mapOf("fcmToken" to fcmToken))
         }

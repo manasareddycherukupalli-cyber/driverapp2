@@ -19,11 +19,17 @@ import platform.darwin.NSObject
 actual class ImagePickerLauncher(
     private val onImagePicked: (ByteArray) -> Unit
 ) {
+    // IMPORTANT: Retain delegate as a class property to prevent deallocation
+    // while the UIImagePickerController is still presented.
+    // Without this, the delegate gets garbage collected and causes SIGABRT crash.
+    private var currentDelegate: NSObject? = null
+
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     actual fun launch() {
         val picker = UIImagePickerController()
         picker.sourceType = UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypePhotoLibrary
 
+        val launcher = this
         val delegate = object : NSObject(),
             UIImagePickerControllerDelegateProtocol,
             UINavigationControllerDelegateProtocol {
@@ -42,13 +48,16 @@ actual class ImagePickerLauncher(
                     }
                 }
                 picker.dismissViewControllerAnimated(true, completion = null)
+                launcher.currentDelegate = null  // Release delegate after dismissal
             }
 
             override fun imagePickerControllerDidCancel(picker: UIImagePickerController) {
                 picker.dismissViewControllerAnimated(true, completion = null)
+                launcher.currentDelegate = null  // Release delegate after dismissal
             }
         }
 
+        currentDelegate = delegate  // Retain the delegate to prevent GC
         picker.delegate = delegate
 
         UIApplication.sharedApplication.keyWindow

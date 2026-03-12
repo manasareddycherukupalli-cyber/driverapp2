@@ -54,6 +54,7 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.client.logging)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.supabase.auth.kt)
             implementation(libs.supabase.compose.auth)

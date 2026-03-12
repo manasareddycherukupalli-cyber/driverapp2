@@ -65,8 +65,8 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     }
 
     override suspend fun uploadDocument(document: Document): Result<Document> {
-        val driverId = _currentDriver.value?.id ?: return Result.failure(Exception("Not logged in"))
-        val result = api.uploadDocument(driverId, document)
+        // Note: driverId is extracted from JWT token on the backend, so we don't need it here
+        val result = api.uploadDocument("", document)
         result.getOrNull()?.let { uploadedDoc ->
             _currentDriver.value = _currentDriver.value?.let { driver ->
                 val updatedDocs = driver.documents.toMutableList()

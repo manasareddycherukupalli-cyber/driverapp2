@@ -184,12 +184,15 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                 val otp = otpValues.joinToString("")
                 coroutineScope.launch {
                     try {
+                        // Use the OTP provider's verifyEmailOtp method
                         SupabaseConfig.client.auth.verifyEmailOtp(
                             type = OtpType.Email.EMAIL,
                             email = authViewModel.driverEmail,
                             token = otp
                         )
-                        val accessToken = SupabaseConfig.client.auth.currentSessionOrNull()?.accessToken
+                        // Get the session after successful verification
+                        val session = SupabaseConfig.client.auth.currentSessionOrNull()
+                        val accessToken = session?.accessToken
                         if (accessToken != null) {
                             authViewModel.onSupabaseTokenReceived(accessToken)
                             // Wait for sync result and route accordingly
@@ -213,7 +216,11 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                             isVerifying = false
                         }
                     } catch (e: Exception) {
-                        errorMessage = e.message ?: "OTP verification failed"
+                        val msg = e.message ?: "OTP verification failed"
+                        // Log the full error for debugging
+                        println("OTP Verification Error: $msg")
+                        println("Email used: ${authViewModel.driverEmail}")
+                        errorMessage = msg
                         isVerifying = false
                     }
                 }
