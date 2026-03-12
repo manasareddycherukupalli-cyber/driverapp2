@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class MapViewModel : ViewModel() {
 
     // Driver's current location
-    private val _driverLocation = MutableStateFlow(Pair(12.9716, 77.5946)) // Bangalore default
+    private val _driverLocation = MutableStateFlow(Pair(3.1390, 101.6869)) // Kuala Lumpur default
     val driverLocation: StateFlow<Pair<Double, Double>> = _driverLocation.asStateFlow()
 
     // Whether tracking is active

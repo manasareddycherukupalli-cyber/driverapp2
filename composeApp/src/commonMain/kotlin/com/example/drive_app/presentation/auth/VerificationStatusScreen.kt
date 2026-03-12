@@ -151,12 +151,6 @@ private fun VerificationContent(driver: Driver, navigator: AppNavigator) {
                 text = "Refresh Status",
                 onClick = { /* viewModel.checkVerificationStatus() */ }
             )
-            Spacer(Modifier.height(12.dp))
-            // For demo: allow proceeding
-            PrimaryButton(
-                text = "Continue to Home (Demo)",
-                onClick = { navigator.navigateAndClearStack(Screen.Home) }
-            )
         }
 
         Spacer(Modifier.height(24.dp))

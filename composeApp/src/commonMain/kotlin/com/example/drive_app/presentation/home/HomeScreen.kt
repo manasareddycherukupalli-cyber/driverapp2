@@ -131,7 +131,7 @@ private fun HomeHeader(
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Hello, Rajesh! 👋",
+                            text = "Hello, Ahmad! 👋",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp

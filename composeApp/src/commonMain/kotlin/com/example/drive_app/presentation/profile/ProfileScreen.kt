@@ -72,12 +72,12 @@ fun ProfileScreen(navigator: AppNavigator) {
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = driver?.name ?: "Rajesh Kumar",
+                        text = driver?.name ?: "Ahmad bin Hassan",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     )
                     Text(
-                        text = driver?.phone ?: "+91 9876543210",
+                        text = driver?.phone ?: "+60 12-345 6789",
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -119,12 +119,12 @@ fun ProfileScreen(navigator: AppNavigator) {
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "${driver?.vehicleDetails?.make ?: "Honda"} ${driver?.vehicleDetails?.model ?: "CB Shine"}",
+                        text = "${driver?.vehicleDetails?.make ?: "Honda"} ${driver?.vehicleDetails?.model ?: "EX5"}",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp
                     )
                     Text(
-                        text = driver?.vehicleDetails?.licensePlate ?: "MH-12-AB-1234",
+                        text = driver?.vehicleDetails?.licensePlate ?: "WA 1234 B",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

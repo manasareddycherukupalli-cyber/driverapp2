@@ -67,7 +67,7 @@ fun AppNavHost(navigator: AppNavigator) {
             ) { screen ->
                 when (screen) {
                     // ---- Splash ----
-                    Screen.Splash -> SplashScreen(navigator)
+                    Screen.Splash -> SplashScreen(navigator, authViewModel)
 
                     // ---- Auth Flow ----
                     Screen.Onboarding -> OnboardingScreen(navigator)

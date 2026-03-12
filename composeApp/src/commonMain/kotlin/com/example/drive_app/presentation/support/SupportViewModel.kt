@@ -98,7 +98,7 @@ class SupportViewModel : ViewModel() {
     fun triggerSos() {
         viewModelScope.launch {
             _sosState.value = UiState.Loading
-            repository.triggerSos(12.9716, 77.5946) // Current location
+            repository.triggerSos(3.1390, 101.6869) // Current location
                 .onSuccess { _sosState.value = UiState.Success(true) }
                 .onFailure { _sosState.value = UiState.Error(it.message ?: "SOS failed") }
         }

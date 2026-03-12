@@ -10,19 +10,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import com.example.drive_app.data.model.UiState
+import com.example.drive_app.data.network.SupabaseConfig
 import com.example.drive_app.presentation.navigation.AppNavigator
 import com.example.drive_app.presentation.navigation.Screen
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.splash_illustration
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
 
 /**
  * SplashScreen — white background, illustration centred and fitted to screen width.
+ * Checks for existing session and routes accordingly.
  */
 @Composable
-fun SplashScreen(navigator: AppNavigator) {
+fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     val alpha = remember { Animatable(0f) }
+    val sessionSyncState by authViewModel.sessionSyncState.collectAsState()
 
     LaunchedEffect(Unit) {
         alpha.animateTo(
@@ -30,7 +35,36 @@ fun SplashScreen(navigator: AppNavigator) {
             animationSpec = tween(durationMillis = 600)
         )
         delay(2000)
-        navigator.navigateAndClearStack(Screen.Login)
+
+        // Check for existing Supabase session
+        val session = try {
+            SupabaseConfig.client.auth.currentSessionOrNull()
+        } catch (_: Exception) {
+            null
+        }
+
+        if (session != null) {
+            // Has session — sync driver and route based on profile completeness
+            authViewModel.syncDriverForSession()
+        } else {
+            // No session — go to onboarding
+            navigator.navigateAndClearStack(Screen.Onboarding)
+        }
+    }
+
+    // Observe sync result for existing session
+    LaunchedEffect(sessionSyncState) {
+        when (val state = sessionSyncState) {
+            is UiState.Success -> {
+                val screen = authViewModel.determinePostAuthScreen(state.data)
+                navigator.navigateAndClearStack(screen)
+            }
+            is UiState.Error -> {
+                // Session exists but sync failed — go to onboarding to re-auth
+                navigator.navigateAndClearStack(Screen.Onboarding)
+            }
+            else -> {} // Loading or Idle — wait
+        }
     }
 
     Box(

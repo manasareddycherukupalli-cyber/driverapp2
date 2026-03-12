@@ -4,5 +4,9 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Required to upload your driver documents for verification.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Required to take photos of your driver documents for verification.</string>
 </dict>
 </plist>

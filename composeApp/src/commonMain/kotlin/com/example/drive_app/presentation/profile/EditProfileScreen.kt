@@ -30,8 +30,8 @@ fun EditProfileScreen(navigator: AppNavigator) {
     val driver by viewModel.currentDriver.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
 
-    var name by remember { mutableStateOf(driver?.name ?: "Rajesh Kumar") }
-    var email by remember { mutableStateOf(driver?.email ?: "rajesh@example.com") }
+    var name by remember { mutableStateOf(driver?.name ?: "Ahmad bin Hassan") }
+    var email by remember { mutableStateOf(driver?.email ?: "ahmad@example.com") }
     var emergencyContact by remember { mutableStateOf(driver?.emergencyContact ?: "") }
 
     LaunchedEffect(updateState) {
@@ -97,7 +97,7 @@ fun EditProfileScreen(navigator: AppNavigator) {
 
             // Phone (read-only)
             OutlinedTextField(
-                value = driver?.phone ?: "+91 9876543210",
+                value = driver?.phone ?: "+60 12-345 6789",
                 onValueChange = {},
                 label = { Text("Phone Number") },
                 leadingIcon = { Icon(Icons.Filled.Phone, contentDescription = null, tint = Orange500) },

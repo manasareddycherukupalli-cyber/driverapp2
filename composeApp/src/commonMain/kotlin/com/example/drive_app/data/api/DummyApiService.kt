@@ -59,6 +59,11 @@ class DummyAuthApi : AuthApi {
         return Result.success(isOnline)
     }
 
+    override suspend fun updateFcmToken(driverId: String, fcmToken: String): Result<Boolean> {
+        delay(200)
+        return Result.success(true)
+    }
+
     private fun createDummyDriver() = Driver(
         id = "DRV_001",
         name = "Ahmad bin Hassan",

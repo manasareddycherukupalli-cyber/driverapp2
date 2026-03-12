@@ -63,7 +63,7 @@ class AppNavigator {
     var selectedJobId by mutableStateOf<String?>(null)
     var selectedTicketId by mutableStateOf<String?>(null)
     var phoneNumber by mutableStateOf("")
-    var countryCode by mutableStateOf("+91")
+    var countryCode by mutableStateOf("+60")
 
     /**
      * Navigate to a new screen, pushing current screen to back stack.

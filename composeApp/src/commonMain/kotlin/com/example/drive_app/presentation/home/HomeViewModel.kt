@@ -3,6 +3,8 @@ package com.example.drive_app.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.drive_app.data.model.*
+import com.example.drive_app.data.network.RealtimeJobService
+import com.example.drive_app.data.network.getFcmToken
 import com.example.drive_app.di.ServiceLocator
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -48,6 +50,7 @@ class HomeViewModel : ViewModel() {
 
     init {
         loadDashboardData()
+        collectRealtimeJobs()
     }
 
     /** Load all dashboard data */
@@ -64,8 +67,51 @@ class HomeViewModel : ViewModel() {
             authRepository.toggleOnline(newStatus)
                 .onSuccess {
                     _isOnline.value = newStatus
-                    if (newStatus) checkForIncomingJobs()
+                    if (newStatus) {
+                        checkForIncomingJobs()
+                        startRealtimeSubscription()
+                        registerFcmToken()
+                    } else {
+                        stopRealtimeSubscription()
+                    }
                 }
+        }
+    }
+
+    private fun registerFcmToken() {
+        val token = getFcmToken() ?: return
+        viewModelScope.launch {
+            authRepository.updateFcmToken(token)
+        }
+    }
+
+    private fun startRealtimeSubscription() {
+        viewModelScope.launch {
+            RealtimeJobService.startListening(viewModelScope)
+        }
+    }
+
+    private fun stopRealtimeSubscription() {
+        viewModelScope.launch {
+            RealtimeJobService.stopListening()
+        }
+    }
+
+    private fun collectRealtimeJobs() {
+        viewModelScope.launch {
+            RealtimeJobService.incomingJobs.collect { job ->
+                // Only show if no job popup is currently displayed
+                if (_incomingJob.value == null) {
+                    _incomingJob.value = job
+                }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        viewModelScope.launch {
+            RealtimeJobService.stopListening()
         }
     }
 

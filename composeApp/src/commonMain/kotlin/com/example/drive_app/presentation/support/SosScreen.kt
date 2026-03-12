@@ -120,11 +120,11 @@ fun SosScreen(navigator: AppNavigator) {
             )
             Spacer(Modifier.height(12.dp))
 
-            EmergencyContactCard("🚔", "Police", "100")
+            EmergencyContactCard("🚔", "Police", "999")
             Spacer(Modifier.height(8.dp))
-            EmergencyContactCard("🚑", "Ambulance", "108")
+            EmergencyContactCard("🚑", "Ambulance", "999")
             Spacer(Modifier.height(8.dp))
-            EmergencyContactCard("👤", "Emergency Contact", "+91 98765 43210")
+            EmergencyContactCard("👤", "Emergency Contact", "+60 12-345 6789")
         }
     }
 

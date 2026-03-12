@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.googleServices)
 }
 
 kotlin {
@@ -51,6 +52,8 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.supabase.auth.kt)
+            implementation(libs.supabase.storage.kt)
+            implementation(libs.supabase.realtime.kt)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -87,5 +90,7 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 }
 

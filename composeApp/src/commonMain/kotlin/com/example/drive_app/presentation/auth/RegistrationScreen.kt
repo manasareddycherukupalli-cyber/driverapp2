@@ -1,6 +1,5 @@
 package com.example.drive_app.presentation.auth
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -145,6 +144,7 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             onClick = {
                 errorMessage = null
                 isLoading = true
+                authViewModel.authFlowType = AuthFlowType.SIGNUP
                 authViewModel.driverName = name
                 authViewModel.driverEmail = email
                 authViewModel.driverPhone = phone
@@ -220,26 +220,6 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             RegSocialButton(Res.drawable.ic_google) {}
             Spacer(Modifier.width(10.dp))
             RegSocialButton(Res.drawable.ic_facebook) {}
-        }
-
-        Spacer(Modifier.height(20.dp))
-
-        // ── Continue as a Guest ────────────────────────────────
-        OutlinedButton(
-            onClick  = { navigator.navigateAndClearStack(Screen.Home) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            shape    = RoundedCornerShape(10.dp),
-            border   = BorderStroke(1.dp, RegBlue),
-            colors   = ButtonDefaults.outlinedButtonColors(contentColor = RegBlue)
-        ) {
-            Text(
-                text       = "Continue as a Guest",
-                fontWeight = FontWeight.SemiBold,
-                fontSize   = 16.sp,
-                color      = RegBlue
-            )
         }
 
         Spacer(Modifier.height(28.dp))   // bottom padding

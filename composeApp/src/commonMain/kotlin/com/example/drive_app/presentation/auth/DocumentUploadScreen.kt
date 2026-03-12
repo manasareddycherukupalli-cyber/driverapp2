@@ -1,5 +1,6 @@
 package com.example.drive_app.presentation.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,6 +13,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,6 +24,8 @@ import com.example.drive_app.presentation.components.*
 import com.example.drive_app.presentation.navigation.AppNavigator
 import com.example.drive_app.presentation.navigation.Screen
 import com.example.drive_app.presentation.theme.*
+import com.example.drive_app.presentation.util.rememberImagePickerLauncher
+import com.example.drive_app.presentation.util.toImageBitmap
 
 /**
  * DocumentUploadScreen — Upload required documents for verification.
@@ -29,6 +35,71 @@ import com.example.drive_app.presentation.theme.*
 fun DocumentUploadScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
     val uploadState by viewModel.documentUploadState.collectAsState()
     val uploadedDocs by viewModel.uploadedDocuments.collectAsState()
+    var pendingUploadType by remember { mutableStateOf<DocumentType?>(null) }
+    var pendingBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var pendingDocType by remember { mutableStateOf<DocumentType?>(null) }
+
+    val imagePicker = rememberImagePickerLauncher { bytes ->
+        pendingBytes = bytes
+        pendingDocType = pendingUploadType
+    }
+
+    // Confirmation dialog
+    if (pendingBytes != null && pendingDocType != null) {
+        AlertDialog(
+            onDismissRequest = {
+                pendingBytes = null
+                pendingDocType = null
+            },
+            title = {
+                Text(
+                    text = pendingDocType!!.displayName,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Upload this photo?",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    Image(
+                        painter = BitmapPainter(pendingBytes!!.toImageBitmap()),
+                        contentDescription = "Preview of ${pendingDocType!!.displayName}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(200.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.uploadDocument(pendingDocType!!, pendingBytes!!)
+                        pendingUploadType = pendingDocType
+                        pendingBytes = null
+                        pendingDocType = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Orange500)
+                ) {
+                    Text("Upload", fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        pendingBytes = null
+                        pendingDocType = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -67,8 +138,11 @@ fun DocumentUploadScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
                 DocumentUploadItem(
                     documentType = docType,
                     status = uploadedDoc?.status,
-                    isUploading = uploadState is UiState.Loading,
-                    onUpload = { viewModel.uploadDocument(docType) }
+                    isUploading = uploadState is UiState.Loading && pendingUploadType == docType,
+                    onUpload = {
+                        pendingUploadType = docType
+                        imagePicker.launch()
+                    }
                 )
             }
 
@@ -166,25 +240,50 @@ private fun DocumentUploadItem(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(2.dp))
-                Text(
-                    text = statusText,
-                    fontSize = 13.sp,
-                    color = statusColor,
-                    fontWeight = FontWeight.Medium
-                )
+                if (isUploading) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(12.dp),
+                            strokeWidth = 2.dp,
+                            color = Orange500
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "Uploading…",
+                            fontSize = 13.sp,
+                            color = Orange500,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                } else {
+                    Text(
+                        text = statusText,
+                        fontSize = 13.sp,
+                        color = statusColor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             // Upload button or status icon
             if (status == null || status == DocumentStatus.REJECTED) {
-                FilledTonalButton(
-                    onClick = onUpload,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = Orange100,
-                        contentColor = Orange500
+                if (isUploading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = Orange500
                     )
-                ) {
-                    Text("Upload", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                } else {
+                    FilledTonalButton(
+                        onClick = onUpload,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Orange100,
+                            contentColor = Orange500
+                        )
+                    ) {
+                        Text("Upload", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
                 }
             } else {
                 Icon(

@@ -10,9 +10,13 @@ import com.example.drive_app.data.network.SupabaseConfig
 import com.example.drive_app.data.network.getToken
 import com.example.drive_app.data.network.saveToken
 import com.example.drive_app.di.ServiceLocator
+import com.example.drive_app.presentation.navigation.Screen
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+
+enum class AuthFlowType { LOGIN, SIGNUP }
 
 class AuthViewModel : ViewModel() {
 
@@ -44,6 +48,9 @@ class AuthViewModel : ViewModel() {
     // ---- Session State ----
     private val _hasValidSession = MutableStateFlow(false)
     val hasValidSession: StateFlow<Boolean> = _hasValidSession.asStateFlow()
+
+    // ---- Auth Flow Type ----
+    var authFlowType by mutableStateOf(AuthFlowType.LOGIN)
 
     // ---- Form Fields ----
     var driverEmail by mutableStateOf("")
@@ -131,21 +138,34 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    /** Upload a driver document */
-    fun uploadDocument(type: DocumentType) {
+    /** Upload a driver document — uploads image to Supabase Storage, then saves metadata to backend */
+    fun uploadDocument(type: DocumentType, imageBytes: ByteArray) {
         viewModelScope.launch {
-            _documentUploadState.value = UiState.Loading
-            val document = Document(type = type, imageUrl = "placeholder")
-            repository.uploadDocument(document)
-                .onSuccess { doc ->
-                    _documentUploadState.value = UiState.Success(doc)
-                    val current = _uploadedDocuments.value.toMutableList()
-                    val existingIndex = current.indexOfFirst { it.type == doc.type }
-                    if (existingIndex >= 0) current[existingIndex] = doc
-                    else current.add(doc)
-                    _uploadedDocuments.value = current
-                }
-                .onFailure { _documentUploadState.value = UiState.Error(it.message ?: "Upload failed") }
+            try {
+                _documentUploadState.value = UiState.Loading
+
+                // 1. Upload image bytes to Supabase Storage
+                val sanitizedEmail = driverEmail.replace("@", "_").replace(".", "_").ifEmpty { "unknown" }
+                val path = "drivers/$sanitizedEmail/${type.name.lowercase()}.jpg"
+                val bucket = SupabaseConfig.client.storage.from("driver-documents")
+                bucket.upload(path, imageBytes) { upsert = true }
+                val publicUrl = bucket.publicUrl(path)
+
+                // 2. Save document metadata (with real URL) to backend
+                val document = Document(type = type, imageUrl = publicUrl)
+                repository.uploadDocument(document)
+                    .onSuccess { doc ->
+                        _documentUploadState.value = UiState.Success(doc)
+                        val current = _uploadedDocuments.value.toMutableList()
+                        val existingIndex = current.indexOfFirst { it.type == doc.type }
+                        if (existingIndex >= 0) current[existingIndex] = doc
+                        else current.add(doc)
+                        _uploadedDocuments.value = current
+                    }
+                    .onFailure { _documentUploadState.value = UiState.Error(it.message ?: "Upload failed") }
+            } catch (t: Throwable) {
+                _documentUploadState.value = UiState.Error(t.message ?: "Upload failed")
+            }
         }
     }
 
@@ -181,6 +201,42 @@ class AuthViewModel : ViewModel() {
             repository.getVerificationStatus()
                 .onSuccess { _verificationState.value = UiState.Success(it) }
                 .onFailure { _verificationState.value = UiState.Error(it.message ?: "Failed to check status") }
+        }
+    }
+
+    /** Determine which screen the driver should land on based on profile completeness */
+    fun determinePostAuthScreen(response: AuthResponse): Screen {
+        val driver = response.driver
+        if (response.isNewDriver || authFlowType == AuthFlowType.SIGNUP) {
+            return Screen.DocumentUpload
+        }
+        if (driver == null || driver.documents.isEmpty()) {
+            return Screen.DocumentUpload
+        }
+        if (driver.vehicleDetails == null) {
+            return Screen.VehicleDetailsInput
+        }
+        if (driver.verificationStatus != VerificationStatus.APPROVED) {
+            return Screen.VerificationStatus
+        }
+        return Screen.Home
+    }
+
+    // ---- Session Sync State (for SplashScreen) ----
+    private val _sessionSyncState = MutableStateFlow<UiState<AuthResponse>>(UiState.Idle)
+    val sessionSyncState: StateFlow<UiState<AuthResponse>> = _sessionSyncState.asStateFlow()
+
+    /** Sync driver for an existing session (called from SplashScreen) */
+    fun syncDriverForSession() {
+        viewModelScope.launch {
+            _sessionSyncState.value = UiState.Loading
+            repository.syncDriver()
+                .onSuccess { response ->
+                    _sessionSyncState.value = UiState.Success(response)
+                }
+                .onFailure {
+                    _sessionSyncState.value = UiState.Error(it.message ?: "Sync failed")
+                }
         }
     }
 

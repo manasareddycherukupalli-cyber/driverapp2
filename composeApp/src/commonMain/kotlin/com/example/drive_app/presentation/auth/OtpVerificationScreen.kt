@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.drive_app.data.model.UiState
 import com.example.drive_app.data.network.SupabaseConfig
 import com.example.drive_app.presentation.navigation.AppNavigator
 import com.example.drive_app.presentation.navigation.Screen
@@ -191,7 +192,22 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                         val accessToken = SupabaseConfig.client.auth.currentSessionOrNull()?.accessToken
                         if (accessToken != null) {
                             authViewModel.onSupabaseTokenReceived(accessToken)
-                            navigator.navigateAndClearStack(Screen.Home)
+                            // Wait for sync result and route accordingly
+                            authViewModel.otpVerifyState.collect { state ->
+                                when (state) {
+                                    is UiState.Success -> {
+                                        val screen = authViewModel.determinePostAuthScreen(state.data)
+                                        navigator.navigateAndClearStack(screen)
+                                        return@collect
+                                    }
+                                    is UiState.Error -> {
+                                        // Safe default: send new signups to document upload
+                                        navigator.navigateAndClearStack(Screen.DocumentUpload)
+                                        return@collect
+                                    }
+                                    else -> {} // Loading or Idle — keep waiting
+                                }
+                            }
                         } else {
                             errorMessage = "Verification succeeded but no session found"
                             isVerifying = false

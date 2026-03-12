@@ -112,7 +112,7 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
             OutlinedTextField(
                 value = model,
                 onValueChange = { model = it },
-                label = { Text("Model (e.g., CB Shine)") },
+                label = { Text("Model (e.g., EX5)") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true

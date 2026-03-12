@@ -37,9 +37,10 @@ class RealAuthApi : AuthApi {
     }
 
     override suspend fun uploadDocument(driverId: String, document: Document): Result<Document> = runCatching {
-        // Document upload requires multipart — for now just call the GET to list
-        // Actual upload will be done via multipart form from the screen
-        val response: ApiResponse<Document> = client.get("/api/driver/documents").body()
+        val response: ApiResponse<Document> = client.post("/api/driver/documents") {
+            contentType(ContentType.Application.Json)
+            setBody(document)
+        }.body()
         response.data ?: throw Exception("Upload failed")
     }
 
@@ -73,6 +74,14 @@ class RealAuthApi : AuthApi {
         client.post("/api/driver/profile/toggle-online") {
             contentType(ContentType.Application.Json)
             setBody(mapOf("isOnline" to isOnline))
+        }
+        true
+    }
+
+    override suspend fun updateFcmToken(driverId: String, fcmToken: String): Result<Boolean> = runCatching {
+        client.put("/api/driver/profile/fcm-token") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("fcmToken" to fcmToken))
         }
         true
     }

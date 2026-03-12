@@ -22,6 +22,7 @@ interface AuthRepository {
     suspend fun updateVehicle(vehicle: VehicleDetails): Result<VehicleDetails>
     suspend fun getVerificationStatus(): Result<Driver>
     suspend fun toggleOnline(isOnline: Boolean): Result<Boolean>
+    suspend fun updateFcmToken(fcmToken: String): Result<Boolean>
     suspend fun updateProfile(driver: Driver): Result<Driver>
     suspend fun logout()
     fun checkExistingSession()
@@ -103,6 +104,11 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
             _currentDriver.value = _currentDriver.value?.copy(isOnline = isOnline)
         }
         return result
+    }
+
+    override suspend fun updateFcmToken(fcmToken: String): Result<Boolean> {
+        val driverId = _currentDriver.value?.id ?: return Result.failure(Exception("Not logged in"))
+        return api.updateFcmToken(driverId, fcmToken)
     }
 
     override suspend fun updateProfile(driver: Driver): Result<Driver> {

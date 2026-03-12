@@ -16,6 +16,7 @@ interface AuthApi {
     suspend fun getDriverProfile(driverId: String): Result<Driver>
     suspend fun updateDriverProfile(driver: Driver): Result<Driver>
     suspend fun toggleOnlineStatus(driverId: String, isOnline: Boolean): Result<Boolean>
+    suspend fun updateFcmToken(driverId: String, fcmToken: String): Result<Boolean>
 }
 
 /**

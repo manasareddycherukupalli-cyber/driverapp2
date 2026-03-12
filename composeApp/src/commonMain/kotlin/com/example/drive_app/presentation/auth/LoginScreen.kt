@@ -1,6 +1,5 @@
 package com.example.drive_app.presentation.auth
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -138,6 +137,7 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         Button(
             onClick = {
                 errorMessage = null
+                authViewModel.authFlowType = AuthFlowType.LOGIN
                 authViewModel.driverEmail = email
                 authViewModel.setOtpLoading()
                 coroutineScope.launch {
@@ -211,26 +211,6 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             SocialLoginButton(Res.drawable.ic_google) {}
             Spacer(Modifier.width(10.dp))
             SocialLoginButton(Res.drawable.ic_facebook) {}
-        }
-
-        Spacer(Modifier.height(20.dp))
-
-        // ── Continue as a Guest ────────────────────────────────
-        OutlinedButton(
-            onClick  = { navigator.navigateTo(Screen.LocationPermission) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            shape    = RoundedCornerShape(10.dp),
-            border   = BorderStroke(1.dp, DesignBlue),
-            colors   = ButtonDefaults.outlinedButtonColors(contentColor = DesignBlue)
-        ) {
-            Text(
-                text       = "Continue as a Guest",
-                fontWeight = FontWeight.SemiBold,
-                fontSize   = 16.sp,
-                color      = DesignBlue
-            )
         }
 
         Spacer(Modifier.height(36.dp))
