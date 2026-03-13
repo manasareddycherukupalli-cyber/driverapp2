@@ -29,15 +29,25 @@ class MainActivity : ComponentActivity() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val manager = getSystemService(NotificationManager::class.java)
+
+            val jobChannel = NotificationChannel(
                 "job_requests",
                 "Job Requests",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications for incoming delivery job requests"
             }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            manager.createNotificationChannel(jobChannel)
+
+            val generalChannel = NotificationChannel(
+                "carryon_notifications",
+                "CarryOn Notifications",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "General notifications from CarryOn"
+            }
+            manager.createNotificationChannel(generalChannel)
         }
     }
 

@@ -83,12 +83,13 @@ class RealAuthApi : AuthApi {
     }
 
     override suspend fun toggleOnlineStatus(driverId: String, isOnline: Boolean): Result<Boolean> = runCatching {
-        client.post("/api/driver/profile/toggle-online") {
+        val response: ApiResponse<Driver> = client.post("/api/driver/profile/toggle-online") {
             withAuth()
             contentType(ContentType.Application.Json)
             setBody(mapOf("isOnline" to isOnline))
-        }
-        true
+        }.body()
+        if (!response.success) throw Exception(response.message ?: "Toggle failed")
+        response.data?.isOnline ?: throw Exception("Missing isOnline in response")
     }
 
     override suspend fun updateFcmToken(driverId: String, fcmToken: String): Result<Boolean> = runCatching {

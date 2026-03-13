@@ -54,17 +54,19 @@ class HomeViewModel : ViewModel() {
         initOnlineStatusFromDriver()
     }
 
-    /** Initialize online status from the driver's server-side state */
+    /** Initialize and continuously sync online status from the driver's server-side state */
     private fun initOnlineStatusFromDriver() {
         viewModelScope.launch {
             authRepository.currentDriver
                 .filterNotNull()
-                .first()
-                .let { driver ->
+                .distinctUntilChanged { old, new -> old.isOnline == new.isOnline }
+                .collect { driver ->
                     _isOnline.value = driver.isOnline
                     if (driver.isOnline) {
                         startRealtimeSubscription()
                         registerFcmToken()
+                    } else {
+                        stopRealtimeSubscription()
                     }
                 }
         }
