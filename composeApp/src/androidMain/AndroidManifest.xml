@@ -33,7 +33,7 @@
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="job_requests" />
+            android:value="carryon_notifications" />
     </application>
 
 </manifest>
