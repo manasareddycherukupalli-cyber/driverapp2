@@ -110,14 +110,34 @@ class AuthViewModel : ViewModel() {
     /**
      * Called after Supabase OTP verification succeeds.
      * Saves the Supabase token and syncs driver with backend.
+     * For SIGNUP flow, also registers the driver details (name, phone) collected on the registration screen.
      */
     fun onSupabaseTokenReceived(token: String) {
         saveToken(token)
         viewModelScope.launch {
             _otpVerifyState.value = UiState.Loading
             repository.syncDriver()
-                .onSuccess { response ->
-                    _otpVerifyState.value = UiState.Success(response)
+                .onSuccess { syncResponse ->
+                    // If this is a signup flow and we have driver details, register them
+                    if (authFlowType == AuthFlowType.SIGNUP && driverName.isNotBlank()) {
+                        val driver = Driver(
+                            name = driverName,
+                            phone = driverPhone,
+                            email = driverEmail,
+                            emergencyContact = emergencyContact
+                        )
+                        repository.register(driver)
+                            .onSuccess { registerResponse ->
+                                _otpVerifyState.value = UiState.Success(registerResponse)
+                            }
+                            .onFailure {
+                                // Registration of details failed, but sync succeeded —
+                                // proceed with the sync response so the user isn't blocked
+                                _otpVerifyState.value = UiState.Success(syncResponse)
+                            }
+                    } else {
+                        _otpVerifyState.value = UiState.Success(syncResponse)
+                    }
                 }
                 .onFailure {
                     _otpVerifyState.value = UiState.Error(it.message ?: "Sync failed")
