@@ -64,6 +64,7 @@ class HomeViewModel : ViewModel() {
                     _isOnline.value = driver.isOnline
                     if (driver.isOnline) {
                         startRealtimeSubscription()
+                        registerFcmToken()
                     }
                 }
         }
