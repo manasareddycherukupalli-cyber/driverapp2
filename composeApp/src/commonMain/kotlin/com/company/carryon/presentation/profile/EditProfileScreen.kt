@@ -30,9 +30,18 @@ fun EditProfileScreen(navigator: AppNavigator) {
     val driver by viewModel.currentDriver.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
 
-    var name by remember { mutableStateOf(driver?.name ?: "Ahmad bin Hassan") }
-    var email by remember { mutableStateOf(driver?.email ?: "ahmad@example.com") }
+    var name by remember { mutableStateOf(driver?.name ?: "") }
+    var email by remember { mutableStateOf(driver?.email ?: "") }
     var emergencyContact by remember { mutableStateOf(driver?.emergencyContact ?: "") }
+
+    // Update form fields when driver data loads
+    LaunchedEffect(driver) {
+        driver?.let {
+            if (name.isBlank()) name = it.name
+            if (email.isBlank()) email = it.email
+            if (emergencyContact.isBlank()) emergencyContact = it.emergencyContact
+        }
+    }
 
     LaunchedEffect(updateState) {
         if (updateState is UiState.Success) navigator.goBack()
@@ -97,7 +106,7 @@ fun EditProfileScreen(navigator: AppNavigator) {
 
             // Phone (read-only)
             OutlinedTextField(
-                value = driver?.phone ?: "+60 12-345 6789",
+                value = driver?.phone ?: "",
                 onValueChange = {},
                 label = { Text("Phone Number") },
                 leadingIcon = { Icon(Icons.Filled.Phone, contentDescription = null, tint = Orange500) },

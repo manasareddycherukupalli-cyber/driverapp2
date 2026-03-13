@@ -78,7 +78,19 @@ class AuthViewModel : ViewModel() {
     private fun checkExistingSupabaseSession() {
         viewModelScope.launch {
             try {
-                val session = SupabaseConfig.client.auth.currentSessionOrNull()
+                // First try the current session
+                var session = SupabaseConfig.client.auth.currentSessionOrNull()
+
+                // If no current session, try refreshing (handles app restart with expired access token)
+                if (session == null) {
+                    try {
+                        SupabaseConfig.client.auth.refreshCurrentSession()
+                        session = SupabaseConfig.client.auth.currentSessionOrNull()
+                    } catch (_: Exception) {
+                        // Refresh failed — no valid session
+                    }
+                }
+
                 if (session != null) {
                     saveToken(session.accessToken)
                     _hasValidSession.value = true

@@ -51,6 +51,22 @@ class HomeViewModel : ViewModel() {
     init {
         loadDashboardData()
         collectRealtimeJobs()
+        initOnlineStatusFromDriver()
+    }
+
+    /** Initialize online status from the driver's server-side state */
+    private fun initOnlineStatusFromDriver() {
+        viewModelScope.launch {
+            authRepository.currentDriver
+                .filterNotNull()
+                .first()
+                .let { driver ->
+                    _isOnline.value = driver.isOnline
+                    if (driver.isOnline) {
+                        startRealtimeSubscription()
+                    }
+                }
+        }
     }
 
     /** Load all dashboard data */

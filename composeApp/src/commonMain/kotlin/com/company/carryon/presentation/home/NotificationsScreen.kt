@@ -19,9 +19,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.AuthenticationException
 import com.company.carryon.di.ServiceLocator
 import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.navigation.AppNavigator
+import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
 import kotlinx.coroutines.launch
 
@@ -53,7 +55,14 @@ fun NotificationsScreen(navigator: AppNavigator) {
         notifications = UiState.Loading
         repository.getNotifications()
             .onSuccess { notifications = UiState.Success(it) }
-            .onFailure { notifications = UiState.Error(it.message ?: "Failed to load") }
+            .onFailure { e ->
+                if (e is AuthenticationException) {
+                    // Auth expired — redirect to login
+                    navigator.navigateAndClearStack(Screen.Login)
+                } else {
+                    notifications = UiState.Error(e.message ?: "Failed to load")
+                }
+            }
     }
 
     Column(
@@ -73,7 +82,13 @@ fun NotificationsScreen(navigator: AppNavigator) {
                     notifications = UiState.Loading
                     repository.getNotifications()
                         .onSuccess { notifications = UiState.Success(it) }
-                        .onFailure { notifications = UiState.Error(it.message ?: "Failed") }
+                        .onFailure { e ->
+                            if (e is AuthenticationException) {
+                                navigator.navigateAndClearStack(Screen.Login)
+                            } else {
+                                notifications = UiState.Error(e.message ?: "Failed")
+                            }
+                        }
                 }
             }
             is UiState.Success -> {

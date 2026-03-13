@@ -5,6 +5,8 @@ import com.company.carryon.data.model.*
 import com.company.carryon.data.network.clearToken
 import com.company.carryon.data.network.getToken
 import com.company.carryon.data.network.saveToken
+import com.company.carryon.data.network.SupabaseConfig
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -121,6 +123,11 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
 
     override suspend fun logout() {
         clearToken()
+        try {
+            SupabaseConfig.client.auth.signOut()
+        } catch (_: Exception) {
+            // Best-effort: clear local state even if sign-out request fails
+        }
         _currentDriver.value = null
         _isLoggedIn.value = false
     }

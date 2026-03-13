@@ -66,18 +66,23 @@ fun ProfileScreen(navigator: AppNavigator) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AvatarCircle(
-                    initials = driver?.name?.take(2)?.uppercase() ?: "RK",
+                    initials = driver?.name
+                        ?.split(" ")
+                        ?.filter { it.isNotBlank() }
+                        ?.take(2)
+                        ?.joinToString("") { it.first().uppercase() }
+                        ?: "?",
                     size = 64.dp
                 )
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = driver?.name ?: "Ahmad bin Hassan",
+                        text = driver?.name ?: "Loading...",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     )
                     Text(
-                        text = driver?.phone ?: "+60 12-345 6789",
+                        text = driver?.phone ?: "",
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -86,7 +91,7 @@ fun ProfileScreen(navigator: AppNavigator) {
                         Icon(Icons.Filled.Star, contentDescription = null, tint = Yellow500, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "${driver?.rating ?: 4.8} • ${driver?.totalDeliveries ?: 1247} deliveries",
+                            text = "${driver?.rating ?: 0.0} • ${driver?.totalDeliveries ?: 0} deliveries",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -119,12 +124,12 @@ fun ProfileScreen(navigator: AppNavigator) {
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "${driver?.vehicleDetails?.make ?: "Honda"} ${driver?.vehicleDetails?.model ?: "EX5"}",
+                        text = "${driver?.vehicleDetails?.make ?: ""} ${driver?.vehicleDetails?.model ?: ""}".trim().ifBlank { "No vehicle info" },
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp
                     )
                     Text(
-                        text = driver?.vehicleDetails?.licensePlate ?: "WA 1234 B",
+                        text = driver?.vehicleDetails?.licensePlate ?: "",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -12,6 +12,12 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
+/**
+ * Thrown when the server returns 401 Unauthorized.
+ * UI layers should catch this to redirect the user to the login screen.
+ */
+class AuthenticationException(message: String = "Authentication required") : Exception(message)
+
 object HttpClientFactory {
     val json = Json {
         ignoreUnknownKeys = true
@@ -22,17 +28,21 @@ object HttpClientFactory {
     /**
      * Gets the current valid access token from Supabase.
      * Supabase SDK handles token refresh automatically.
+     * Falls back to stored token if no active session.
      */
     fun getCurrentAccessToken(): String? {
         return try {
-            val session = SupabaseConfig.client.auth.currentSessionOrNull()
+            var session = SupabaseConfig.client.auth.currentSessionOrNull()
             val token = session?.accessToken
             if (token != null) {
                 println("[Auth] Got fresh token from Supabase session")
+                // Keep stored token in sync with the latest session token
+                saveToken(token)
+                token
             } else {
                 println("[Auth] No Supabase session, falling back to stored token")
+                getToken()
             }
-            token ?: getToken()
         } catch (e: Exception) {
             println("[Auth] Error getting Supabase session: ${e.message}, using stored token")
             getToken()
@@ -64,6 +74,13 @@ object HttpClientFactory {
             HttpResponseValidator {
                 validateResponse { response ->
                     println("[HTTP] Response status: ${response.status.value}")
+                    if (response.status.value == 401) {
+                        val body = response.bodyAsText()
+                        println("[HTTP] 401 Unauthorized: $body")
+                        // Clear stored token since it's no longer valid
+                        clearToken()
+                        throw AuthenticationException("Authentication required. Please log in again.")
+                    }
                     if (response.status.value >= 400) {
                         val body = response.bodyAsText()
                         println("[HTTP] Error response body: $body")

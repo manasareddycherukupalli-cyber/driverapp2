@@ -29,13 +29,13 @@ import com.company.carryon.presentation.theme.*
  * Shows online toggle, earnings, active jobs, quick actions, and job request popup.
  */
 @Composable
-fun HomeScreen(navigator: AppNavigator) {
-    val viewModel = remember { HomeViewModel() }
+fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
     val isOnline by viewModel.isOnline.collectAsState()
     val earningsState by viewModel.earningsSummary.collectAsState()
     val activeJobsState by viewModel.activeJobs.collectAsState()
     val incomingJob by viewModel.incomingJob.collectAsState()
     val unreadCount by viewModel.unreadNotificationCount.collectAsState()
+    val driver by viewModel.currentDriver.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -46,6 +46,7 @@ fun HomeScreen(navigator: AppNavigator) {
         ) {
             // ---- Header with gradient ----
             HomeHeader(
+                driverName = driver?.name,
                 isOnline = isOnline,
                 onToggleOnline = { viewModel.toggleOnlineStatus() },
                 unreadCount = unreadCount,
@@ -98,6 +99,7 @@ fun HomeScreen(navigator: AppNavigator) {
 
 @Composable
 private fun HomeHeader(
+    driverName: String?,
     isOnline: Boolean,
     onToggleOnline: () -> Unit,
     unreadCount: Int,
@@ -122,16 +124,28 @@ private fun HomeHeader(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Generate initials from driver name, or show "?" if not loaded
+                    val initials = driverName
+                        ?.split(" ")
+                        ?.filter { it.isNotBlank() }
+                        ?.take(2)
+                        ?.joinToString("") { it.first().uppercase() }
+                        ?: "?"
                     AvatarCircle(
-                        initials = "RK",
+                        initials = initials,
                         size = 44.dp,
                         backgroundColor = Color.White.copy(alpha = 0.2f),
                         textColor = Color.White
                     )
                     Spacer(Modifier.width(12.dp))
                     Column {
+                        val greeting = if (!driverName.isNullOrBlank()) {
+                            "Hello, ${driverName.split(" ").first()}!"
+                        } else {
+                            "Hello!"
+                        }
                         Text(
-                            text = "Hello, Ahmad! 👋",
+                            text = greeting,
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
