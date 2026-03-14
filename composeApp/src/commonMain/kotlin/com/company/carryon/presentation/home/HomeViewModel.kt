@@ -4,9 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.*
 import com.company.carryon.data.network.RealtimeJobService
+import com.company.carryon.data.network.getLastKnownLocation
 import com.company.carryon.data.network.getFcmToken
 import com.company.carryon.di.ServiceLocator
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
@@ -40,6 +44,9 @@ class HomeViewModel : ViewModel() {
     private val _incomingJob = MutableStateFlow<DeliveryJob?>(null)
     val incomingJob: StateFlow<DeliveryJob?> = _incomingJob.asStateFlow()
 
+    // Location tracking job
+    private var locationTrackingJob: Job? = null
+
     // Notifications
     private val _notifications = MutableStateFlow<List<AppNotification>>(emptyList())
     val notifications: StateFlow<List<AppNotification>> = _notifications.asStateFlow()
@@ -65,8 +72,10 @@ class HomeViewModel : ViewModel() {
                     if (driver.isOnline) {
                         startRealtimeSubscription()
                         registerFcmToken()
+                        startLocationTracking()
                     } else {
                         stopRealtimeSubscription()
+                        stopLocationTracking()
                     }
                 }
         }
@@ -90,8 +99,10 @@ class HomeViewModel : ViewModel() {
                         checkForIncomingJobs()
                         startRealtimeSubscription()
                         registerFcmToken()
+                        startLocationTracking()
                     } else {
                         stopRealtimeSubscription()
+                        stopLocationTracking()
                     }
                 }
         }
@@ -116,6 +127,25 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    /** Start sending GPS location to the backend every 30 seconds */
+    private fun startLocationTracking() {
+        if (locationTrackingJob?.isActive == true) return
+        locationTrackingJob = viewModelScope.launch {
+            while (isActive) {
+                getLastKnownLocation()?.let { (lat, lng) ->
+                    authRepository.updateLocation(lat, lng)
+                }
+                delay(30_000L)
+            }
+        }
+    }
+
+    /** Stop the location tracking loop */
+    private fun stopLocationTracking() {
+        locationTrackingJob?.cancel()
+        locationTrackingJob = null
+    }
+
     private fun collectRealtimeJobs() {
         viewModelScope.launch {
             RealtimeJobService.incomingJobs.collect { job ->
@@ -129,6 +159,7 @@ class HomeViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
+        stopLocationTracking()
         viewModelScope.launch {
             RealtimeJobService.stopListening()
         }

@@ -26,6 +26,7 @@ interface AuthRepository {
     suspend fun toggleOnline(isOnline: Boolean): Result<Boolean>
     suspend fun updateFcmToken(fcmToken: String): Result<Boolean>
     suspend fun updateProfile(driver: Driver): Result<Driver>
+    suspend fun updateLocation(latitude: Double, longitude: Double): Result<Boolean>
     suspend fun logout()
     fun checkExistingSession()
 }
@@ -119,6 +120,10 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
             _currentDriver.value = updated
         }
         return result
+    }
+
+    override suspend fun updateLocation(latitude: Double, longitude: Double): Result<Boolean> {
+        return api.updateLocation(latitude, longitude)
     }
 
     override suspend fun logout() {
