@@ -33,6 +33,7 @@ interface JobApi {
     suspend fun updateJobStatus(jobId: String, status: JobStatus): Result<DeliveryJob>
     suspend fun submitProofOfDelivery(jobId: String, proof: ProofOfDelivery): Result<DeliveryJob>
     suspend fun getIncomingJobRequest(driverId: String): Result<DeliveryJob?>
+    suspend fun verifyPickupOtp(jobId: String, otp: String): Result<DeliveryJob>
 }
 
 /**

@@ -340,3 +340,19 @@ data class ApiResponse<T>(
     val data: T? = null,
     val message: String? = null
 )
+
+// ============================================================
+// MAP & LOCATION MODELS
+// ============================================================
+
+@Serializable
+data class LatLng(val lat: Double = 0.0, val lng: Double = 0.0)
+
+@Serializable
+data class MapConfig(val apiKey: String = "", val styleUrl: String = "", val region: String = "")
+
+@Serializable
+data class RouteResult(val distance: Double = 0.0, val duration: Int = 0, val geometry: List<LatLng> = emptyList())
+
+@Serializable
+data class CalculateRouteRequest(val originLat: Double, val originLng: Double, val destLat: Double, val destLng: Double)

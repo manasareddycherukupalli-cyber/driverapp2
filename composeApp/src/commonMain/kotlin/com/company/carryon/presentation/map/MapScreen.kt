@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.theme.*
+import com.company.carryon.data.model.LatLng
 
 /**
  * MapScreen — Google Maps integration placeholder with navigation UI.
@@ -31,6 +32,9 @@ fun MapScreen(navigator: AppNavigator) {
     val driverLocation by viewModel.driverLocation.collectAsState()
     val isTracking by viewModel.isTracking.collectAsState()
     val eta by viewModel.etaMinutes.collectAsState()
+    val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
+    val markers by viewModel.markers.collectAsState()
+    val routeGeometry by viewModel.routeGeometry.collectAsState()
 
     Column(
         modifier = Modifier
@@ -43,38 +47,16 @@ fun MapScreen(navigator: AppNavigator) {
         )
 
         Box(modifier = Modifier.fillMaxSize()) {
-            // ---- Map Placeholder ----
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFE8F5E9)), // Map-like green background
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("🗺️", fontSize = 80.sp)
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        text = "Google Maps View",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Gray700
-                    )
-                    Text(
-                        text = "Integration placeholder\nLat: ${driverLocation.first}, Lng: ${driverLocation.second}",
-                        fontSize = 14.sp,
-                        color = Gray500,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(24.dp))
-                    Text(
-                        text = "In production, this renders:\n• Live map with Google Maps SDK\n• Real-time driver location\n• Route polyline\n• Pickup & drop markers\n• Turn-by-turn navigation",
-                        fontSize = 13.sp,
-                        color = Gray600,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 20.sp
-                    )
-                }
-            }
+            // ---- AWS Location Map ----
+            MapViewComposable(
+                modifier = Modifier.fillMaxSize(),
+                styleUrl = mapStyleUrl,
+                centerLat = driverLocation.first,
+                centerLng = driverLocation.second,
+                zoom = 14.0,
+                markers = markers,
+                routeGeometry = routeGeometry
+            )
 
             // ---- Bottom Navigation Card ----
             Card(

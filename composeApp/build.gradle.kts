@@ -33,6 +33,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.firebase.messaging)
+            implementation("org.maplibre.gl:android-sdk:11.8.0")
             implementation(libs.credentials)
             implementation(libs.credentials.play.services)
             implementation(libs.googleid)

@@ -17,11 +17,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import com.company.carryon.data.model.*
 import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
+import com.company.carryon.data.model.LatLng
 
 /**
  * ActiveDeliveryScreen — Step-by-step delivery progress UI.
@@ -47,13 +51,20 @@ fun ActiveDeliveryScreen(navigator: AppNavigator) {
             onBackClick = { navigator.goBack() }
         )
 
+        val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
+        val routeGeometry by viewModel.routeGeometry.collectAsState()
+        val mapMarkers by viewModel.markers.collectAsState()
+
         when (val state = jobState) {
             is UiState.Loading -> LoadingScreen("Loading delivery details...")
             is UiState.Error -> ErrorState(state.message)
             is UiState.Success -> ActiveDeliveryContent(
                 job = state.data,
                 viewModel = viewModel,
-                navigator = navigator
+                navigator = navigator,
+                mapStyleUrl = mapStyleUrl,
+                routeGeometry = routeGeometry,
+                mapMarkers = mapMarkers
             )
             is UiState.Idle -> LoadingScreen()
         }
@@ -64,36 +75,25 @@ fun ActiveDeliveryScreen(navigator: AppNavigator) {
 private fun ActiveDeliveryContent(
     job: DeliveryJob,
     viewModel: DeliveryViewModel,
-    navigator: AppNavigator
+    navigator: AppNavigator,
+    mapStyleUrl: String,
+    routeGeometry: List<LatLng>?,
+    mapMarkers: List<MapMarker>
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // ---- Map Placeholder ----
-        Box(
+        // ---- AWS Location Map ----
+        MapViewComposable(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .background(Gray200),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("🗺️", fontSize = 48.sp)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Live Map View",
-                    color = Gray600,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    "Google Maps integration placeholder",
-                    fontSize = 12.sp,
-                    color = Gray500
-                )
-            }
-        }
+                .height(200.dp),
+            styleUrl = mapStyleUrl,
+            markers = mapMarkers,
+            routeGeometry = routeGeometry
+        )
 
         // ---- Delivery Progress Steps ----
         Card(
@@ -190,23 +190,90 @@ private fun ActiveDeliveryContent(
 
         Spacer(Modifier.height(16.dp))
 
-        // ---- Action Button ----
-        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            if (job.status == JobStatus.ARRIVED_AT_DROP) {
-                PrimaryButton(
-                    text = "Submit Proof of Delivery ✓",
-                    onClick = {
-                        navigator.selectedJobId = job.id
-                        navigator.navigateTo(Screen.ProofOfDelivery)
-                    }
-                )
-            } else {
-                val nextStatus = viewModel.getNextStatus(job.status)
-                if (nextStatus != null) {
-                    PrimaryButton(
-                        text = viewModel.getActionText(job.status),
-                        onClick = { viewModel.updateStatus(job.id, nextStatus) }
+        // ---- Action Button / OTP Verification ----
+        if (job.status == JobStatus.ARRIVED_AT_PICKUP) {
+            // OTP verification section
+            var otpInput by remember { mutableStateOf("") }
+            val otpError by viewModel.otpError.collectAsState()
+            val otpVerifying by viewModel.otpVerifying.collectAsState()
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Verify Pickup OTP",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
                     )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Ask the customer for their 4-digit code",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(16.dp))
+
+                    OutlinedTextField(
+                        value = otpInput,
+                        onValueChange = {
+                            if (it.length <= 4 && it.all { c -> c.isDigit() }) {
+                                otpInput = it
+                                viewModel.clearOtpError()
+                            }
+                        },
+                        label = { Text("Enter OTP") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        isError = otpError != null,
+                        supportingText = otpError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = LocalTextStyle.current.copy(
+                            textAlign = TextAlign.Center,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    PrimaryButton(
+                        text = if (otpVerifying) "Verifying..." else "Verify & Pick Up",
+                        onClick = {
+                            if (otpInput.length == 4 && !otpVerifying) {
+                                viewModel.verifyPickupOtp(job.id, otpInput)
+                            }
+                        }
+                    )
+                }
+            }
+        } else {
+            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                if (job.status == JobStatus.ARRIVED_AT_DROP) {
+                    PrimaryButton(
+                        text = "Submit Proof of Delivery ✓",
+                        onClick = {
+                            navigator.selectedJobId = job.id
+                            navigator.navigateTo(Screen.ProofOfDelivery)
+                        }
+                    )
+                } else {
+                    val nextStatus = viewModel.getNextStatus(job.status)
+                    if (nextStatus != null) {
+                        PrimaryButton(
+                            text = viewModel.getActionText(job.status),
+                            onClick = { viewModel.updateStatus(job.id, nextStatus) }
+                        )
+                    }
                 }
             }
         }

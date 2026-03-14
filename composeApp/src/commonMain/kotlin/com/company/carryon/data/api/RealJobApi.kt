@@ -76,4 +76,13 @@ class RealJobApi : JobApi {
         }.body()
         response.data
     }
+
+    override suspend fun verifyPickupOtp(jobId: String, otp: String): Result<DeliveryJob> = runCatching {
+        val response: ApiResponse<DeliveryJob> = client.post("/api/driver/jobs/$jobId/verify-pickup-otp") {
+            withAuth()
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("otp" to otp))
+        }.body()
+        response.data ?: throw Exception("Failed to verify OTP")
+    }
 }
