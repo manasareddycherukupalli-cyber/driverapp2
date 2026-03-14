@@ -23,6 +23,7 @@ import com.company.carryon.presentation.jobs.JobRequestPopup
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
+import com.company.carryon.data.model.LatLng
 
 /**
  * HomeScreen — Main dashboard for the driver.
@@ -36,6 +37,13 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
     val incomingJob by viewModel.incomingJob.collectAsState()
     val unreadCount by viewModel.unreadNotificationCount.collectAsState()
     val driver by viewModel.currentDriver.collectAsState()
+    val driverLocation by viewModel.driverLocation.collectAsState()
+    val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
+
+    // Refresh location when screen appears
+    LaunchedEffect(Unit) {
+        viewModel.refreshDriverLocation()
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -51,6 +59,12 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
                 onToggleOnline = { viewModel.toggleOnlineStatus() },
                 unreadCount = unreadCount,
                 onNotificationsClick = { navigator.navigateTo(Screen.Notifications) }
+            )
+
+            // ---- Driver Location Map ----
+            DriverLocationMap(
+                driverLocation = driverLocation,
+                mapStyleUrl = mapStyleUrl
             )
 
             Spacer(Modifier.height(16.dp))
@@ -220,6 +234,100 @@ private fun HomeHeader(
                         )
                     )
                 }
+            }
+        }
+    }
+}
+
+// ============================================================
+// DRIVER LOCATION MAP
+// ============================================================
+
+@Composable
+private fun DriverLocationMap(
+    driverLocation: Pair<Double, Double>?,
+    mapStyleUrl: String
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        if (driverLocation != null) {
+            val lat = driverLocation.first
+            val lng = driverLocation.second
+
+            val markers = listOf(
+                MapMarker(
+                    id = "driver",
+                    lat = lat,
+                    lng = lng,
+                    title = "You are here",
+                    color = MarkerColor.BLUE
+                )
+            )
+
+            Column {
+                MapViewComposable(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    styleUrl = mapStyleUrl,
+                    centerLat = lat,
+                    centerLng = lng,
+                    zoom = 14.0,
+                    markers = markers
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.LocationOn,
+                        contentDescription = null,
+                        tint = Orange500,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "Your current location",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            // Location not available — prompt user
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    Icons.Filled.LocationOff,
+                    contentDescription = null,
+                    tint = Gray400,
+                    modifier = Modifier.size(36.dp)
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Location unavailable",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Please enable location permissions to see your position on the map.",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         }
     }

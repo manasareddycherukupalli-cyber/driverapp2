@@ -8,6 +8,10 @@
 	<string>Required to upload your driver documents for verification.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Required to take photos of your driver documents for verification.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is needed to find nearby delivery jobs and navigate to pickup and drop-off points.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Background location access allows customers to track your delivery progress in real time.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

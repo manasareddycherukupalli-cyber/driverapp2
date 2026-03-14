@@ -3,9 +3,11 @@ package com.company.carryon.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.LocationApi
 import com.company.carryon.data.network.RealtimeJobService
 import com.company.carryon.data.network.getLastKnownLocation
 import com.company.carryon.data.network.getFcmToken
+import com.company.carryon.data.network.initLocationProvider
 import com.company.carryon.di.ServiceLocator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -44,6 +46,14 @@ class HomeViewModel : ViewModel() {
     private val _incomingJob = MutableStateFlow<DeliveryJob?>(null)
     val incomingJob: StateFlow<DeliveryJob?> = _incomingJob.asStateFlow()
 
+    // Driver location for map display
+    private val _driverLocation = MutableStateFlow<Pair<Double, Double>?>(null)
+    val driverLocation: StateFlow<Pair<Double, Double>?> = _driverLocation.asStateFlow()
+
+    // Map style URL
+    private val _mapStyleUrl = MutableStateFlow("")
+    val mapStyleUrl: StateFlow<String> = _mapStyleUrl.asStateFlow()
+
     // Location tracking job
     private var locationTrackingJob: Job? = null
 
@@ -56,9 +66,12 @@ class HomeViewModel : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     init {
+        initLocationProvider()
         loadDashboardData()
         collectRealtimeJobs()
         initOnlineStatusFromDriver()
+        loadMapConfig()
+        refreshDriverLocation()
     }
 
     /** Initialize and continuously sync online status from the driver's server-side state */
@@ -127,12 +140,28 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    /** Load map style URL from backend */
+    private fun loadMapConfig() {
+        viewModelScope.launch {
+            LocationApi.getMapConfig()
+                .onSuccess { config -> _mapStyleUrl.value = config.styleUrl }
+        }
+    }
+
+    /** Get driver's current GPS location and expose it */
+    fun refreshDriverLocation() {
+        getLastKnownLocation()?.let { loc ->
+            _driverLocation.value = loc
+        }
+    }
+
     /** Start sending GPS location to the backend every 30 seconds */
     private fun startLocationTracking() {
         if (locationTrackingJob?.isActive == true) return
         locationTrackingJob = viewModelScope.launch {
             while (isActive) {
                 getLastKnownLocation()?.let { (lat, lng) ->
+                    _driverLocation.value = Pair(lat, lng)
                     authRepository.updateLocation(lat, lng)
                 }
                 delay(30_000L)

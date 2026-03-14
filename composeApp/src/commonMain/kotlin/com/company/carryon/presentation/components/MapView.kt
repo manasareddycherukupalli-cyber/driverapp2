@@ -18,8 +18,8 @@ enum class MarkerColor { RED, BLUE, GREEN }
 expect fun MapViewComposable(
     modifier: Modifier = Modifier,
     styleUrl: String = "",
-    centerLat: Double = 3.1390,
-    centerLng: Double = 101.6869,
+    centerLat: Double = 0.0,
+    centerLng: Double = 0.0,
     zoom: Double = 12.0,
     markers: List<MapMarker> = emptyList(),
     routeGeometry: List<LatLng>? = null,

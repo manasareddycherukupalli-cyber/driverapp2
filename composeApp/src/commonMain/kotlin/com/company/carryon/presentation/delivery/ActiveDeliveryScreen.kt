@@ -17,7 +17,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import com.company.carryon.data.model.*
@@ -196,6 +200,8 @@ private fun ActiveDeliveryContent(
             var otpInput by remember { mutableStateOf("") }
             val otpError by viewModel.otpError.collectAsState()
             val otpVerifying by viewModel.otpVerifying.collectAsState()
+            val keyboardController = LocalSoftwareKeyboardController.current
+            val focusManager = LocalFocusManager.current
 
             Card(
                 modifier = Modifier
@@ -229,10 +235,23 @@ private fun ActiveDeliveryContent(
                             if (it.length <= 4 && it.all { c -> c.isDigit() }) {
                                 otpInput = it
                                 viewModel.clearOtpError()
+                                if (it.length == 4) {
+                                    keyboardController?.hide()
+                                    focusManager.clearFocus()
+                                }
                             }
                         },
                         label = { Text("Enter OTP") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
+                            }
+                        ),
                         singleLine = true,
                         isError = otpError != null,
                         supportingText = otpError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
@@ -249,6 +268,8 @@ private fun ActiveDeliveryContent(
                     PrimaryButton(
                         text = if (otpVerifying) "Verifying..." else "Verify & Pick Up",
                         onClick = {
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
                             if (otpInput.length == 4 && !otpVerifying) {
                                 viewModel.verifyPickupOtp(job.id, otpInput)
                             }
