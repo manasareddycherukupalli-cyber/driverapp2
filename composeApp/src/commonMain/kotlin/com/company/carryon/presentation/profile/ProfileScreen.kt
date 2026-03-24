@@ -34,6 +34,32 @@ fun ProfileScreen(navigator: AppNavigator) {
     val viewModel = remember { ProfileViewModel() }
     val driver by viewModel.currentDriver.collectAsState()
 
+    // Show error state if driver fails to load after a timeout
+    var showError by remember { mutableStateOf(false) }
+    LaunchedEffect(driver) {
+        if (driver != null) {
+            showError = false
+        } else {
+            kotlinx.coroutines.delay(10_000L)
+            if (driver == null) showError = true
+        }
+    }
+
+    if (showError && driver == null) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Failed to load profile", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = { showError = false }) {
+                Text("Retry")
+            }
+        }
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()

@@ -26,7 +26,11 @@ class DeliveryViewModel : ViewModel() {
     private val _proofState = MutableStateFlow<UiState<DeliveryJob>>(UiState.Idle)
     val proofState: StateFlow<UiState<DeliveryJob>> = _proofState.asStateFlow()
 
-    // Map style URL from AWS Location
+    // Cancel job state
+    private val _cancelState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
+    val cancelState: StateFlow<UiState<Boolean>> = _cancelState.asStateFlow()
+
+    // Map style URL from Google Maps
     private val _mapStyleUrl = MutableStateFlow("")
     val mapStyleUrl: StateFlow<String> = _mapStyleUrl.asStateFlow()
 
@@ -80,7 +84,7 @@ class DeliveryViewModel : ViewModel() {
                 .onSuccess { job ->
                     _currentJob.value = UiState.Success(job)
                 }
-                .onFailure { /* Handle error */ }
+                .onFailure { _currentJob.value = UiState.Error(it.message ?: "Failed to update status") }
         }
     }
 
@@ -110,6 +114,16 @@ class DeliveryViewModel : ViewModel() {
 
     fun clearOtpError() {
         _otpError.value = null
+    }
+
+    /** Cancel the job and re-queue it for another driver */
+    fun cancelJob(jobId: String) {
+        viewModelScope.launch {
+            _cancelState.value = UiState.Loading
+            jobRepository.cancelJob(jobId)
+                .onSuccess { _cancelState.value = UiState.Success(true) }
+                .onFailure { _cancelState.value = UiState.Error(it.message ?: "Failed to cancel job") }
+        }
     }
 
     /** Submit proof of delivery */

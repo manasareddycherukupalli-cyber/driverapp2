@@ -34,8 +34,20 @@ fun SupportChatScreen(navigator: AppNavigator) {
     var messageText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
+    // Track previous message count and last ID to detect new messages
+    var lastMessageCount by remember { mutableStateOf(0) }
+    var lastMessageId by remember { mutableStateOf("") }
+
     LaunchedEffect(ticketId) {
-        if (ticketId.isNotBlank()) viewModel.loadMessages(ticketId)
+        if (ticketId.isNotBlank()) {
+            viewModel.loadMessages(ticketId)
+            viewModel.startRealtimeChat(ticketId)
+        }
+    }
+
+    // Clean up realtime subscription when leaving
+    DisposableEffect(ticketId) {
+        onDispose { viewModel.stopRealtimeChat() }
     }
 
     Column(
@@ -52,13 +64,27 @@ fun SupportChatScreen(navigator: AppNavigator) {
         Box(modifier = Modifier.weight(1f)) {
             when (val state = messagesState) {
                 is UiState.Success -> {
+                    val messages = state.data
+                    // Auto-scroll when new messages arrive
+                    LaunchedEffect(messages.size, messages.lastOrNull()?.id) {
+                        val newCount = messages.size
+                        val newLastId = messages.lastOrNull()?.id ?: ""
+                        if (newCount != lastMessageCount || newLastId != lastMessageId) {
+                            lastMessageCount = newCount
+                            lastMessageId = newLastId
+                            if (messages.isNotEmpty()) {
+                                listState.animateScrollToItem(messages.size - 1)
+                            }
+                        }
+                    }
+
                     LazyColumn(
                         state = listState,
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(state.data) { message ->
+                        items(messages) { message ->
                             ChatBubble(message)
                         }
                     }

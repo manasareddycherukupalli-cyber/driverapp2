@@ -20,6 +20,7 @@ import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.splash_illustration
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
 /**
@@ -32,11 +33,13 @@ fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     val sessionSyncState by authViewModel.sessionSyncState.collectAsState()
 
     LaunchedEffect(Unit) {
+        // Run minimum splash display and auth check in parallel
+        val minDelay = launch { delay(800) }
+
         alpha.animateTo(
             targetValue   = 1f,
             animationSpec = tween(durationMillis = 600)
         )
-        delay(2000)
 
         // 1. Try to get the existing Supabase session (SDK auto-loads from storage)
         var session = try {
@@ -54,6 +57,9 @@ fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                 null
             }
         }
+
+        // Wait for minimum splash duration before navigating
+        minDelay.join()
 
         if (session != null) {
             // Save the fresh access token for API calls

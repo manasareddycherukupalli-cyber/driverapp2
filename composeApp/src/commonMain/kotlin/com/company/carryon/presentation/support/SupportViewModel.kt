@@ -3,6 +3,8 @@ package com.company.carryon.presentation.support
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.RealtimeChatService
+import com.company.carryon.data.network.getLastKnownLocation
 import com.company.carryon.di.ServiceLocator
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -13,6 +15,14 @@ import kotlinx.coroutines.launch
 class SupportViewModel : ViewModel() {
 
     private val repository = ServiceLocator.supportRepository
+    private val authRepository = ServiceLocator.authRepository
+
+    private val currentDriver: StateFlow<Driver?> = authRepository.currentDriver
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    // Transient error for toast
+    private val _toastError = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val toastError: SharedFlow<String> = _toastError.asSharedFlow()
 
     // Help articles
     private val _helpArticles = MutableStateFlow<UiState<List<HelpArticle>>>(UiState.Idle)
@@ -66,6 +76,33 @@ class SupportViewModel : ViewModel() {
         }
     }
 
+    /** Subscribe to realtime updates for a ticket's chat messages */
+    fun startRealtimeChat(ticketId: String) {
+        viewModelScope.launch {
+            RealtimeChatService.startListening(ticketId, viewModelScope)
+        }
+        // Collect realtime signals and refresh messages
+        viewModelScope.launch {
+            RealtimeChatService.newMessageSignal.collect { signalTicketId ->
+                if (signalTicketId == ticketId) {
+                    repository.getMessages(ticketId)
+                        .onSuccess { _messages.value = UiState.Success(it) }
+                }
+            }
+        }
+    }
+
+    fun stopRealtimeChat() {
+        viewModelScope.launch {
+            RealtimeChatService.stopListening()
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopRealtimeChat()
+    }
+
     fun createTicket(subject: String, category: TicketCategory, description: String) {
         viewModelScope.launch {
             _createTicketState.value = UiState.Loading
@@ -85,20 +122,25 @@ class SupportViewModel : ViewModel() {
 
     fun sendMessage(ticketId: String, messageText: String) {
         viewModelScope.launch {
+            val driverId = currentDriver.value?.id ?: "unknown"
             val message = ChatMessage(
-                senderId = "DRV_001",
+                senderId = driverId,
                 message = messageText,
                 isFromDriver = true
             )
             repository.sendMessage(ticketId, message)
                 .onSuccess { loadMessages(ticketId) }
+                .onFailure { _toastError.tryEmit(it.message ?: "Failed to send message") }
         }
     }
 
     fun triggerSos() {
         viewModelScope.launch {
             _sosState.value = UiState.Loading
-            repository.triggerSos(3.1390, 101.6869) // Current location
+            val location = getLastKnownLocation()
+            val lat = location?.first ?: 0.0
+            val lng = location?.second ?: 0.0
+            repository.triggerSos(lat, lng)
                 .onSuccess { _sosState.value = UiState.Success(true) }
                 .onFailure { _sosState.value = UiState.Error(it.message ?: "SOS failed") }
         }

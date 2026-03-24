@@ -3,6 +3,7 @@ package com.company.carryon.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.IncomingJobSignal
 import com.company.carryon.data.network.LocationApi
 import com.company.carryon.data.network.RealtimeJobService
 import com.company.carryon.data.network.getLastKnownLocation
@@ -57,6 +58,13 @@ class HomeViewModel : ViewModel() {
     // Location tracking job
     private var locationTrackingJob: Job? = null
 
+    // Incoming job polling job
+    private var jobPollingJob: Job? = null
+
+    // Transient error messages for toast/snackbar
+    private val _toastError = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val toastError: SharedFlow<String> = _toastError.asSharedFlow()
+
     // Notifications
     private val _notifications = MutableStateFlow<List<AppNotification>>(emptyList())
     val notifications: StateFlow<List<AppNotification>> = _notifications.asStateFlow()
@@ -86,9 +94,11 @@ class HomeViewModel : ViewModel() {
                         startRealtimeSubscription()
                         registerFcmToken()
                         startLocationTracking()
+                        startJobPolling()
                     } else {
                         stopRealtimeSubscription()
                         stopLocationTracking()
+                        stopJobPolling()
                     }
                 }
         }
@@ -113,11 +123,14 @@ class HomeViewModel : ViewModel() {
                         startRealtimeSubscription()
                         registerFcmToken()
                         startLocationTracking()
+                        startJobPolling()
                     } else {
                         stopRealtimeSubscription()
                         stopLocationTracking()
+                        stopJobPolling()
                     }
                 }
+                .onFailure { _toastError.tryEmit(it.message ?: "Failed to update status") }
         }
     }
 
@@ -155,16 +168,23 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    /** Start sending GPS location to the backend every 30 seconds */
+    /** Start sending GPS location to the backend every 30 seconds.
+     *  Retries every 2s until the first location is obtained, then switches to 30s cadence. */
     private fun startLocationTracking() {
         if (locationTrackingJob?.isActive == true) return
         locationTrackingJob = viewModelScope.launch {
+            // Retry quickly until we get a real GPS fix, then slow down
+            var firstFixSent = false
             while (isActive) {
-                getLastKnownLocation()?.let { (lat, lng) ->
+                val loc = getLastKnownLocation()
+                if (loc != null) {
+                    val (lat, lng) = loc
                     _driverLocation.value = Pair(lat, lng)
                     authRepository.updateLocation(lat, lng)
+                        .onFailure { _toastError.tryEmit("Location update failed") }
+                    firstFixSent = true
                 }
-                delay(30_000L)
+                delay(if (firstFixSent) 30_000L else 2_000L)
             }
         }
     }
@@ -173,6 +193,32 @@ class HomeViewModel : ViewModel() {
     private fun stopLocationTracking() {
         locationTrackingJob?.cancel()
         locationTrackingJob = null
+    }
+
+    /** Poll /incoming every 6 seconds as a fallback in case Supabase Realtime misses events.
+     *  Also fires immediately when an FCM JOB_REQUEST push signals a pending check. */
+    private fun startJobPolling() {
+        if (jobPollingJob?.isActive == true) return
+        jobPollingJob = viewModelScope.launch {
+            while (isActive) {
+                // Check immediately if FCM signalled a job, otherwise wait 6s
+                val fcmTriggered = IncomingJobSignal.pendingCheck
+                if (!fcmTriggered) delay(6_000L)
+                IncomingJobSignal.pendingCheck = false
+
+                if (_incomingJob.value == null) {
+                    jobRepository.getIncomingRequest()
+                        .onSuccess { job ->
+                            if (job != null) _incomingJob.value = job
+                        }
+                }
+            }
+        }
+    }
+
+    private fun stopJobPolling() {
+        jobPollingJob?.cancel()
+        jobPollingJob = null
     }
 
     private fun collectRealtimeJobs() {
@@ -189,6 +235,7 @@ class HomeViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         stopLocationTracking()
+        stopJobPolling()
         viewModelScope.launch {
             RealtimeJobService.stopListening()
         }
@@ -227,6 +274,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             notificationsRepository.getNotifications()
                 .onSuccess { _notifications.value = it }
+                .onFailure { _toastError.tryEmit(it.message ?: "Failed to load notifications") }
         }
     }
 
@@ -239,6 +287,7 @@ class HomeViewModel : ViewModel() {
                     _incomingJob.value = null
                     loadActiveJobs()
                 }
+                .onFailure { _toastError.tryEmit(it.message ?: "Failed to accept job") }
         }
     }
 
@@ -248,6 +297,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             jobRepository.rejectJob(job.id)
                 .onSuccess { _incomingJob.value = null }
+                .onFailure { _toastError.tryEmit(it.message ?: "Failed to reject job") }
         }
     }
 

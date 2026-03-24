@@ -395,6 +395,25 @@ private fun TodayEarningsCard(
                     CircularProgressIndicator(color = Orange500, modifier = Modifier.size(32.dp))
                 }
             }
+            is UiState.Error -> {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = earningsState.message,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 14.sp
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Tap to retry",
+                        color = Orange500,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                }
+            }
             else -> {
                 Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
                     Text("Tap to load earnings", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -441,7 +460,27 @@ private fun ActiveJobSection(
                 }
             }
         }
-        else -> {} // Don't show section if loading/error/empty
+        is UiState.Error -> {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = activeJobsState.message,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+        else -> {} // Loading or Idle
     }
 }
 
