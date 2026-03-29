@@ -153,6 +153,7 @@ interface JobRepository {
     suspend fun submitProof(jobId: String, proof: ProofOfDelivery): Result<DeliveryJob>
     suspend fun getIncomingRequest(): Result<DeliveryJob?>
     suspend fun verifyPickupOtp(jobId: String, otp: String): Result<DeliveryJob>
+    suspend fun cancelJob(jobId: String): Result<Boolean>
 }
 
 class JobRepositoryImpl(private val api: JobApi) : JobRepository {
@@ -166,6 +167,7 @@ class JobRepositoryImpl(private val api: JobApi) : JobRepository {
     override suspend fun submitProof(jobId: String, proof: ProofOfDelivery) = api.submitProofOfDelivery(jobId, proof)
     override suspend fun getIncomingRequest() = api.getIncomingJobRequest("")
     override suspend fun verifyPickupOtp(jobId: String, otp: String) = api.verifyPickupOtp(jobId, otp)
+    override suspend fun cancelJob(jobId: String) = api.cancelJob(jobId)
 }
 
 // ============================================================

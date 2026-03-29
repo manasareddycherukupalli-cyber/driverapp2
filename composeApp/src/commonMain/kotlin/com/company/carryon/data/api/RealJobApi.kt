@@ -85,4 +85,11 @@ class RealJobApi : JobApi {
         }.body()
         response.data ?: throw Exception("Failed to verify OTP")
     }
+
+    override suspend fun cancelJob(jobId: String): Result<Boolean> = runCatching {
+        client.post("/api/driver/jobs/$jobId/cancel") {
+            withAuth()
+        }
+        true
+    }
 }

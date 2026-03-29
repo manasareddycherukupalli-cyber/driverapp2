@@ -31,6 +31,12 @@ class FcmService : FirebaseMessagingService() {
         super.onMessageReceived(message)
         Log.d("FcmService", "FCM message received: ${message.data}")
 
+        // If this is a job request push, signal the polling flag so the next
+        // poll (or immediate check) surfaces the popup in-app.
+        if (message.data["type"] == "JOB_REQUEST") {
+            IncomingJobSignal.pendingCheck = true
+        }
+
         // Extract title/body from notification payload, falling back to data payload
         val title = message.notification?.title
             ?: message.data["title"]
@@ -68,3 +74,4 @@ class FcmService : FirebaseMessagingService() {
 object FcmTokenHolder {
     var token: String? = null
 }
+

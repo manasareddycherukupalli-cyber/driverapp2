@@ -1,5 +1,6 @@
 package com.company.carryon.presentation.delivery
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -39,38 +40,53 @@ import com.company.carryon.data.model.LatLng
 fun ActiveDeliveryScreen(navigator: AppNavigator) {
     val viewModel = remember { DeliveryViewModel() }
     val jobState by viewModel.currentJob.collectAsState()
+    val cancelState by viewModel.cancelState.collectAsState()
     val jobId = navigator.selectedJobId
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(jobId) {
         jobId?.let { viewModel.loadJob(it) }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        DriveAppTopBar(
-            title = "Active Delivery",
-            onBackClick = { navigator.goBack() }
-        )
+    LaunchedEffect(cancelState) {
+        when (val state = cancelState) {
+            is UiState.Success -> navigator.goBack()
+            is UiState.Error -> snackbarHostState.showSnackbar(state.message)
+            else -> Unit
+        }
+    }
 
-        val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
-        val routeGeometry by viewModel.routeGeometry.collectAsState()
-        val mapMarkers by viewModel.markers.collectAsState()
-
-        when (val state = jobState) {
-            is UiState.Loading -> LoadingScreen("Loading delivery details...")
-            is UiState.Error -> ErrorState(state.message)
-            is UiState.Success -> ActiveDeliveryContent(
-                job = state.data,
-                viewModel = viewModel,
-                navigator = navigator,
-                mapStyleUrl = mapStyleUrl,
-                routeGeometry = routeGeometry,
-                mapMarkers = mapMarkers
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(paddingValues)
+        ) {
+            DriveAppTopBar(
+                title = "Active Delivery",
+                onBackClick = { navigator.goBack() }
             )
-            is UiState.Idle -> LoadingScreen()
+
+            val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
+            val routeGeometry by viewModel.routeGeometry.collectAsState()
+            val mapMarkers by viewModel.markers.collectAsState()
+
+            when (val state = jobState) {
+                is UiState.Loading -> LoadingScreen("Loading delivery details...")
+                is UiState.Error -> ErrorState(state.message)
+                is UiState.Success -> ActiveDeliveryContent(
+                    job = state.data,
+                    viewModel = viewModel,
+                    navigator = navigator,
+                    mapStyleUrl = mapStyleUrl,
+                    routeGeometry = routeGeometry,
+                    mapMarkers = mapMarkers
+                )
+                is UiState.Idle -> LoadingScreen()
+            }
         }
     }
 }
@@ -84,12 +100,35 @@ private fun ActiveDeliveryContent(
     routeGeometry: List<LatLng>?,
     mapMarkers: List<MapMarker>
 ) {
+    var showCancelDialog by remember { mutableStateOf(false) }
+    val cancelState by viewModel.cancelState.collectAsState()
+    val isCancelling = cancelState is UiState.Loading
+
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text("Cancel Delivery?") },
+            text = { Text("The job will be re-assigned to another driver.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCancelDialog = false
+                        viewModel.cancelJob(job.id)
+                    }
+                ) { Text("Cancel Delivery", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelDialog = false }) { Text("Keep Job") }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        // ---- AWS Location Map ----
+        // ---- Google Maps ----
         MapViewComposable(
             modifier = Modifier
                 .fillMaxWidth()
@@ -306,6 +345,21 @@ private fun ActiveDeliveryContent(
                     text = "Open Navigation 🗺️",
                     onClick = { navigator.navigateTo(Screen.MapNavigation) }
                 )
+            }
+        }
+
+        // Cancel button — only before pickup (ACCEPTED or HEADING_TO_PICKUP)
+        if (job.status == JobStatus.ACCEPTED || job.status == JobStatus.HEADING_TO_PICKUP) {
+            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                OutlinedButton(
+                    onClick = { showCancelDialog = true },
+                    enabled = !isCancelling,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                ) {
+                    Text(if (isCancelling) "Cancelling..." else "Cancel Delivery")
+                }
             }
         }
 

@@ -2,20 +2,22 @@ package com.company.carryon.presentation.components
 
 import android.graphics.Color as AndroidColor
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
 import com.company.carryon.data.model.LatLng
-import org.maplibre.android.MapLibre
-import org.maplibre.android.camera.CameraUpdateFactory
-import org.maplibre.android.geometry.LatLng as MLNLatLng
-import org.maplibre.android.geometry.LatLngBounds
-import org.maplibre.android.maps.MapView
-import org.maplibre.android.maps.Style
-import org.maplibre.android.annotations.MarkerOptions
-import org.maplibre.android.annotations.PolylineOptions
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.LatLng as GmsLatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.Polyline
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
 
 @Composable
 actual fun MapViewComposable(
@@ -28,87 +30,75 @@ actual fun MapViewComposable(
     routeGeometry: List<LatLng>?,
     onMapClick: ((Double, Double) -> Unit)?
 ) {
-    val context = LocalContext.current
+    val cameraPositionState = rememberCameraPositionState()
 
-    val mapView = remember {
-        MapLibre.getInstance(context)
-        MapView(context)
-    }
-
-    DisposableEffect(Unit) {
-        mapView.onCreate(null)
-        mapView.onResume()
-        onDispose {
-            mapView.onPause()
-            mapView.onDestroy()
+    // Move camera when center/zoom changes
+    LaunchedEffect(centerLat, centerLng, zoom, routeGeometry, markers) {
+        if (!routeGeometry.isNullOrEmpty()) {
+            val polylinePoints = routeGeometry.map { GmsLatLng(it.lat, it.lng) }
+            if (polylinePoints.size >= 2) {
+                val boundsBuilder = LatLngBounds.builder()
+                polylinePoints.forEach { boundsBuilder.include(it) }
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 80)
+                )
+            }
+        } else if (markers.size >= 2) {
+            val boundsBuilder = LatLngBounds.builder()
+            markers.forEach { boundsBuilder.include(GmsLatLng(it.lat, it.lng)) }
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 80)
+            )
+        } else if (centerLat != 0.0 || centerLng != 0.0) {
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(GmsLatLng(centerLat, centerLng), zoom.toFloat())
+            )
         }
     }
 
-    AndroidView(
-        factory = { mapView },
+    val uiSettings = remember {
+        MapUiSettings(
+            zoomControlsEnabled = false,
+            myLocationButtonEnabled = false,
+        )
+    }
+
+    GoogleMap(
         modifier = modifier,
-        update = { view ->
-            view.getMapAsync { map ->
-                val effectiveStyleUrl = styleUrl.ifBlank {
-                    "https://demotiles.maplibre.org/style.json"
+        cameraPositionState = cameraPositionState,
+        uiSettings = uiSettings,
+        onMapClick = { latLng ->
+            onMapClick?.invoke(latLng.latitude, latLng.longitude)
+        }
+    ) {
+        // Add markers
+        for (marker in markers) {
+            key(marker.id) {
+                val hue = when (marker.color) {
+                    MarkerColor.RED -> BitmapDescriptorFactory.HUE_RED
+                    MarkerColor.BLUE -> BitmapDescriptorFactory.HUE_BLUE
+                    MarkerColor.GREEN -> BitmapDescriptorFactory.HUE_GREEN
                 }
-
-                fun applyMapContent() {
-                    if (centerLat != 0.0 || centerLng != 0.0) {
-                        map.animateCamera(
-                            CameraUpdateFactory.newLatLngZoom(MLNLatLng(centerLat, centerLng), zoom)
-                        )
-                    }
-
-                    map.clear()
-
-                    for (marker in markers) {
-                        map.addMarker(
-                            MarkerOptions()
-                                .position(MLNLatLng(marker.lat, marker.lng))
-                                .title(marker.title)
-                        )
-                    }
-
-                    if (!routeGeometry.isNullOrEmpty()) {
-                        val polylinePoints = routeGeometry.map { MLNLatLng(it.lat, it.lng) }
-                        map.addPolyline(
-                            PolylineOptions()
-                                .addAll(polylinePoints)
-                                .color(AndroidColor.parseColor("#2F80ED"))
-                                .width(5f)
-                        )
-
-                        if (polylinePoints.size >= 2) {
-                            val boundsBuilder = LatLngBounds.Builder()
-                            polylinePoints.forEach { boundsBuilder.include(it) }
-                            map.animateCamera(
-                                CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 80)
-                            )
-                        }
-                    } else if (markers.size >= 2) {
-                        val boundsBuilder = LatLngBounds.Builder()
-                        markers.forEach { boundsBuilder.include(MLNLatLng(it.lat, it.lng)) }
-                        map.animateCamera(
-                            CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 80)
-                        )
-                    }
+                val markerState = rememberMarkerState(key = marker.id, position = GmsLatLng(marker.lat, marker.lng))
+                LaunchedEffect(marker.lat, marker.lng) {
+                    markerState.position = GmsLatLng(marker.lat, marker.lng)
                 }
-
-                if (map.style == null || map.style?.uri != effectiveStyleUrl) {
-                    map.setStyle(Style.Builder().fromUri(effectiveStyleUrl)) {
-                        onMapClick?.let { callback ->
-                            map.addOnMapClickListener { latLng ->
-                                callback(latLng.latitude, latLng.longitude)
-                                true
-                            }
-                        }
-                        applyMapContent()
-                    }
-                } else {
-                    applyMapContent()
-                }
+                Marker(
+                    state = markerState,
+                    title = marker.title,
+                    icon = BitmapDescriptorFactory.defaultMarker(hue),
+                )
             }
         }
-    )
+
+        // Draw route polyline
+        if (!routeGeometry.isNullOrEmpty()) {
+            val polylinePoints = routeGeometry.map { GmsLatLng(it.lat, it.lng) }
+            Polyline(
+                points = polylinePoints,
+                color = androidx.compose.ui.graphics.Color(AndroidColor.parseColor("#2F80ED")),
+                width = 10f,
+            )
+        }
+    }
 }
