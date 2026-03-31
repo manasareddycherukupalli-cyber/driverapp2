@@ -74,13 +74,25 @@ class MapViewModel : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    // Whether route calculation failed (so UI can show error instead of "Calculating...")
+    private val _routeError = MutableStateFlow<String?>(null)
+    val routeError: StateFlow<String?> = _routeError.asStateFlow()
+
+    // Cached job for retrying route calc once GPS arrives
+    private var pendingRouteJob: DeliveryJob? = null
+
     /** Load the job and calculate route from driver to the relevant destination */
     fun loadJob(jobId: String) {
         viewModelScope.launch {
             jobRepository.getJobDetails(jobId)
                 .onSuccess { job ->
                     _error.value = null
-                    setupRouteForJob(job)
+                    if (_driverLocation.value != null) {
+                        setupRouteForJob(job)
+                    } else {
+                        // Cache the job and retry once location becomes available
+                        pendingRouteJob = job
+                    }
                     startTracking()
                 }
                 .onFailure { _error.value = it.message ?: "Failed to load job" }
@@ -111,8 +123,9 @@ class MapViewModel : ViewModel() {
             ).onSuccess { result ->
                 _routeGeometry.value = result.geometry
                 _etaMinutes.value = result.duration
+                _routeError.value = null
             }.onFailure {
-                _error.value = it.message ?: "Failed to calculate route"
+                _routeError.value = it.message ?: "Could not calculate route"
             }
         }
     }
@@ -125,6 +138,11 @@ class MapViewModel : ViewModel() {
             while (isActive) {
                 getLastKnownLocation()?.let { (lat, lng) ->
                     _driverLocation.value = Pair(lat, lng)
+                    // If route hadn't been calculated yet (no GPS at loadJob time), retry now
+                    pendingRouteJob?.let { job ->
+                        pendingRouteJob = null
+                        setupRouteForJob(job)
+                    }
                 }
                 delay(10_000L)
             }

@@ -174,9 +174,6 @@ fun ProfileScreen(navigator: AppNavigator) {
         ProfileMenuItem(Icons.Filled.Edit, "Edit Profile", "Update your personal details") {
             navigator.navigateTo(Screen.EditProfile)
         }
-        ProfileMenuItem(Icons.Filled.DirectionsCar, "Vehicle Details", "Manage your vehicle info") {
-            navigator.navigateTo(Screen.VehicleDetailsInput)
-        }
         ProfileMenuItem(Icons.Filled.Description, "Documents", "View document status") {
             navigator.navigateTo(Screen.VerificationStatus)
         }

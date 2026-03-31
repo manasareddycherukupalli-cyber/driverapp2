@@ -81,15 +81,17 @@ fun EditProfileScreen(navigator: AppNavigator) {
                 }
             }
 
-            // Name
+            // Name (read-only — set from verified registration documents)
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = {},
                 label = { Text("Full Name") },
                 leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = Orange500) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                singleLine = true,
+                readOnly = true,
+                enabled = false
             )
 
             // Email

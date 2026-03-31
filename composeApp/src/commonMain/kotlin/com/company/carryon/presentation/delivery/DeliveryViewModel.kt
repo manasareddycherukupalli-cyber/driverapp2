@@ -158,7 +158,7 @@ class DeliveryViewModel : ViewModel() {
     /** Get action text for current delivery step */
     fun getActionText(status: JobStatus): String {
         return when (status) {
-            JobStatus.ACCEPTED -> "Start Navigation →"
+            JobStatus.ACCEPTED -> "Head to Pickup →"
             JobStatus.HEADING_TO_PICKUP -> "Arrived at Pickup 📍"
             JobStatus.ARRIVED_AT_PICKUP -> "Picked Up Package 📦"
             JobStatus.PICKED_UP -> "Start Delivery 🚚"

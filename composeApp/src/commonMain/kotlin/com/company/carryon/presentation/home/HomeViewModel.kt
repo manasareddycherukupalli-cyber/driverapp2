@@ -61,6 +61,12 @@ class HomeViewModel : ViewModel() {
     // Incoming job polling job
     private var jobPollingJob: Job? = null
 
+    // Client-side rejected job IDs — prevents rejected requests from reappearing before server catches up
+    private val rejectedJobIds = mutableSetOf<String>()
+
+    // Flag to prevent initOnlineStatusFromDriver from overriding _isOnline during a toggle request
+    private var isTogglingOnline = false
+
     // Transient error messages for toast/snackbar
     private val _toastError = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val toastError: SharedFlow<String> = _toastError.asSharedFlow()
@@ -89,6 +95,8 @@ class HomeViewModel : ViewModel() {
                 .filterNotNull()
                 .distinctUntilChanged { old, new -> old.isOnline == new.isOnline }
                 .collect { driver ->
+                    // Skip update while a toggle request is in-flight to avoid race condition
+                    if (isTogglingOnline) return@collect
                     _isOnline.value = driver.isOnline
                     if (driver.isOnline) {
                         startRealtimeSubscription()
@@ -115,6 +123,7 @@ class HomeViewModel : ViewModel() {
     fun toggleOnlineStatus() {
         viewModelScope.launch {
             val newStatus = !_isOnline.value
+            isTogglingOnline = true
             authRepository.toggleOnline(newStatus)
                 .onSuccess {
                     _isOnline.value = newStatus
@@ -131,6 +140,7 @@ class HomeViewModel : ViewModel() {
                     }
                 }
                 .onFailure { _toastError.tryEmit(it.message ?: "Failed to update status") }
+            isTogglingOnline = false
         }
     }
 
@@ -209,7 +219,9 @@ class HomeViewModel : ViewModel() {
                 if (_incomingJob.value == null) {
                     jobRepository.getIncomingRequest()
                         .onSuccess { job ->
-                            if (job != null) _incomingJob.value = job
+                            if (job != null && job.id !in rejectedJobIds) {
+                                _incomingJob.value = job
+                            }
                         }
                 }
             }
@@ -294,9 +306,11 @@ class HomeViewModel : ViewModel() {
     /** Reject incoming job request */
     fun rejectIncomingJob() {
         val job = _incomingJob.value ?: return
+        // Track client-side immediately so polling doesn't re-show it before server records it
+        rejectedJobIds.add(job.id)
+        _incomingJob.value = null
         viewModelScope.launch {
             jobRepository.rejectJob(job.id)
-                .onSuccess { _incomingJob.value = null }
                 .onFailure { _toastError.tryEmit(it.message ?: "Failed to reject job") }
         }
     }

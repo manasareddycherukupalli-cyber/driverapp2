@@ -27,6 +27,7 @@ fun MapScreen(navigator: AppNavigator) {
     val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
     val markers by viewModel.markers.collectAsState()
     val routeGeometry by viewModel.routeGeometry.collectAsState()
+    val routeError by viewModel.routeError.collectAsState()
 
     // Load the job route when screen opens
     val jobId = navigator.selectedJobId
@@ -99,10 +100,14 @@ fun MapScreen(navigator: AppNavigator) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = if (eta > 0) "$eta min" else "Calculating...",
+                                text = when {
+                                    eta > 0 -> "$eta min"
+                                    routeError != null -> "Unavailable"
+                                    else -> "Calculating..."
+                                },
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 28.sp,
-                                color = Orange500
+                                color = if (routeError != null) MaterialTheme.colorScheme.error else Orange500
                             )
                         }
                         // Recenter button
