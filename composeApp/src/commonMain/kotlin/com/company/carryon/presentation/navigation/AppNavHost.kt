@@ -45,7 +45,6 @@ fun AppNavHost(navigator: AppNavigator) {
     val currentScreen = navigator.currentScreen
     val showBottomBar = currentScreen in mainTabScreens
     val authViewModel = remember { AuthViewModel() }
-    val homeViewModel = remember { HomeViewModel() }
 
     Scaffold(
         bottomBar = {
@@ -81,7 +80,12 @@ fun AppNavHost(navigator: AppNavigator) {
                     Screen.LocationPermission -> LocationPermissionScreen(navigator)
 
                     // ---- Main Tabs ----
-                    Screen.Home -> HomeScreen(navigator, homeViewModel)
+                    Screen.Home -> {
+                        // Create the home VM only when Home is displayed to avoid
+                        // kicking off location/network startup work during Splash/Auth.
+                        val homeViewModel = remember { HomeViewModel() }
+                        HomeScreen(navigator, homeViewModel)
+                    }
                     Screen.Jobs -> JobsListScreen(navigator)
                     Screen.Earnings -> EarningsDashboardScreen(navigator)
                     Screen.Profile -> ProfileScreen(navigator)

@@ -64,6 +64,7 @@ class AppNavigator {
     var selectedTicketId by mutableStateOf<String?>(null)
     var phoneNumber by mutableStateOf("")
     var countryCode by mutableStateOf("+60")
+    var initialJobsTabIndex by mutableIntStateOf(0)
 
     /**
      * Navigate to a new screen, pushing current screen to back stack.
@@ -102,6 +103,18 @@ class AppNavigator {
             backStack.clear()
             backStack.add(Screen.Home) // Always allow going back to Home
             currentScreen = screen
+        }
+    }
+
+    /**
+     * Switch to Jobs tab and preselect a tab index (0=Active,1=Scheduled,2=Completed).
+     */
+    fun switchToJobsTab(tabIndex: Int = 0) {
+        initialJobsTabIndex = tabIndex.coerceIn(0, 2)
+        if (currentScreen != Screen.Jobs) {
+            backStack.clear()
+            backStack.add(Screen.Home)
+            currentScreen = Screen.Jobs
         }
     }
 

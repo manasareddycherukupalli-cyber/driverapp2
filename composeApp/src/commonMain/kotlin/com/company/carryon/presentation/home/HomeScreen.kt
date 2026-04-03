@@ -43,6 +43,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
     // Refresh location when screen appears
     LaunchedEffect(Unit) {
         viewModel.refreshDriverLocation()
+        viewModel.loadDashboardData()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -72,7 +73,8 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             // ---- Today's Earnings Card ----
             TodayEarningsCard(
                 earningsState = earningsState,
-                onClick = { navigator.switchTab(Screen.Earnings) }
+                onClick = { navigator.switchTab(Screen.Earnings) },
+                onRetry = { viewModel.loadEarnings() }
             )
 
             Spacer(Modifier.height(16.dp))
@@ -83,7 +85,8 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
                 onJobClick = { jobId ->
                     navigator.selectedJobId = jobId
                     navigator.navigateTo(Screen.JobDetails)
-                }
+                },
+                onRetry = { viewModel.loadActiveJobs() }
             )
 
             Spacer(Modifier.height(16.dp))
@@ -340,13 +343,18 @@ private fun DriverLocationMap(
 @Composable
 private fun TodayEarningsCard(
     earningsState: UiState<EarningsSummary>,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onRetry: () -> Unit
 ) {
+    val cardModifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp)
+        .let {
+            if (earningsState is UiState.Success) it.clickable { onClick() } else it
+        }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clickable { onClick() },
+        modifier = cardModifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -410,7 +418,8 @@ private fun TodayEarningsCard(
                         text = "Tap to retry",
                         color = Orange500,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        modifier = Modifier.clickable { onRetry() }
                     )
                 }
             }
@@ -447,7 +456,8 @@ private fun MiniStat(label: String, value: String) {
 @Composable
 private fun ActiveJobSection(
     activeJobsState: UiState<List<DeliveryJob>>,
-    onJobClick: (String) -> Unit
+    onJobClick: (String) -> Unit,
+    onRetry: () -> Unit
 ) {
     when (activeJobsState) {
         is UiState.Success -> {
@@ -476,6 +486,14 @@ private fun ActiveJobSection(
                         text = activeJobsState.message,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         fontSize = 14.sp
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Tap to retry",
+                        color = Orange500,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.clickable { onRetry() }
                     )
                 }
             }

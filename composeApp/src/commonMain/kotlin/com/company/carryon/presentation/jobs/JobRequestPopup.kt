@@ -29,10 +29,11 @@ fun JobRequestPopup(
     onReject: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var timeRemaining by remember { mutableStateOf(30) }
+    var timeRemaining by remember(job.id) { mutableStateOf(30) }
 
     // Countdown timer — auto-reject after 30 seconds
-    LaunchedEffect(Unit) {
+    LaunchedEffect(job.id) {
+        timeRemaining = 30
         while (timeRemaining > 0) {
             delay(1000)
             timeRemaining--

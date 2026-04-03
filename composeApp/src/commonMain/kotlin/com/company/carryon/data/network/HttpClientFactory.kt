@@ -77,8 +77,8 @@ object HttpClientFactory {
                     if (response.status.value == 401) {
                         val body = response.bodyAsText()
                         println("[HTTP] 401 Unauthorized: $body")
-                        // Clear stored token since it's no longer valid
-                        clearToken()
+                        // Soft-fail: don't clear token immediately.
+                        // Callers should attempt a one-time session sync/recovery first.
                         throw AuthenticationException("Authentication required. Please log in again.")
                     }
                     if (response.status.value >= 400) {

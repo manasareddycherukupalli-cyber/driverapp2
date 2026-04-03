@@ -3,6 +3,7 @@ package com.company.carryon.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.AuthenticationException
 import com.company.carryon.data.network.IncomingJobSignal
 import com.company.carryon.data.network.LocationApi
 import com.company.carryon.data.network.RealtimeJobService
@@ -21,6 +22,9 @@ import kotlinx.coroutines.launch
  * Handles online/offline toggle, earnings summary, active jobs, and notifications.
  */
 class HomeViewModel : ViewModel() {
+    companion object {
+        private const val INCOMING_POLL_MS = 30_000L
+    }
 
     private val authRepository = ServiceLocator.authRepository
     private val jobRepository = ServiceLocator.jobRepository
@@ -60,12 +64,17 @@ class HomeViewModel : ViewModel() {
 
     // Incoming job polling job
     private var jobPollingJob: Job? = null
+    private var isIncomingPollRequestInFlight = false
 
-    // Client-side rejected job IDs — prevents rejected requests from reappearing before server catches up
-    private val rejectedJobIds = mutableSetOf<String>()
+    // Client-side suppressed job IDs (rejected/accepted in-flight) to avoid popup reappearance races.
+    private val suppressedIncomingJobIds = mutableSetOf<String>()
+    private var acceptingJobId: String? = null
+    private val _acceptInFlight = MutableStateFlow(false)
+    val acceptInFlight: StateFlow<Boolean> = _acceptInFlight.asStateFlow()
 
     // Flag to prevent initOnlineStatusFromDriver from overriding _isOnline during a toggle request
     private var isTogglingOnline = false
+    private var authRecoveryInProgress = false
 
     // Transient error messages for toast/snackbar
     private val _toastError = MutableSharedFlow<String>(extraBufferCapacity = 1)
@@ -98,6 +107,8 @@ class HomeViewModel : ViewModel() {
                     // Skip update while a toggle request is in-flight to avoid race condition
                     if (isTogglingOnline) return@collect
                     _isOnline.value = driver.isOnline
+                    // Driver became available/refreshed — refresh dashboard data so stale errors clear.
+                    loadDashboardData()
                     if (driver.isOnline) {
                         startRealtimeSubscription()
                         registerFcmToken()
@@ -205,24 +216,33 @@ class HomeViewModel : ViewModel() {
         locationTrackingJob = null
     }
 
-    /** Poll /incoming every 6 seconds as a fallback in case Supabase Realtime misses events.
-     *  Also fires immediately when an FCM JOB_REQUEST push signals a pending check. */
+    /** Poll /incoming every 30 seconds as a fallback in case Supabase Realtime misses events.
+     *  Also fires immediately on start and when an FCM JOB_REQUEST push signals a pending check. */
     private fun startJobPolling() {
         if (jobPollingJob?.isActive == true) return
         jobPollingJob = viewModelScope.launch {
+            var firstPoll = true
             while (isActive) {
-                // Check immediately if FCM signalled a job, otherwise wait 6s
+                // Check immediately on first iteration or if FCM signalled a job; otherwise wait.
                 val fcmTriggered = IncomingJobSignal.pendingCheck
-                if (!fcmTriggered) delay(6_000L)
+                if (!firstPoll && !fcmTriggered) delay(INCOMING_POLL_MS)
                 IncomingJobSignal.pendingCheck = false
+                firstPoll = false
 
-                if (_incomingJob.value == null) {
+                if (_incomingJob.value == null && !isIncomingPollRequestInFlight) {
+                    isIncomingPollRequestInFlight = true
                     jobRepository.getIncomingRequest()
                         .onSuccess { job ->
-                            if (job != null && job.id !in rejectedJobIds) {
+                            if (
+                                job != null &&
+                                job.id !in suppressedIncomingJobIds &&
+                                job.id != acceptingJobId
+                            ) {
                                 _incomingJob.value = job
                             }
                         }
+                        .onFailure { _toastError.tryEmit(it.message ?: "Failed to fetch incoming jobs") }
+                    isIncomingPollRequestInFlight = false
                 }
             }
         }
@@ -237,7 +257,11 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             RealtimeJobService.incomingJobs.collect { job ->
                 // Only show if no job popup is currently displayed
-                if (_incomingJob.value == null) {
+                if (
+                    _incomingJob.value == null &&
+                    job.id !in suppressedIncomingJobIds &&
+                    job.id != acceptingJobId
+                ) {
                     _incomingJob.value = job
                 }
             }
@@ -254,22 +278,40 @@ class HomeViewModel : ViewModel() {
     }
 
     /** Load today's earnings summary */
-    private fun loadEarnings() {
+    fun loadEarnings() {
         viewModelScope.launch {
             _earningsSummary.value = UiState.Loading
             earningsRepository.getEarningsSummary()
                 .onSuccess { _earningsSummary.value = UiState.Success(it) }
-                .onFailure { _earningsSummary.value = UiState.Error(it.message ?: "Failed to load earnings") }
+                .onFailure {
+                    if (it is AuthenticationException) {
+                        attemptSessionRecovery(
+                            onRecovered = { loadEarnings() },
+                            onRecoveryFailed = { message -> _earningsSummary.value = UiState.Error(message) }
+                        )
+                    } else {
+                        _earningsSummary.value = UiState.Error(it.message ?: "Failed to load earnings")
+                    }
+                }
         }
     }
 
     /** Load active delivery jobs */
-    private fun loadActiveJobs() {
+    fun loadActiveJobs() {
         viewModelScope.launch {
             _activeJobs.value = UiState.Loading
             jobRepository.getActiveJobs()
                 .onSuccess { _activeJobs.value = UiState.Success(it) }
-                .onFailure { _activeJobs.value = UiState.Error(it.message ?: "Failed to load jobs") }
+                .onFailure {
+                    if (it is AuthenticationException) {
+                        attemptSessionRecovery(
+                            onRecovered = { loadActiveJobs() },
+                            onRecoveryFailed = { message -> _activeJobs.value = UiState.Error(message) }
+                        )
+                    } else {
+                        _activeJobs.value = UiState.Error(it.message ?: "Failed to load jobs")
+                    }
+                }
         }
     }
 
@@ -290,16 +332,45 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    private fun attemptSessionRecovery(
+        onRecovered: () -> Unit,
+        onRecoveryFailed: (String) -> Unit
+    ) {
+        if (authRecoveryInProgress) return
+        authRecoveryInProgress = true
+        viewModelScope.launch {
+            authRepository.syncDriver()
+                .onSuccess { onRecovered() }
+                .onFailure {
+                    val message = it.message ?: "Session expired. Please log in again."
+                    _toastError.tryEmit(message)
+                    onRecoveryFailed(message)
+                }
+            authRecoveryInProgress = false
+        }
+    }
+
     /** Accept incoming job request */
     fun acceptIncomingJob() {
         val job = _incomingJob.value ?: return
+        if (_acceptInFlight.value) return
+        acceptingJobId = job.id
+        suppressedIncomingJobIds.add(job.id)
+        _incomingJob.value = null
+        _acceptInFlight.value = true
         viewModelScope.launch {
-            jobRepository.acceptJob(job.id)
+            val result = jobRepository.acceptJob(job.id)
+            result
                 .onSuccess {
-                    _incomingJob.value = null
                     loadActiveJobs()
                 }
-                .onFailure { _toastError.tryEmit(it.message ?: "Failed to accept job") }
+                .onFailure {
+                    suppressedIncomingJobIds.remove(job.id)
+                    _incomingJob.value = job
+                    _toastError.tryEmit(it.message ?: "Failed to accept job")
+                }
+            _acceptInFlight.value = false
+            acceptingJobId = null
         }
     }
 
@@ -307,7 +378,7 @@ class HomeViewModel : ViewModel() {
     fun rejectIncomingJob() {
         val job = _incomingJob.value ?: return
         // Track client-side immediately so polling doesn't re-show it before server records it
-        rejectedJobIds.add(job.id)
+        suppressedIncomingJobIds.add(job.id)
         _incomingJob.value = null
         viewModelScope.launch {
             jobRepository.rejectJob(job.id)

@@ -30,7 +30,10 @@ fun JobsListScreen(navigator: AppNavigator) {
     val scheduledJobs by viewModel.scheduledJobs.collectAsState()
     val completedJobs by viewModel.completedJobs.collectAsState()
 
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(navigator.initialJobsTabIndex.coerceIn(0, 2)) }
+    LaunchedEffect(Unit) {
+        navigator.initialJobsTabIndex = 0
+    }
     val tabs = listOf("Active", "Scheduled", "Completed")
 
     Column(

@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
 import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.navigation.AppNavigator
-import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
 
 /**
@@ -44,7 +43,7 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator) {
     // Navigate on success
     LaunchedEffect(proofState) {
         if (proofState is UiState.Success) {
-            navigator.navigateAndClearStack(Screen.Home)
+            navigator.switchToJobsTab(tabIndex = 2)
         }
     }
 
