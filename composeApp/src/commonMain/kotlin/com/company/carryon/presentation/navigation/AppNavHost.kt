@@ -77,7 +77,7 @@ fun AppNavHost(navigator: AppNavigator) {
                     Screen.DocumentUpload -> DocumentUploadScreen(navigator, authViewModel)
                     Screen.VehicleDetailsInput -> VehicleDetailsScreen(navigator, authViewModel)
                     Screen.VerificationStatus -> VerificationStatusScreen(navigator, authViewModel)
-                    Screen.LocationPermission -> LocationPermissionScreen(navigator)
+                    Screen.LocationPermission -> LocationPermissionScreen(navigator, authViewModel)
 
                     // ---- Main Tabs ----
                     Screen.Home -> {
@@ -88,7 +88,7 @@ fun AppNavHost(navigator: AppNavigator) {
                     }
                     Screen.Jobs -> JobsListScreen(navigator)
                     Screen.Earnings -> EarningsDashboardScreen(navigator)
-                    Screen.Profile -> ProfileScreen(navigator)
+                    Screen.Profile -> SettingsScreen(navigator)
 
                     // ---- Sub Screens ----
                     Screen.JobDetails -> JobDetailsScreen(navigator)
@@ -100,6 +100,12 @@ fun AppNavHost(navigator: AppNavigator) {
                     Screen.Ratings -> RatingsScreen(navigator)
                     Screen.EditProfile -> EditProfileScreen(navigator)
                     Screen.Settings -> SettingsScreen(navigator)
+                    Screen.NotificationPreferences -> NotificationPreferencesScreen(navigator)
+                    Screen.Language -> LanguageScreen(navigator)
+                    Screen.VehicleInfo -> VehicleInfoScreen(navigator)
+                    Screen.DocumentsHub -> DocumentsHubScreen(navigator)
+                    Screen.TermsOfService -> TermsOfServiceScreen(navigator)
+                    Screen.PrivacyPolicy -> PrivacyPolicyScreen(navigator)
                     Screen.HelpCenter -> HelpCenterScreen(navigator)
                     Screen.RaiseTicket -> RaiseTicketScreen(navigator)
                     Screen.SupportChat -> SupportChatScreen(navigator)

@@ -8,7 +8,19 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
-    alias(libs.plugins.googleServices)
+}
+
+val hasGoogleServicesConfig = listOf(
+    file("google-services.json"),
+    file("src/google-services.json"),
+    file("src/debug/google-services.json"),
+    file("src/release/google-services.json"),
+).any { it.exists() }
+
+if (hasGoogleServicesConfig) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.lifecycle("google-services.json not found in composeApp; skipping Google Services plugin for this build.")
 }
 
 kotlin {
@@ -109,4 +121,3 @@ android {
 dependencies {
     debugImplementation(libs.compose.uiTooling)
 }
-

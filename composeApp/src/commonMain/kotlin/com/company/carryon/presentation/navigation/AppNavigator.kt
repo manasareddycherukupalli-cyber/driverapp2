@@ -36,6 +36,12 @@ sealed interface Screen {
     data object Ratings : Screen
     data object EditProfile : Screen
     data object Settings : Screen
+    data object NotificationPreferences : Screen
+    data object Language : Screen
+    data object VehicleInfo : Screen
+    data object DocumentsHub : Screen
+    data object TermsOfService : Screen
+    data object PrivacyPolicy : Screen
     data object HelpCenter : Screen
     data object RaiseTicket : Screen
     data object SupportChat : Screen

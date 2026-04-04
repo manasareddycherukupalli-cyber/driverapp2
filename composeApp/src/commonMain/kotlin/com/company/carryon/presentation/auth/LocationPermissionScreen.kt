@@ -9,6 +9,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,7 +23,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.presentation.navigation.AppNavigator
-import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
 import drive_app.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
@@ -31,7 +32,10 @@ import org.jetbrains.compose.resources.painterResource
  * Prompts the driver to enable location or skip for now.
  */
 @Composable
-fun LocationPermissionScreen(navigator: AppNavigator) {
+fun LocationPermissionScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
+    val latestAuthResponse by authViewModel.latestAuthResponse.collectAsState()
+    val nextScreen = authViewModel.determinePostLocationScreen(latestAuthResponse)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -113,7 +117,7 @@ fun LocationPermissionScreen(navigator: AppNavigator) {
         ) {
             // Use current location — filled
             Button(
-                onClick = { navigator.navigateAndClearStack(Screen.Home) },
+                onClick = { navigator.navigateAndClearStack(nextScreen) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -132,7 +136,7 @@ fun LocationPermissionScreen(navigator: AppNavigator) {
 
             // Skip for now — outlined
             OutlinedButton(
-                onClick = { navigator.navigateAndClearStack(Screen.Home) },
+                onClick = { navigator.navigateAndClearStack(nextScreen) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),

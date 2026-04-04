@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.company.carryon.data.network.FcmTokenHolder
 import com.company.carryon.data.network.initLocationProvider
 import com.company.carryon.data.network.initTokenStorage
+import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
@@ -98,6 +99,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun retrieveFcmToken() {
+        val firebaseAvailable = try {
+            FirebaseApp.getApps(this).isNotEmpty()
+        } catch (_: Exception) {
+            false
+        }
+        if (!firebaseAvailable) {
+            Log.w("MainActivity", "Firebase is not configured (google-services.json missing). Skipping FCM token retrieval.")
+            return
+        }
+
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 FcmTokenHolder.token = task.result

@@ -55,6 +55,8 @@ class AuthViewModel : ViewModel() {
     // ---- Session State ----
     private val _hasValidSession = MutableStateFlow(false)
     val hasValidSession: StateFlow<Boolean> = _hasValidSession.asStateFlow()
+    private val _latestAuthResponse = MutableStateFlow<AuthResponse?>(null)
+    val latestAuthResponse: StateFlow<AuthResponse?> = _latestAuthResponse.asStateFlow()
 
     // ---- Auth Flow Type ----
     var authFlowType by mutableStateOf(AuthFlowType.LOGIN)
@@ -140,14 +142,17 @@ class AuthViewModel : ViewModel() {
                         )
                         repository.register(driver)
                             .onSuccess { registerResponse ->
+                                _latestAuthResponse.value = registerResponse
                                 _otpVerifyState.value = UiState.Success(registerResponse)
                             }
                             .onFailure {
                                 // Registration of details failed, but sync succeeded —
                                 // proceed with the sync response so the user isn't blocked
+                                _latestAuthResponse.value = syncResponse
                                 _otpVerifyState.value = UiState.Success(syncResponse)
                             }
                     } else {
+                        _latestAuthResponse.value = syncResponse
                         _otpVerifyState.value = UiState.Success(syncResponse)
                     }
                 }
@@ -257,8 +262,39 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    /** Determine which screen the driver should land on based on profile completeness */
+    /**
+     * Route immediately after auth.
+     * We always show the location step first so Home is never reached directly after login.
+     */
     fun determinePostAuthScreen(response: AuthResponse): Screen {
+        _latestAuthResponse.value = response
+        return Screen.LocationPermission
+    }
+
+    /**
+     * Route after the location permission step.
+     * Home is intentionally gated behind verification screens.
+     */
+    fun determinePostLocationScreen(response: AuthResponse? = _latestAuthResponse.value): Screen {
+        val resolved = response ?: return Screen.DocumentUpload
+        _latestAuthResponse.value = resolved
+        val driver = resolved.driver
+        if (resolved.isNewDriver || authFlowType == AuthFlowType.SIGNUP) {
+            return Screen.DocumentUpload
+        }
+        if (driver == null || driver.documents.isEmpty()) {
+            return Screen.DocumentUpload
+        }
+        if (driver.vehicleDetails == null) {
+            return Screen.VehicleDetailsInput
+        }
+        // Even approved drivers land on verification status first.
+        // The screen's CTA then takes them to Home.
+        return Screen.VerificationStatus
+    }
+
+    /** Legacy entry point kept for compatibility with existing call sites */
+    fun determineProfileCompletionScreen(response: AuthResponse): Screen {
         val driver = response.driver
         if (response.isNewDriver || authFlowType == AuthFlowType.SIGNUP) {
             return Screen.DocumentUpload
@@ -285,6 +321,7 @@ class AuthViewModel : ViewModel() {
             _sessionSyncState.value = UiState.Loading
             repository.syncDriver()
                 .onSuccess { response ->
+                    _latestAuthResponse.value = response
                     _sessionSyncState.value = UiState.Success(response)
                 }
                 .onFailure {

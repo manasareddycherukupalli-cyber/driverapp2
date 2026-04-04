@@ -23,6 +23,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
+private const val FORCE_PRE_HOME_FLOW_ON_LAUNCH = true
+
 /**
  * SplashScreen — white background, illustration centred and fitted to screen width.
  * Checks for existing session and routes accordingly.
@@ -40,6 +42,12 @@ fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             targetValue   = 1f,
             animationSpec = tween(durationMillis = 600)
         )
+
+        if (FORCE_PRE_HOME_FLOW_ON_LAUNCH) {
+            minDelay.join()
+            navigator.navigateAndClearStack(Screen.Onboarding)
+            return@LaunchedEffect
+        }
 
         // 1. Try to get the existing Supabase session (SDK auto-loads from storage)
         var session = try {
@@ -78,6 +86,7 @@ fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
 
     // Observe sync result for existing session
     LaunchedEffect(sessionSyncState) {
+        if (FORCE_PRE_HOME_FLOW_ON_LAUNCH) return@LaunchedEffect
         when (val state = sessionSyncState) {
             is UiState.Success -> {
                 val screen = authViewModel.determinePostAuthScreen(state.data)
