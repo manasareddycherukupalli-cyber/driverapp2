@@ -70,7 +70,6 @@ fun ActiveDeliveryScreen(navigator: AppNavigator) {
                 onBackClick = { navigator.goBack() }
             )
 
-            val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
             val routeGeometry by viewModel.routeGeometry.collectAsState()
             val mapMarkers by viewModel.markers.collectAsState()
 
@@ -81,7 +80,6 @@ fun ActiveDeliveryScreen(navigator: AppNavigator) {
                     job = state.data,
                     viewModel = viewModel,
                     navigator = navigator,
-                    mapStyleUrl = mapStyleUrl,
                     routeGeometry = routeGeometry,
                     mapMarkers = mapMarkers
                 )
@@ -96,7 +94,6 @@ private fun ActiveDeliveryContent(
     job: DeliveryJob,
     viewModel: DeliveryViewModel,
     navigator: AppNavigator,
-    mapStyleUrl: String,
     routeGeometry: List<LatLng>?,
     mapMarkers: List<MapMarker>
 ) {
@@ -133,7 +130,7 @@ private fun ActiveDeliveryContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp),
-            styleUrl = mapStyleUrl,
+            styleUrl = "",
             markers = mapMarkers,
             routeGeometry = routeGeometry
         )

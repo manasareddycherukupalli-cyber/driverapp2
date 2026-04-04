@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,10 +25,11 @@ fun MapScreen(navigator: AppNavigator) {
     val driverLocation by viewModel.driverLocation.collectAsState()
     val isTracking by viewModel.isTracking.collectAsState()
     val eta by viewModel.etaMinutes.collectAsState()
-    val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
+    val currentJob by viewModel.currentJob.collectAsState()
     val markers by viewModel.markers.collectAsState()
     val routeGeometry by viewModel.routeGeometry.collectAsState()
     val routeError by viewModel.routeError.collectAsState()
+    val uriHandler = LocalUriHandler.current
 
     // Load the job route when screen opens
     val jobId = navigator.selectedJobId
@@ -51,7 +53,7 @@ fun MapScreen(navigator: AppNavigator) {
                 // ---- Google Maps ----
                 MapViewComposable(
                     modifier = Modifier.fillMaxSize(),
-                    styleUrl = mapStyleUrl,
+                    styleUrl = "",
                     centerLat = loc.first,
                     centerLng = loc.second,
                     zoom = 14.0,
@@ -129,7 +131,19 @@ fun MapScreen(navigator: AppNavigator) {
                     ) {
                         // Open in external maps app
                         OutlinedButton(
-                            onClick = { /* Open in external maps app */ },
+                            onClick = {
+                                val job = currentJob ?: return@OutlinedButton
+                                val destination = if (job.status.ordinal <= JobStatus.ARRIVED_AT_PICKUP.ordinal) {
+                                    job.pickup
+                                } else {
+                                    job.dropoff
+                                }
+                                if (destination.latitude != 0.0 || destination.longitude != 0.0) {
+                                    uriHandler.openUri(
+                                        "https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}&travelmode=driving"
+                                    )
+                                }
+                            },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -140,7 +154,18 @@ fun MapScreen(navigator: AppNavigator) {
 
                         // Call customer
                         OutlinedButton(
-                            onClick = { /* Open phone dialer */ },
+                            onClick = {
+                                val job = currentJob ?: return@OutlinedButton
+                                val destination = if (job.status.ordinal <= JobStatus.ARRIVED_AT_PICKUP.ordinal) {
+                                    job.pickup
+                                } else {
+                                    job.dropoff
+                                }
+                                val phone = destination.contactPhone?.filter { it.isDigit() || it == '+' }.orEmpty()
+                                if (phone.isNotBlank()) {
+                                    uriHandler.openUri("tel:$phone")
+                                }
+                            },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
                         ) {

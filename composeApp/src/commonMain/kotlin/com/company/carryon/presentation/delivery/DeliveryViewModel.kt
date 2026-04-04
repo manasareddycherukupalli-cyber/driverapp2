@@ -30,10 +30,6 @@ class DeliveryViewModel : ViewModel() {
     private val _cancelState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
     val cancelState: StateFlow<UiState<Boolean>> = _cancelState.asStateFlow()
 
-    // Map style URL from Google Maps
-    private val _mapStyleUrl = MutableStateFlow("")
-    val mapStyleUrl: StateFlow<String> = _mapStyleUrl.asStateFlow()
-
     // Route geometry for map polyline
     private val _routeGeometry = MutableStateFlow<List<LatLng>?>(null)
     val routeGeometry: StateFlow<List<LatLng>?> = _routeGeometry.asStateFlow()
@@ -41,14 +37,6 @@ class DeliveryViewModel : ViewModel() {
     // Map markers for pickup/dropoff
     private val _markers = MutableStateFlow<List<MapMarker>>(emptyList())
     val markers: StateFlow<List<MapMarker>> = _markers.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            LocationApi.getMapConfig().onSuccess { config ->
-                _mapStyleUrl.value = config.styleUrl
-            }
-        }
-    }
 
     /** Load job details for active delivery */
     fun loadJob(jobId: String) {

@@ -587,7 +587,7 @@ private fun ActiveJobCard(job: DeliveryJob, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "⏱ ${job.estimatedDuration} min",
+                    text = "⏱ ${job.displayDurationMinutes} min",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

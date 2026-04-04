@@ -158,7 +158,7 @@ fun JobRequestPopup(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("⏱", fontSize = 20.sp)
                         Text(
-                            text = "${job.estimatedDuration} min",
+                            text = "${job.displayDurationMinutes} min",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         )

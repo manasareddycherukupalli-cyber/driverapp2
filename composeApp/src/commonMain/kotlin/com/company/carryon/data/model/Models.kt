@@ -2,6 +2,7 @@ package com.company.carryon.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.math.ceil
 
 // ============================================================
 // AUTH & DRIVER MODELS
@@ -133,6 +134,15 @@ data class DeliveryJob(
     val notes: String? = null,
     val proofOfDelivery: ProofOfDelivery? = null
 )
+
+val DeliveryJob.displayDurationMinutes: Int
+    get() {
+        if (estimatedDuration > 0) return estimatedDuration
+        if (distance <= 0.0) return 0
+
+        // Fallback estimate for missing backend duration (assumes ~30 km/h city speed).
+        return ceil((distance / 30.0) * 60.0).toInt().coerceAtLeast(1)
+    }
 
 @Serializable
 data class LocationInfo(
