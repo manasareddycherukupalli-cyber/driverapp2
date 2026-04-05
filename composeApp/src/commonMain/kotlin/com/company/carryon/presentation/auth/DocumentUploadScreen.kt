@@ -1,298 +1,129 @@
 package com.company.carryon.presentation.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.company.carryon.data.model.*
-import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
-import com.company.carryon.presentation.theme.*
-import com.company.carryon.presentation.util.rememberImagePickerLauncher
-import com.company.carryon.presentation.util.toImageBitmap
 
-/**
- * DocumentUploadScreen — Upload required documents for verification.
- * Shows list of documents with status indicators and upload buttons.
- */
+private val Blue = Color(0xFF2F80ED)
+private val Bg = Color(0xFFF9F9FF)
+private val Soft = Color(0xFFA6D2F3)
+
 @Composable
 fun DocumentUploadScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
-    val uploadState by viewModel.documentUploadState.collectAsState()
-    val uploadedDocs by viewModel.uploadedDocuments.collectAsState()
-    var pendingUploadType by remember { mutableStateOf<DocumentType?>(null) }
-    var pendingBytes by remember { mutableStateOf<ByteArray?>(null) }
-    var pendingDocType by remember { mutableStateOf<DocumentType?>(null) }
-
-    val imagePicker = rememberImagePickerLauncher { bytes ->
-        pendingBytes = bytes
-        pendingDocType = pendingUploadType
-    }
-
-    // Confirmation dialog
-    if (pendingBytes != null && pendingDocType != null) {
-        AlertDialog(
-            onDismissRequest = {
-                pendingBytes = null
-                pendingDocType = null
-            },
-            title = {
-                Text(
-                    text = pendingDocType!!.displayName,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Upload this photo?",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                    Image(
-                        painter = BitmapPainter(pendingBytes!!.toImageBitmap()),
-                        contentDescription = "Preview of ${pendingDocType!!.displayName}",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(200.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.uploadDocument(pendingDocType!!, pendingBytes!!)
-                        pendingUploadType = pendingDocType
-                        pendingBytes = null
-                        pendingDocType = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Orange500)
-                ) {
-                    Text("Upload", fontWeight = FontWeight.SemiBold)
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        pendingBytes = null
-                        pendingDocType = null
-                    }
-                ) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        DriveAppTopBar(
-            title = "Upload Documents",
-            onBackClick = { navigator.goBack() }
-        )
+    Column(modifier = Modifier.fillMaxSize().background(Bg)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Filled.ArrowBack, contentDescription = null, modifier = Modifier.clickable { navigator.goBack() })
+            Text("Carry On", color = Blue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Icon(Icons.Filled.NotificationsNone, contentDescription = null)
+        }
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "Required Documents",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = "Upload clear photos of the following documents",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            // Document items
-            DocumentType.entries.forEach { docType ->
-                val uploadedDoc = uploadedDocs.find { it.type == docType }
-                DocumentUploadItem(
-                    documentType = docType,
-                    status = uploadedDoc?.status,
-                    isUploading = uploadState is UiState.Loading && pendingUploadType == docType,
-                    onUpload = {
-                        pendingUploadType = docType
-                        imagePicker.launch()
-                    }
-                )
+            Text("STEP 3 OF 3: VEHICLE DETAILS", color = Blue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(Soft, RoundedCornerShape(99.dp))) {
+                Box(modifier = Modifier.fillMaxWidth(1f).height(4.dp).background(Blue, RoundedCornerShape(99.dp)))
             }
 
-            Spacer(Modifier.height(24.dp))
+            Text("Identity Verification", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold)
+            Text("To ensure a secure environment for all users, please provide a clear photo of your official government ID or Driver's License.", color = Color(0xFF414755), fontSize = 14.sp)
 
-            // Continue button
-            PrimaryButton(
-                text = "Continue to Vehicle Details",
-                onClick = { navigator.navigateTo(Screen.VehicleDetailsInput) },
-                enabled = uploadedDocs.size >= 2 // Require at least 2 docs
-            )
+            Text("DRIVER'S LICENSE", fontSize = 11.sp, color = Color(0xFF414755), fontWeight = FontWeight.SemiBold)
+            UploadIdCard("Upload")
+            Text("ID CARD (BACK)", fontSize = 11.sp, color = Color(0xFF414755), fontWeight = FontWeight.SemiBold)
+            UploadIdCard("Required")
 
-            // Skip for now
-            TextButton(
-                onClick = { navigator.navigateTo(Screen.VehicleDetailsInput) },
-                modifier = Modifier.fillMaxWidth()
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Skip for now", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Verification Checklist", fontWeight = FontWeight.Bold)
+                    Checklist("No Flash/Glare")
+                    Checklist("Full Corners")
+                }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = { navigator.navigateTo(Screen.SelectVehicle) },
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Blue),
+                shape = RoundedCornerShape(12.dp)
+            ) { Text("Verify Identity") }
+
+            Text(
+                "By clicking verify, you consent to automatic processing under terms of service. Verification usually takes 2-5 minutes.",
+                color = Color(0x99414755),
+                fontSize = 11.sp
+            )
+            Spacer(Modifier.height(20.dp))
         }
     }
 }
 
 @Composable
-private fun DocumentUploadItem(
-    documentType: DocumentType,
-    status: DocumentStatus?,
-    isUploading: Boolean,
-    onUpload: () -> Unit
-) {
-    val icon = when (documentType) {
-        DocumentType.DRIVERS_LICENSE -> Icons.Filled.CreditCard
-        DocumentType.VEHICLE_REGISTRATION -> Icons.Filled.DirectionsCar
-        DocumentType.INSURANCE -> Icons.Filled.Security
-        DocumentType.PROFILE_PHOTO -> Icons.Filled.Person
-        DocumentType.ID_PROOF -> Icons.Filled.Badge
-    }
-
-    val statusColor = when (status) {
-        DocumentStatus.APPROVED -> Green500
-        DocumentStatus.REJECTED -> Red500
-        DocumentStatus.PENDING -> Yellow500
-        null -> Gray400
-    }
-
-    val statusText = when (status) {
-        DocumentStatus.APPROVED -> "Approved ✓"
-        DocumentStatus.REJECTED -> "Rejected ✗"
-        DocumentStatus.PENDING -> "Under Review"
-        null -> "Not Uploaded"
-    }
-
+private fun UploadIdCard(tag: String) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = status == null || status == DocumentStatus.REJECTED) { onUpload() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        modifier = Modifier.fillMaxWidth().height(158.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFE6E8F3)),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Document icon
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(
-                        color = Orange500.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = documentType.displayName,
-                    tint = Orange500,
-                    modifier = Modifier.size(24.dp)
-                )
+        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(modifier = Modifier.size(44.dp).background(Color.White, RoundedCornerShape(999.dp)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = Blue)
             }
-
-            Spacer(Modifier.width(16.dp))
-
-            // Document info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = documentType.displayName,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(Modifier.height(2.dp))
-                if (isUploading) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(12.dp),
-                            strokeWidth = 2.dp,
-                            color = Orange500
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = "Uploading…",
-                            fontSize = 13.sp,
-                            color = Orange500,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                } else {
-                    Text(
-                        text = statusText,
-                        fontSize = 13.sp,
-                        color = statusColor,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            // Upload button or status icon
-            if (status == null || status == DocumentStatus.REJECTED) {
-                if (isUploading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp,
-                        color = Orange500
-                    )
-                } else {
-                    FilledTonalButton(
-                        onClick = onUpload,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = Orange100,
-                            contentColor = Orange500
-                        )
-                    ) {
-                        Text("Upload", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    }
-                }
-            } else {
-                Icon(
-                    imageVector = if (status == DocumentStatus.APPROVED) Icons.Filled.CheckCircle else Icons.Filled.Schedule,
-                    contentDescription = statusText,
-                    tint = statusColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Spacer(Modifier.height(8.dp))
+            Text("Choose Image or Capture", fontWeight = FontWeight.SemiBold)
+            Text("Support: JPG, PNG, up to 5MB", color = Color(0xFF64748B), fontSize = 11.sp)
+            Spacer(Modifier.height(8.dp))
+            Text(tag, color = Blue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+@Composable
+private fun Checklist(item: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Blue, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.size(8.dp))
+        Text(item, fontSize = 13.sp, color = Color(0xFF414755))
     }
 }

@@ -74,8 +74,11 @@ fun AppNavHost(navigator: AppNavigator) {
                     Screen.Login -> LoginScreen(navigator, authViewModel)
                     Screen.OtpVerification -> OtpVerificationScreen(navigator, authViewModel)
                     Screen.Registration -> RegistrationScreen(navigator, authViewModel)
+                    Screen.PersonalIdentity -> PersonalIdentityScreen(navigator, authViewModel)
                     Screen.DocumentUpload -> DocumentUploadScreen(navigator, authViewModel)
                     Screen.VehicleDetailsInput -> VehicleDetailsScreen(navigator, authViewModel)
+                    Screen.SelectVehicle -> SelectVehicleScreen(navigator)
+                    Screen.ReadyToDrive -> ReadyToDriveScreen(navigator)
                     Screen.VerificationStatus -> VerificationStatusScreen(navigator, authViewModel)
                     Screen.LocationPermission -> LocationPermissionScreen(navigator, authViewModel)
 

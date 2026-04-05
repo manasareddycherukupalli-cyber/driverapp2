@@ -2,237 +2,229 @@ package com.company.carryon.presentation.support
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Emergency
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.company.carryon.data.model.*
-import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
-import com.company.carryon.presentation.theme.*
 
-/**
- * HelpCenterScreen — FAQs, help articles, and quick access to support.
- */
 @Composable
 fun HelpCenterScreen(navigator: AppNavigator) {
-    val viewModel = remember { SupportViewModel() }
-    val articlesState by viewModel.helpArticles.collectAsState()
-    val ticketsState by viewModel.tickets.collectAsState()
-
     var searchQuery by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        DriveAppTopBar(
-            title = "Help Center",
-            onBackClick = { navigator.goBack() }
-        )
-
-        LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Search bar
-            item {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search for help...") },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Orange500) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
-            }
-
-            // Quick actions
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    QuickHelpCard("📝", "Raise Ticket", Modifier.weight(1f)) {
-                        navigator.navigateTo(Screen.RaiseTicket)
-                    }
-                    QuickHelpCard("🆘", "Emergency", Modifier.weight(1f)) {
-                        navigator.navigateTo(Screen.Sos)
-                    }
-                }
-            }
-
-            // My tickets
-            item {
-                SectionHeader(
-                    title = "My Tickets",
-                    action = "View All"
-                )
-            }
-
-            when (val state = ticketsState) {
-                is UiState.Success -> {
-                    if (state.data.isEmpty()) {
-                        item {
-                            Text(
-                                "No tickets yet",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                        }
-                    } else {
-                        items(state.data) { ticket ->
-                            TicketCard(ticket) {
-                                navigator.selectedTicketId = ticket.id
-                                navigator.navigateTo(Screen.SupportChat)
-                            }
-                        }
-                    }
-                }
-                else -> {}
-            }
-
-            // FAQ articles
-            item {
-                SectionHeader(title = "Frequently Asked Questions")
-            }
-
-            when (val state = articlesState) {
-                is UiState.Success -> {
-                    val filtered = if (searchQuery.isBlank()) state.data
-                    else state.data.filter {
-                        it.title.contains(searchQuery, ignoreCase = true) ||
-                        it.content.contains(searchQuery, ignoreCase = true)
-                    }
-                    items(filtered) { article ->
-                        HelpArticleCard(article)
-                    }
-                }
-                is UiState.Loading -> item { LoadingScreen() }
-                else -> {}
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuickHelpCard(emoji: String, label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Card(
-        modifier = modifier.clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(emoji, fontSize = 32.sp)
-            Spacer(Modifier.height(8.dp))
-            Text(label, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        }
-    }
-}
-
-@Composable
-private fun TicketCard(ticket: SupportTicket, onClick: () -> Unit) {
-    val statusColor = when (ticket.status) {
-        TicketStatus.OPEN -> Blue500
-        TicketStatus.IN_PROGRESS -> Orange500
-        TicketStatus.RESOLVED -> Green500
-        TicketStatus.CLOSED -> Gray500
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            .background(Color(0xFFF5F7FB))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(ticket.subject, fontWeight = FontWeight.Medium, fontSize = 14.sp, maxLines = 1)
-                Spacer(Modifier.height(4.dp))
-                Text("#${ticket.id}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            IconButton(onClick = { navigator.goBack() }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
             }
-            StatusBadge(
-                text = ticket.status.displayName,
-                color = statusColor,
-                backgroundColor = statusColor.copy(alpha = 0.1f)
-            )
+            Text("Help Center", fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635))
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF4B79E6))
+            ) {
+                Column(Modifier.padding(14.dp)) {
+                    Text("How can we help\nyou today?", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp)
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Color(0xFF8094C5)) },
+                        placeholder = { Text("Search for articles, guides, or keywords.", fontSize = 12.sp, color = Color(0xFF90A1C7)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White
+                        )
+                    )
+                }
+            }
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Categories", fontWeight = FontWeight.Bold, color = Color(0xFF2C3852))
+                Text("SELECT A TOPIC", fontSize = 10.sp, color = Color(0xFF9BA7C0), fontWeight = FontWeight.SemiBold)
+            }
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                HelpCategoryCard("Getting\nStarted", "Account setup and first steps for new drivers.", Icons.Filled.DirectionsCar, Modifier.weight(1f))
+                HelpCategoryCard("Payments", "Direct deposit, earnings, and tax reimbursement.", Icons.Filled.AttachMoney, Modifier.weight(1f))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                HelpCategoryCard("Safety", "Incident reporting and safety guidelines.", Icons.Filled.Security, Modifier.weight(1f))
+                HelpCategoryCard("App Issues", "Technical glitches and app navigation help.", Icons.AutoMirrored.Filled.HelpOutline, Modifier.weight(1f))
+            }
+
+            Text("Top Questions", fontWeight = FontWeight.Bold, color = Color(0xFF2C3852))
+            QuestionRow("How do I update my vehicle registration?")
+            QuestionRow("What to do if a customer is not available for delivery?")
+            QuestionRow("Understanding the weekly pay summary.")
+            QuestionRow("How to request a route change?")
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F3FA))
+            ) {
+                Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color(0xFFDDE5F6), RoundedCornerShape(24.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Filled.Emergency, contentDescription = null, tint = Color(0xFF4B79E6))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("Still need help?", fontWeight = FontWeight.Bold, color = Color(0xFF2C3852))
+                    Text(
+                        "Our logistic support team is available 24/7 to assist with active route issues or account inquiries.",
+                        color = Color(0xFF7B88A2),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Button(
+                        onClick = { navigator.navigateTo(Screen.RaiseTicket) },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4B79E6))
+                    ) {
+                        Text("Contact Support", fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text("AVERAGE WAIT TIME: 1 MIN", fontSize = 10.sp, color = Color(0xFF93A1BB))
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF1FF))
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Support Resources", color = Color(0xFF6E7991), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    ResourceRow("Driver Handbook PDF")
+                    ResourceRow("Video Tutorials")
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
-private fun HelpArticleCard(article: HelpArticle) {
-    var expanded by remember { mutableStateOf(false) }
-
+private fun HelpCategoryCard(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { expanded = !expanded },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF1FF))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = article.title,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp,
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (expanded) {
-                Spacer(Modifier.height(8.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = article.content,
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 20.sp
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "Category: ${article.category}",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(icon, contentDescription = null, tint = Color(0xFF4B79E6), modifier = Modifier.size(16.dp))
+            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF2C3852), lineHeight = 16.sp)
+            Text(subtitle, color = Color(0xFF6E7991), fontSize = 10.sp, lineHeight = 13.sp)
         }
+    }
+}
+
+@Composable
+private fun QuestionRow(text: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { }
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Description, contentDescription = null, tint = Color(0xFFA6B2C8), modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(text, color = Color(0xFF4A556F), fontSize = 12.sp)
+            }
+            Icon(Icons.Filled.ArrowForwardIos, contentDescription = null, tint = Color(0xFFBDC7D8), modifier = Modifier.size(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun ResourceRow(label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Filled.Description, contentDescription = null, tint = Color(0xFF7FA1E7), modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label, color = Color(0xFF4B79E6), fontSize = 12.sp)
     }
 }

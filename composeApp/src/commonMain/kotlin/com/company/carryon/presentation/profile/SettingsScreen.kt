@@ -34,6 +34,7 @@ fun SettingsScreen(navigator: AppNavigator) {
     val sectionBg = Color(0x33A6D2F3)
     val blue = Color(0xFF2F80ED)
     val textMuted = Color(0xFF414755)
+    val driverInitials = remember(driver?.name) { initialsFromName(driver?.name, "CO") }
 
     Column(
         modifier = Modifier
@@ -52,7 +53,7 @@ fun SettingsScreen(navigator: AppNavigator) {
             }
             Text("Carry On", fontWeight = FontWeight.SemiBold, fontSize = 20.sp, color = Color(0xFF0F172A))
             AvatarCircle(
-                initials = driver?.name?.split(" ")?.take(2)?.joinToString("") { it.first().uppercase() } ?: "CO",
+                initials = driverInitials,
                 size = 40.dp
             )
         }
@@ -69,7 +70,7 @@ fun SettingsScreen(navigator: AppNavigator) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AvatarCircle(
-                    initials = driver?.name?.split(" ")?.take(2)?.joinToString("") { it.first().uppercase() } ?: "DR",
+                    initials = driverInitials,
                     size = 72.dp
                 )
                 Spacer(Modifier.width(16.dp))
@@ -171,6 +172,19 @@ fun SettingsScreen(navigator: AppNavigator) {
         )
         Spacer(Modifier.height(24.dp))
     }
+}
+
+private fun initialsFromName(name: String?, fallback: String): String {
+    if (name.isNullOrBlank()) return fallback
+    val initials = name
+        .trim()
+        .split(Regex("\\s+"))
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .take(2)
+        .mapNotNull { it.firstOrNull()?.uppercaseChar() }
+        .joinToString("")
+    return if (initials.isNotEmpty()) initials else fallback
 }
 
 @Composable
