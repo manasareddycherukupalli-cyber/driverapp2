@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.company.carryon.data.model.DeliveryJob
+import com.company.carryon.data.model.displayDurationMinutes
 import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.theme.*
 import kotlinx.coroutines.delay
