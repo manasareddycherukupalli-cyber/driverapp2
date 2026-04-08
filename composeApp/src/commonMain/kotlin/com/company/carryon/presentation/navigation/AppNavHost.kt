@@ -96,6 +96,10 @@ fun AppNavHost(navigator: AppNavigator) {
                     // ---- Sub Screens ----
                     Screen.JobDetails -> JobDetailsScreen(navigator)
                     Screen.ActiveDelivery -> ActiveDeliveryScreen(navigator)
+                    Screen.PickupInstructions -> PickupInstructionsScreen(navigator)
+                    Screen.StartDelivery -> StartDeliveryScreen(navigator)
+                    Screen.InTransitNavigation -> InTransitScreen(navigator)
+                    Screen.ArrivedAtDrop -> ArrivedAtDropScreen(navigator)
                     Screen.ProofOfDelivery -> ProofOfDeliveryScreen(navigator)
                     Screen.MapNavigation -> MapScreen(navigator)
                     Screen.Wallet -> WalletScreen(navigator)

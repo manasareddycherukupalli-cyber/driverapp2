@@ -1,5 +1,6 @@
 package com.company.carryon.presentation.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,17 +12,25 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Badge
@@ -32,6 +41,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,10 +56,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import drive_app.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 import com.company.carryon.data.model.DeliveryJob
 import com.company.carryon.data.model.EarningsSummary
 import com.company.carryon.data.model.JobStatus
@@ -63,8 +78,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val HomeBlue = Color(0xFF2F80ED)
-private val HomeDarkBlue = Color(0xFF011E60)
-private val GlassBlue = Color(0x801D3772)
+private val HomeDarkBlue = Color(0xFF000000)
+private val GlassBlue = Color(0x4DA6D2F3)
+private val SoftBlue20 = Color(0x4DA6D2F3)
+private val White = Color(0xFFFFFFFF)
+private val Black = Color(0xFF000000)
 private val DefaultCenter = LatLng(12.9716, 77.5946)
 
 private enum class HomeOnlineState {
@@ -94,6 +112,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
     val scope = rememberCoroutineScope()
     var onlineState by remember { mutableStateOf(HomeOnlineState.OFFLINE) }
     var startedOnlineFlow by remember { mutableStateOf(false) }
+    var showLiveQueue by remember { mutableStateOf(false) }
 
     LaunchedEffect(isOnline, activeJob?.id, incomingJob?.id, startedOnlineFlow) {
         if (!startedOnlineFlow) {
@@ -123,67 +142,298 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
         JobsQueueScreen(
             unreadCount = unreadCount,
             onMenuClick = { navigator.switchTab(Screen.Profile) },
-            onNotificationsClick = { navigator.navigateTo(Screen.Notifications) }
+            onNotificationsClick = { navigator.navigateTo(Screen.Notifications) },
+            onJobClick = {
+                navigator.selectedJobId = "DE-9921"
+                navigator.navigateTo(Screen.MapNavigation)
+            }
         )
         return
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(HomeBlue)) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            HomeTopBar(
-                unreadCount = unreadCount,
-                onMenuClick = { navigator.switchTab(Screen.Profile) },
-                onNotificationsClick = { navigator.navigateTo(Screen.Notifications) }
-            )
+    if (showLiveQueue) {
+        JobsQueueScreen(
+            unreadCount = unreadCount,
+            onMenuClick = { navigator.switchTab(Screen.Profile) },
+            onNotificationsClick = { navigator.navigateTo(Screen.Notifications) },
+            onJobClick = {
+                navigator.selectedJobId = "DE-9921"
+                navigator.navigateTo(Screen.MapNavigation)
+            }
+        )
+        return
+    }
 
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                BlueMap(driverLocation = driverLocation, mapStyleUrl = mapStyleUrl)
+    FinalHomeDashboard(
+        isOnline = isOnline,
+        earningsState = earningsState,
+        activeJobsState = activeJobsState,
+        driverLocation = driverLocation,
+        mapStyleUrl = mapStyleUrl,
+        onMenuClick = { navigator.switchTab(Screen.Profile) },
+        onProfileClick = { navigator.switchTab(Screen.Profile) },
+        onToggleOnline = {
+            if (startedOnlineFlow) return@FinalHomeDashboard
+            startedOnlineFlow = true
+            scope.launch {
+                viewModel.toggleOnlineStatus()
+                delay(500)
+                startedOnlineFlow = false
+            }
+        },
+        onLiveNavigationClick = { showLiveQueue = true },
+        onViewAll = { navigator.switchToJobsTab(2) }
+    )
+}
 
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    FigmaMapTiles(earningsState = earningsState)
+@Composable
+private fun FinalHomeDashboard(
+    isOnline: Boolean,
+    earningsState: UiState<EarningsSummary>,
+    activeJobsState: UiState<List<DeliveryJob>>,
+    driverLocation: Pair<Double, Double>?,
+    mapStyleUrl: String,
+    onMenuClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onToggleOnline: () -> Unit,
+    onLiveNavigationClick: () -> Unit,
+    onViewAll: () -> Unit
+) {
+    val todayEarnings = (earningsState as? UiState.Success)?.data?.todayEarnings ?: 420.0
+    val deliveries = (earningsState as? UiState.Success)?.data?.todayDeliveries ?: 12
+    val jobs = (activeJobsState as? UiState.Success)?.data.orEmpty().take(2)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(White)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(White, RoundedCornerShape(14.dp))
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = Black.copy(alpha = 0.55f), modifier = Modifier.clickable { onMenuClick() })
+            Text("Dispatch", color = HomeBlue, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(SoftBlue20, RoundedCornerShape(16.dp))
+                    .clickable { onProfileClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Person, contentDescription = "Profile", tint = HomeBlue, modifier = Modifier.size(18.dp))
+            }
+        }
+
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = White), modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(10.dp).background(HomeBlue, CircleShape))
+                    Spacer(Modifier.width(10.dp))
+                    Text("Status Online", color = Black, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+                }
+                Switch(
+                    checked = isOnline,
+                    onCheckedChange = { onToggleOnline() },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = White,
+                        checkedTrackColor = HomeBlue,
+                        uncheckedThumbColor = White,
+                        uncheckedTrackColor = SoftBlue20
+                    )
+                )
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = HomeBlue)
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("TODAY'S EARNINGS", color = White.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text("RM ${todayEarnings.toInt()}", color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
             }
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = White)
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("DELIVERIES", color = HomeBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text(deliveries.toString(), color = HomeBlue, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
 
-            HomeBottomSheet {
-                when {
-                    !isOnline -> {
-                        OfflineCta(
-                            onGoOnline = {
-                                if (startedOnlineFlow) return@OfflineCta
-                                startedOnlineFlow = true
-                                scope.launch {
-                                    viewModel.toggleOnlineStatus()
-                                    onlineState = HomeOnlineState.JUST_ONLINE
-                                    delay(1500)
-                                    onlineState = HomeOnlineState.FINDING_JOB
-                                    delay(1800)
-                                    onlineState = HomeOnlineState.JOBS_QUEUE
-                                }
-                            }
-                        )
-                    }
-                    onlineState == HomeOnlineState.ACTIVE_JOB && activeJob != null -> {
-                        ActiveRideCard(
-                            job = activeJob,
-                            onPrimaryClick = {
-                                navigator.selectedJobId = activeJob.id
-                                navigator.navigateTo(Screen.JobDetails)
-                            }
-                        )
-                    }
-                    onlineState == HomeOnlineState.JUST_ONLINE -> {
-                        OnlineSearchingCard()
-                    }
-                    else -> {
-                        FindingJobCard()
+        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = White), modifier = Modifier.fillMaxWidth()) {
+            Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
+                // Static map background image
+                Image(
+                    painter = painterResource(Res.drawable.map_bukit_bintang),
+                    contentDescription = "Map",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                // Bukit Bintang, KL label (top-left)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp)
+                        .background(White, RoundedCornerShape(20.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Place, contentDescription = null, tint = HomeBlue, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Bukit Bintang, KL", color = Black, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
+                // LIVE pill + navigation icon stacked in center
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFB71C1C), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(7.dp).background(Color.Red, CircleShape))
+                            Spacer(Modifier.width(5.dp))
+                            Text("LIVE", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Image(
+                        painter = painterResource(Res.drawable.ic_nav_arrow),
+                        contentDescription = "Navigation",
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clickable { onLiveNavigationClick() }
+                    )
+                }
+                // Crosshair / locate button (bottom-right)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(12.dp)
+                        .size(40.dp)
+                        .background(White, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.MyLocation,
+                        contentDescription = "My Location",
+                        tint = Black.copy(alpha = 0.6f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            QuickActionImage("NEARBY", Res.drawable.ic_nearby)
+            QuickActionImage("ACTIVE", Res.drawable.ic_active)
+            QuickActionImage("WALLET", Res.drawable.ic_wallet)
+        }
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Today’s Summary", color = Black, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("View All", color = HomeBlue, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onViewAll() })
+        }
+
+        if (jobs.isEmpty()) {
+            SummaryItem("#CR-4872", "Delivered to Pavilion KL", "RM 14.50", "COMPLETED")
+            SummaryItem("#CR-9901", "Pickup: Sentul Point", "RM 8.20", "PENDING")
+        } else {
+            jobs.forEach { job ->
+                val status = if (job.status == JobStatus.DELIVERED) "COMPLETED" else "PENDING"
+                SummaryItem(
+                    id = job.id.takeLast(6),
+                    subtitle = if (status == "COMPLETED") "Delivered to ${job.dropoff.shortAddress}" else "Pickup: ${job.pickup.shortAddress}",
+                    amount = "RM ${"%.2f".format(job.estimatedEarnings)}",
+                    status = status
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun QuickAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .background(White, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = label, tint = HomeBlue, modifier = Modifier.size(20.dp))
+        }
+        Text(label, color = Black.copy(alpha = 0.45f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun QuickActionImage(label: String, drawableRes: DrawableResource) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .background(White, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(drawableRes),
+                contentDescription = label,
+                modifier = Modifier.size(30.dp)
+            )
+        }
+        Text(label, color = Black.copy(alpha = 0.45f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun SummaryItem(id: String, subtitle: String, amount: String, status: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = White)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Box(modifier = Modifier.size(36.dp).background(SoftBlue20, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.ReceiptLong, contentDescription = null, tint = HomeBlue, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text("Parcel $id", color = HomeBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(subtitle, color = Black.copy(alpha = 0.65f), fontSize = 12.sp)
+                }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(amount, color = HomeBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(status, color = Black, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
             }
         }
     }
@@ -327,7 +577,7 @@ private fun StatTile(label: String, value: String, modifier: Modifier = Modifier
                 Text("Driver", color = Color.White, fontSize = 9.sp)
             } else {
                 Text(label, color = Color.White, fontSize = 9.sp)
-                Text(value, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                Text(value, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -364,7 +614,7 @@ private fun OfflineCta(onGoOnline: () -> Unit) {
                     .background(HomeBlue),
                 contentAlignment = Alignment.Center
             ) {
-                Text("≫", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("≫", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
             Text("Go Online", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, color = HomeDarkBlue, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
@@ -435,7 +685,8 @@ private fun FindingJobCard() {
 private fun JobsQueueScreen(
     unreadCount: Int,
     onMenuClick: () -> Unit,
-    onNotificationsClick: () -> Unit
+    onNotificationsClick: () -> Unit,
+    onJobClick: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         HomeTopBar(unreadCount = unreadCount, onMenuClick = onMenuClick, onNotificationsClick = onNotificationsClick)
@@ -444,7 +695,7 @@ private fun JobsQueueScreen(
                 .fillMaxSize()
                 .padding(horizontal = 12.dp, vertical = 12.dp)
         ) {
-            Text("Jobs", fontWeight = FontWeight.Bold, fontSize = 26.sp, color = Color(0xFF11131A), modifier = Modifier.padding(bottom = 8.dp))
+            Text("Jobs", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color(0xFF11131A), modifier = Modifier.padding(bottom = 8.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9FB)),
@@ -453,7 +704,7 @@ private fun JobsQueueScreen(
             ) {
                 Column(modifier = Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     repeat(3) { index ->
-                        JobsQueueItem()
+                        JobsQueueItem(onClick = onJobClick)
                         if (index != 2) {
                             HorizontalDivider(color = Color(0xFFE4E6EC), thickness = 1.dp)
                         }
@@ -465,8 +716,13 @@ private fun JobsQueueScreen(
 }
 
 @Composable
-private fun JobsQueueItem() {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp)) {
+private fun JobsQueueItem(onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+    ) {
         Text("These are the available truck", fontSize = 10.sp, color = Color(0xFF535A6A))
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -516,7 +772,7 @@ private fun IncomingJobCard(job: DeliveryJob, onReject: () -> Unit, onAccept: ()
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE8E8E8))
     ) {
         Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Incoming Job Request", fontSize = 30.sp, fontWeight = FontWeight.Bold)
+            Text("Incoming Job Request", fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 repeat(5) { idx ->
@@ -535,7 +791,7 @@ private fun IncomingJobCard(job: DeliveryJob, onReject: () -> Unit, onAccept: ()
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(16.dp))
-            Text("Accept Job?", fontSize = 36.sp, fontWeight = FontWeight.Bold)
+            Text("Accept Job?", fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(

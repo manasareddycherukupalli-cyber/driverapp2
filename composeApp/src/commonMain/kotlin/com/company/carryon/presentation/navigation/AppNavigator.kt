@@ -32,6 +32,10 @@ sealed interface Screen {
     // ---- Sub Screens ----
     data object JobDetails : Screen
     data object ActiveDelivery : Screen
+    data object PickupInstructions : Screen
+    data object StartDelivery : Screen
+    data object InTransitNavigation : Screen
+    data object ArrivedAtDrop : Screen
     data object ProofOfDelivery : Screen
     data object MapNavigation : Screen
     data object Wallet : Screen

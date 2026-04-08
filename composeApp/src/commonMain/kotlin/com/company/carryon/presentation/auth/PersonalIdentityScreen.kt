@@ -1,6 +1,7 @@
 package com.company.carryon.presentation.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,18 +13,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,7 +50,7 @@ import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
 private val Blue = Color(0xFF2F80ED)
-private val Bg = Color(0xFFF9F9FF)
+private val Bg = Color(0xFFF7F8FC)
 
 @Composable
 fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
@@ -52,63 +60,108 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
     var dl by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize().background(Bg).padding(horizontal = 24.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Bg)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Filled.ArrowBack, contentDescription = null, modifier = Modifier.clickable { navigator.goBack() })
+            Icon(Icons.Filled.Menu, contentDescription = null, tint = Color(0xFF6F7480))
             Text("Carry On", color = Blue, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Icon(Icons.Filled.NotificationsNone, contentDescription = null)
+            Icon(Icons.Filled.NotificationsNone, contentDescription = null, tint = Color(0xFF6F7480))
         }
 
-        Spacer(Modifier.height(10.dp))
-        Text("Step 1 of 3: Personal Identity", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-        Spacer(Modifier.height(8.dp))
-        Text("STEP 1 OF 3", color = Blue, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
-        Spacer(Modifier.height(4.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(width = 24.dp, height = 6.dp).clip(RoundedCornerShape(99.dp)).background(Blue))
-            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFA6D2F3)))
-            Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFA6D2F3)))
+        Spacer(Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Personal Identity", fontWeight = FontWeight.ExtraBold, fontSize = 40.sp, color = Color(0xFF1E1F25))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.width(28.dp).height(8.dp).clip(RoundedCornerShape(99.dp)).background(Blue))
+                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF9BC3F5)))
+                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFB9D5F7)))
+            }
         }
         Spacer(Modifier.height(10.dp))
-        Box(modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(99.dp)).background(Color(0xFFA6D2F3))) {
-            Box(modifier = Modifier.fillMaxWidth(0.33f).height(3.dp).clip(RoundedCornerShape(99.dp)).background(Blue))
+        Box(modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(99.dp)).background(Color(0xFFA8C8F3))) {
+            Box(modifier = Modifier.fillMaxWidth(0.33f).height(4.dp).clip(RoundedCornerShape(99.dp)).background(Blue))
         }
 
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(20.dp))
         Box(
-            modifier = Modifier.fillMaxWidth().height(190.dp).clip(RoundedCornerShape(12.dp)).background(Color.White),
+            modifier = Modifier.fillMaxWidth().height(206.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xFFF3F4FB)),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Profile Photo", fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(8.dp))
-                Box(modifier = Modifier.size(128.dp).clip(CircleShape).background(Color(0xFFA6D2F3)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = Blue, modifier = Modifier.size(30.dp))
+                Text("Profile Photo", fontWeight = FontWeight.SemiBold, color = Color(0xFF676C78), fontSize = 16.sp)
+                Spacer(Modifier.height(10.dp))
+                Box {
+                    Box(
+                        modifier = Modifier
+                            .size(110.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFD0E3F8))
+                            .border(1.dp, Blue.copy(alpha = 0.65f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = Blue, modifier = Modifier.size(28.dp))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Blue),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Filled.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                    }
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Upload a clear front-facing photo of yourself for verification.", fontSize = 12.sp, color = Color(0xFF414755))
+                Text(
+                    "Upload a clear front-facing\nphoto of yourself for\nverification.",
+                    fontSize = 12.sp,
+                    color = Color(0xFF636A7A),
+                    lineHeight = 16.sp
+                )
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(16.dp))
         IdentityField("Full Name", name, { name = it }, "e.g. Marcus Aurelius")
         IdentityField("Email Address", email, { email = it }, "name@carryon.com", KeyboardType.Email)
         IdentityField("Phone Number", phone, { phone = it }, "+1 (555) 000-0000", KeyboardType.Phone)
         IdentityField("Driver's License Number", dl, { dl = it }, "DL-882910")
         IdentityField("Date of Birth", dob, { dob = it }, "mm/dd/yyyy")
 
-        Spacer(Modifier.height(10.dp))
-        Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0x33A6D2F3)).padding(12.dp), verticalAlignment = Alignment.Top) {
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFEAF2FE))
+                .padding(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
             Icon(Icons.Filled.Info, contentDescription = null, tint = Blue, modifier = Modifier.size(16.dp))
             Spacer(Modifier.size(8.dp))
-            Text("By proceeding, you agree to Carry On's background check policy and driver terms of service.", fontSize = 11.sp, color = Color(0xFF414755))
+            Text(
+                "By proceeding, you agree to Carry On's\nbackground check policy and driver terms of\nservice. Your data is encrypted and handled\naccording to our high-security standards.",
+                fontSize = 11.sp,
+                color = Color(0xFF5E6574),
+                lineHeight = 15.sp
+            )
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(18.dp))
         Button(
             onClick = {
                 authViewModel.driverName = name
@@ -120,7 +173,12 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Blue),
             enabled = name.isNotBlank() && email.isNotBlank()
-        ) { Text("Save & Continue") }
+        ) {
+            Text("Save & Continue", fontWeight = FontWeight.Bold)
+            Spacer(Modifier.width(6.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+        }
+        Spacer(Modifier.height(18.dp))
     }
 }
 
@@ -141,8 +199,14 @@ private fun IdentityField(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFFADB3C0),
+                unfocusedBorderColor = Color(0xFFADB3C0),
+                focusedContainerColor = Color(0xFFF7F8FC),
+                unfocusedContainerColor = Color(0xFFF7F8FC)
+            )
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(3.dp))
     }
 }

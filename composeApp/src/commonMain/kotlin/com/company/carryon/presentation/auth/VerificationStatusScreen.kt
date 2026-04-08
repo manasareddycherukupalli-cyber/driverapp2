@@ -2,6 +2,7 @@ package com.company.carryon.presentation.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,12 +17,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Verified
@@ -47,16 +51,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import drive_app.composeapp.generated.resources.*
 import com.company.carryon.data.model.Driver
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.VerificationStatus
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
 private val VerifyBlue = Color(0xFF2F80ED)
-private val VerifyBg = Color(0xFFFFFFFF)
+private val VerifyBg = Color(0xFFF3F4F9)
 private val SoftBlue = Color(0xFFA6D2F3)
 private val SoftBlue20 = Color(0x33A6D2F3)
+private val SoftBlue30 = Color(0x4DA6D2F3)
 private val PureBlack = Color(0xFF000000)
 
 @Composable
@@ -89,119 +97,188 @@ fun VerificationStatusScreen(navigator: AppNavigator, viewModel: AuthViewModel) 
 
 @Composable
 private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(VerifyBg)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Precision Navigator", fontWeight = FontWeight.ExtraBold, color = PureBlack, fontSize = 20.sp)
-            Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(28.dp))
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Spacer(Modifier.height(10.dp))
-            Box(
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
                 modifier = Modifier
-                    .background(SoftBlue, RoundedCornerShape(999.dp))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("SAFETY PROTOCOL", color = VerifyBlue, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = VerifyBlue, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text("Precision Navigator", fontWeight = FontWeight.ExtraBold, color = PureBlack, fontSize = 17.sp)
+                }
+                Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(24.dp))
             }
-            Text("verification", fontSize = 42.sp, fontWeight = FontWeight.ExtraBold)
-            Text(
-                "Please complete all steps to unlock full navigation and route dispatch features.",
-                color = PureBlack.copy(alpha = 0.65f),
-                fontSize = 15.sp
-            )
 
-            StatusCard(
-                icon = Icons.Filled.CheckCircle,
-                title = "Personal Identity",
-                desc = "Government-issued ID and personal profile data successfully validated.",
-                pill = "Verified",
-                progress = 1f
-            )
-            StatusCard(
-                icon = Icons.Filled.DirectionsCar,
-                title = "Vehicle Details",
-                desc = "Registration and insurance documents are being processed by our compliance team.",
-                pill = "Under Review",
-                progress = 0.66f
-            )
-            StatusCard(
-                icon = Icons.Filled.Verified,
-                title = "Identity Verification",
-                desc = "Biometric selfie check to confirm live identity matches your provided documentation.",
-                pill = "Not Started",
-                progress = 0f,
-                primary = "Resume Verification",
-                onPrimary = { navigator.navigateTo(Screen.PersonalIdentity) }
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SoftBlue20)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Need assistance?", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = PureBlack)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Our support team is available 24/7 to help with documentation issues.",
-                        fontSize = 14.sp,
-                        color = PureBlack.copy(alpha = 0.65f),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .background(SoftBlue, RoundedCornerShape(999.dp))
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.HelpOutline, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Contact Support Desk", color = VerifyBlue, fontWeight = FontWeight.Bold)
+                        Image(
+                            painter = painterResource(Res.drawable.verify_safety_icon),
+                            contentDescription = null,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Spacer(Modifier.width(5.dp))
+                        Text("SAFETY PROTOCOL", color = VerifyBlue, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+
+                Text("verification", fontSize = 42.sp, fontWeight = FontWeight.SemiBold, color = PureBlack)
+                Text(
+                    "Please complete all steps to unlock full navigation and route dispatch features.",
+                    color = PureBlack.copy(alpha = 0.65f),
+                    fontSize = 16.sp,
+                    lineHeight = 24.sp
+                )
+
+                StatusCard(
+                    iconRes = Res.drawable.verify_personal_identity,
+                    title = "Personal Identity",
+                    desc = "Government-issued ID and personal profile data successfully validated.",
+                    pill = "Verified",
+                    pillIconRes = Res.drawable.verify_badge_verified,
+                    progress = 1f,
+                    onCardClick = { navigator.navigateTo(Screen.PersonalIdentity) }
+                )
+                StatusCard(
+                    iconRes = Res.drawable.verify_vehicle_details,
+                    title = "Vehicle Details",
+                    desc = "Registration and insurance documents are being processed by our compliance team.",
+                    pill = "Under Review",
+                    pillIconRes = Res.drawable.verify_badge_under_review,
+                    progress = 0.66f
+                )
+                StatusCard(
+                    iconRes = Res.drawable.verify_identity_check,
+                    title = "Identity Verification",
+                    desc = "Biometric selfie check to confirm live identity matches your provided documentation.",
+                    pill = "Not Started",
+                    progress = 0f,
+                    primary = "Resume Verification",
+                    onPrimary = { navigator.navigateTo(Screen.DocumentUpload) },
+                    onCardClick = { navigator.navigateTo(Screen.DocumentUpload) }
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SoftBlue30)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Need assistance?", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = PureBlack)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Our support team is available 24/7 to help with documentation issues.",
+                            fontSize = 15.sp,
+                            lineHeight = 21.sp,
+                            color = PureBlack.copy(alpha = 0.65f),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(Res.drawable.verify_support_icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Contact Support Desk", color = VerifyBlue, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
             }
-            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                VerifyBottomTab("ROUTES", Icons.Filled.DirectionsCar, selected = false)
+                VerifyBottomTab("VERIFY", Icons.Filled.Verified, selected = true)
+                VerifyBottomTab("HISTORY", Icons.Filled.History, selected = false)
+                VerifyBottomTab("ACCOUNT", Icons.Filled.AccountCircle, selected = false)
+            }
         }
     }
 }
 
 @Composable
 private fun StatusCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconRes: DrawableResource,
     title: String,
     desc: String,
     pill: String,
+    pillIconRes: DrawableResource? = null,
     progress: Float,
     primary: String? = null,
-    onPrimary: (() -> Unit)? = null
+    onPrimary: (() -> Unit)? = null,
+    onCardClick: (() -> Unit)? = null
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onCardClick != null) Modifier.clickable { onCardClick() } else Modifier
+            ),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.size(44.dp).background(SoftBlue20, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = VerifyBlue)
+                    Image(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(20.dp))
                 }
                 Box(modifier = Modifier.background(SoftBlue, RoundedCornerShape(999.dp)).padding(horizontal = 12.dp, vertical = 4.dp)) {
-                    Text(pill, color = VerifyBlue, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (pillIconRes != null) {
+                            Image(
+                                painter = painterResource(pillIconRes),
+                                contentDescription = null,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        } else {
+                            Icon(
+                                Icons.Filled.RadioButtonUnchecked,
+                                contentDescription = null,
+                                tint = VerifyBlue,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        }
+                        Text(pill, color = VerifyBlue, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = PureBlack)
-            Text(desc, color = PureBlack.copy(alpha = 0.65f), fontSize = 14.sp)
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = PureBlack)
+            Text(desc, color = PureBlack.copy(alpha = 0.65f), fontSize = 13.sp, lineHeight = 19.sp)
             if (primary != null && onPrimary != null) {
                 Button(
                     onClick = onPrimary,
@@ -209,9 +286,9 @@ private fun StatusCard(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue)
                 ) {
-                    Text(primary)
+                    Text(primary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.width(6.dp))
-                    Icon(Icons.Filled.ArrowForward, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                 }
             }
             Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(SoftBlue20, RoundedCornerShape(999.dp))) {
@@ -220,6 +297,28 @@ private fun StatusCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun VerifyBottomTab(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = if (selected) VerifyBlue else PureBlack.copy(alpha = 0.45f),
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            label,
+            color = if (selected) VerifyBlue else PureBlack.copy(alpha = 0.45f),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
