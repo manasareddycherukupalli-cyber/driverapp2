@@ -31,6 +31,10 @@ class MapViewModel : ViewModel() {
     private val _etaMinutes = MutableStateFlow(0)
     val etaMinutes: StateFlow<Int> = _etaMinutes.asStateFlow()
 
+    // Map style URL for map rendering
+    private val _mapStyleUrl = MutableStateFlow("")
+    val mapStyleUrl: StateFlow<String> = _mapStyleUrl.asStateFlow()
+
     // Loaded job details for destination metadata (contact, status)
     private val _currentJob = MutableStateFlow<DeliveryJob?>(null)
     val currentJob: StateFlow<DeliveryJob?> = _currentJob.asStateFlow()
@@ -51,7 +55,16 @@ class MapViewModel : ViewModel() {
     private var trackingJob: Job? = null
 
     init {
+        loadMapConfig()
         refreshLocation()
+    }
+
+    private fun loadMapConfig() {
+        viewModelScope.launch {
+            LocationApi.getMapConfig().onSuccess { config ->
+                _mapStyleUrl.value = config.styleUrl
+            }
+        }
     }
 
     /** Refresh driver's GPS location immediately */
