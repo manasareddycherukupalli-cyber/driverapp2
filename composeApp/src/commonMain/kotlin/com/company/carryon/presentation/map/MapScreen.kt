@@ -18,27 +18,34 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.data.model.JobStatus
 import com.company.carryon.data.model.LatLng
 import com.company.carryon.presentation.components.MapMarker
 import com.company.carryon.presentation.components.MapViewComposable
@@ -56,6 +63,13 @@ fun MapScreen(navigator: AppNavigator) {
     val viewModel = remember { MapViewModel() }
     val driverLocation by viewModel.driverLocation.collectAsState()
     val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
+    val isTracking by viewModel.isTracking.collectAsState()
+    val eta by viewModel.etaMinutes.collectAsState()
+    val currentJob by viewModel.currentJob.collectAsState()
+    val markers by viewModel.markers.collectAsState()
+    val routeGeometry by viewModel.routeGeometry.collectAsState()
+    val routeError by viewModel.routeError.collectAsState()
+    val uriHandler = LocalUriHandler.current
 
     Box(
         modifier = Modifier
@@ -80,10 +94,30 @@ fun MapScreen(navigator: AppNavigator) {
                         )
                     )
                 }
+                addAll(markers)
             }
+            ,
+            routeGeometry = routeGeometry
         )
 
-        Box(modifier = Modifier.fillMaxSize().background(NavSoft))
+        if (driverLocation == null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = NavBlue)
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Getting your location...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize().background(NavSoft.copy(alpha = 0.1f)))
+        }
 
         Row(
             modifier = Modifier
@@ -124,15 +158,59 @@ fun MapScreen(navigator: AppNavigator) {
                         Icon(Icons.Filled.Navigation, contentDescription = null, tint = NavWhite)
                     }
                     Spacer(Modifier.width(10.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text("NEXT INSTRUCTION", color = NavWhite.copy(alpha = 0.75f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                         Text("Terus di Jalan\nDamansara", color = NavWhite, fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    val job = currentJob ?: return@OutlinedButton
+                                    val destination = if (job.status.ordinal <= JobStatus.ARRIVED_AT_PICKUP.ordinal) job.pickup else job.dropoff
+                                    if (destination.latitude != 0.0 || destination.longitude != 0.0) {
+                                        uriHandler.openUri(
+                                            "https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}&travelmode=driving"
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Navigate", fontWeight = FontWeight.SemiBold)
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    val job = currentJob ?: return@OutlinedButton
+                                    val destination = if (job.status.ordinal <= JobStatus.ARRIVED_AT_PICKUP.ordinal) job.pickup else job.dropoff
+                                    val phone = destination.contactPhone?.filter { it.isDigit() || it == '+' }.orEmpty()
+                                    if (phone.isNotBlank()) {
+                                        uriHandler.openUri("tel:$phone")
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Filled.Phone, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Call", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("8", color = NavWhite, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(if (eta > 0) eta.toString() else "8", color = NavWhite, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
                     Text("MIN", color = NavWhite.copy(alpha = 0.75f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Text("1.4 km", color = NavWhite.copy(alpha = 0.85f), fontSize = 12.sp)
+                    Text(if (isTracking) "TRACKING" else "PAUSED", color = NavWhite.copy(alpha = 0.85f), fontSize = 12.sp)
+                    if (routeError != null) {
+                        Text("Route unavailable", color = NavWhite.copy(alpha = 0.85f), fontSize = 11.sp)
+                    } else {
+                        Text("1.4 km", color = NavWhite.copy(alpha = 0.85f), fontSize = 12.sp)
+                    }
                 }
             }
         }
@@ -156,7 +234,14 @@ fun MapScreen(navigator: AppNavigator) {
                 .background(NavWhite, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.MyLocation, contentDescription = null, tint = NavBlue, modifier = Modifier.size(18.dp))
+            Icon(
+                Icons.Filled.MyLocation,
+                contentDescription = null,
+                tint = NavBlue,
+                modifier = Modifier
+                    .size(18.dp)
+                    .clickable { viewModel.refreshLocation() }
+            )
         }
 
         Card(

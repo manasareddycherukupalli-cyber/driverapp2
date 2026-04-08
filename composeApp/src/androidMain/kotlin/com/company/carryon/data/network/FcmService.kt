@@ -1,10 +1,14 @@
 package com.company.carryon.data.network
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.company.carryon.MainActivity
 import com.company.carryon.R
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -62,6 +66,13 @@ class FcmService : FirebaseMessagingService() {
             .setContentIntent(pendingIntent)
             .build()
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.w("FcmService", "Notification permission not granted; skipping system notification")
+            return
+        }
+
         NotificationManagerCompat.from(this)
             .notify(System.currentTimeMillis().toInt(), notification)
     }
@@ -74,4 +85,3 @@ class FcmService : FirebaseMessagingService() {
 object FcmTokenHolder {
     var token: String? = null
 }
-

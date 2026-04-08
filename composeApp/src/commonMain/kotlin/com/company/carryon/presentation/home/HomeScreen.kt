@@ -677,6 +677,30 @@ private fun FindingJobCard() {
             Box(modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(99.dp)).background(Color(0xFF97CBF1))) {
                 Box(modifier = Modifier.fillMaxWidth(0.16f).height(6.dp).clip(RoundedCornerShape(99.dp)).background(HomeBlue))
             }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Distance and duration
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "📦 Chemical Delivery",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "📏 12.0 km",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "⏱ 30 min",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

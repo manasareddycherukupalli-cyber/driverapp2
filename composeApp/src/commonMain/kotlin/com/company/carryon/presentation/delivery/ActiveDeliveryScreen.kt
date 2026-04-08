@@ -28,19 +28,38 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.data.model.DeliveryJob
+import com.company.carryon.data.model.LatLng
+import com.company.carryon.presentation.components.DriveAppTopBar
+import com.company.carryon.presentation.components.ErrorState
+import com.company.carryon.presentation.components.LoadingScreen
+import com.company.carryon.presentation.components.MapMarker
+import com.company.carryon.presentation.components.MapViewComposable
+import com.company.carryon.presentation.components.UiState
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
@@ -51,6 +70,87 @@ private val ArriveBlack = Color(0xFF000000)
 
 @Composable
 fun ActiveDeliveryScreen(navigator: AppNavigator) {
+    val viewModel = remember { DeliveryViewModel() }
+    val jobState by viewModel.currentJob.collectAsState()
+    val cancelState by viewModel.cancelState.collectAsState()
+    val jobId = navigator.selectedJobId
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(jobId) {
+        jobId?.let { viewModel.loadJob(it) }
+    }
+
+    LaunchedEffect(cancelState) {
+        when (val state = cancelState) {
+            is UiState.Success -> navigator.goBack()
+            is UiState.Error -> snackbarHostState.showSnackbar(state.message)
+            else -> Unit
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(paddingValues)
+        ) {
+            DriveAppTopBar(
+                title = "Active Delivery",
+                onBackClick = { navigator.goBack() }
+            )
+
+            val routeGeometry by viewModel.routeGeometry.collectAsState()
+            val mapMarkers by viewModel.markers.collectAsState()
+
+            when (val state = jobState) {
+                is UiState.Loading -> LoadingScreen("Loading delivery details...")
+                is UiState.Error -> ErrorState(state.message)
+                is UiState.Success -> ActiveDeliveryContent(
+                    job = state.data,
+                    viewModel = viewModel,
+                    navigator = navigator,
+                    routeGeometry = routeGeometry,
+                    mapMarkers = mapMarkers
+                )
+                is UiState.Idle -> LoadingScreen()
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActiveDeliveryContent(
+    job: DeliveryJob,
+    viewModel: DeliveryViewModel,
+    navigator: AppNavigator,
+    routeGeometry: List<LatLng>?,
+    mapMarkers: List<MapMarker>
+) {
+    var showCancelDialog by remember { mutableStateOf(false) }
+    val cancelState by viewModel.cancelState.collectAsState()
+    val isCancelling = cancelState is UiState.Loading
+
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text("Cancel Delivery?") },
+            text = { Text("The job will be re-assigned to another driver.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCancelDialog = false
+                        viewModel.cancelJob(job.id)
+                    }
+                ) { Text("Cancel Delivery", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelDialog = false }) { Text("Keep Job") }
+            }
+        )
+    }
     val checks = remember { mutableStateListOf(true, false, false) }
 
     Column(
@@ -58,6 +158,15 @@ fun ActiveDeliveryScreen(navigator: AppNavigator) {
             .fillMaxSize()
             .background(ArriveWhite)
     ) {
+        MapViewComposable(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            styleUrl = "",
+            markers = mapMarkers,
+            routeGeometry = routeGeometry
+        )
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()

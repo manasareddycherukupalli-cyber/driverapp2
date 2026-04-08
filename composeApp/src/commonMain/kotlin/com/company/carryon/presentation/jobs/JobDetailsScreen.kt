@@ -181,7 +181,7 @@ private fun JobDetailsContent(
                 InfoRow(Icons.Filled.Inventory2, "Package Type", job.packageType)
                 InfoRow(Icons.Filled.FitScreen, "Package Size", job.packageSize.displayName)
                 InfoRow(Icons.Filled.Route, "Distance", "${job.distance} km")
-                InfoRow(Icons.Filled.Schedule, "Est. Duration", "${job.estimatedDuration} min")
+                InfoRow(Icons.Filled.Schedule, "Est. Duration", "${job.displayDurationMinutes} min")
                 job.notes?.let {
                     InfoRow(Icons.Filled.Notes, "Notes", it)
                 }
@@ -211,6 +211,7 @@ private fun JobDetailsContent(
                 PrimaryButton(
                     text = "Navigate to Pickup 🗺️",
                     onClick = {
+                        navigator.selectedJobId = job.id
                         onUpdateStatus(JobStatus.HEADING_TO_PICKUP)
                         navigator.navigateTo(Screen.ActiveDelivery)
                     }

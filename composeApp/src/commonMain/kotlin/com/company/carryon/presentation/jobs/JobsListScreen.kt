@@ -215,7 +215,7 @@ private fun JobListCard(job: DeliveryJob, onClick: () -> Unit) {
             ) {
                 Text("📦 ${job.packageSize.displayName}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("📏 ${job.distance} km", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("⏱ ${job.estimatedDuration} min", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("⏱ ${job.displayDurationMinutes} min", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
