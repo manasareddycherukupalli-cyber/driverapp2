@@ -101,6 +101,7 @@ fun AppNavHost(navigator: AppNavigator) {
                     Screen.InTransitNavigation -> InTransitScreen(navigator)
                     Screen.ArrivedAtDrop -> ArrivedAtDropScreen(navigator)
                     Screen.ProofOfDelivery -> ProofOfDeliveryScreen(navigator)
+                    Screen.DeliveryComplete -> DeliveryCompleteScreen(navigator)
                     Screen.MapNavigation -> MapScreen(navigator)
                     Screen.Wallet -> WalletScreen(navigator)
                     Screen.TransactionHistory -> WalletScreen(navigator) // Reuses wallet

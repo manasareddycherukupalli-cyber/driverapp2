@@ -204,8 +204,8 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                                         return@collect
                                     }
                                     is UiState.Error -> {
-                                        // Safe default: send new signups to document upload
-                                        navigator.navigateAndClearStack(Screen.DocumentUpload)
+                                        // Safe default: land on verification summary screen
+                                        navigator.navigateAndClearStack(Screen.VerificationStatus)
                                         return@collect
                                     }
                                     else -> {} // Loading or Idle — keep waiting

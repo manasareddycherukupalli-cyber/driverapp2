@@ -276,14 +276,14 @@ class AuthViewModel : ViewModel() {
      * Home is intentionally gated behind verification screens.
      */
     fun determinePostLocationScreen(response: AuthResponse? = _latestAuthResponse.value): Screen {
-        val resolved = response ?: return Screen.DocumentUpload
+        val resolved = response ?: return Screen.VerificationStatus
         _latestAuthResponse.value = resolved
         val driver = resolved.driver
         if (resolved.isNewDriver || authFlowType == AuthFlowType.SIGNUP) {
-            return Screen.DocumentUpload
+            return Screen.VerificationStatus
         }
         if (driver == null || driver.documents.isEmpty()) {
-            return Screen.DocumentUpload
+            return Screen.VerificationStatus
         }
         if (driver.vehicleDetails == null) {
             return Screen.VehicleDetailsInput
@@ -297,10 +297,10 @@ class AuthViewModel : ViewModel() {
     fun determineProfileCompletionScreen(response: AuthResponse): Screen {
         val driver = response.driver
         if (response.isNewDriver || authFlowType == AuthFlowType.SIGNUP) {
-            return Screen.DocumentUpload
+            return Screen.VerificationStatus
         }
         if (driver == null || driver.documents.isEmpty()) {
-            return Screen.DocumentUpload
+            return Screen.VerificationStatus
         }
         if (driver.vehicleDetails == null) {
             return Screen.VehicleDetailsInput

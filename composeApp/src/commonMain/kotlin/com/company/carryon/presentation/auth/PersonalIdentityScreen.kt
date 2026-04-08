@@ -21,12 +21,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -103,27 +102,15 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Profile Photo", fontWeight = FontWeight.SemiBold, color = Color(0xFF676C78), fontSize = 16.sp)
                 Spacer(Modifier.height(10.dp))
-                Box {
-                    Box(
-                        modifier = Modifier
-                            .size(110.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFD0E3F8))
-                            .border(1.dp, Blue.copy(alpha = 0.65f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = Blue, modifier = Modifier.size(28.dp))
-                    }
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(Blue),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Filled.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                    }
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFD0E3F8))
+                        .border(1.dp, Blue.copy(alpha = 0.65f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ProfilePhotoIcon()
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -179,6 +166,33 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
         }
         Spacer(Modifier.height(18.dp))
+    }
+}
+
+@Composable
+private fun ProfilePhotoIcon() {
+    Box(modifier = Modifier.size(34.dp), contentAlignment = Alignment.Center) {
+        Icon(
+            Icons.Filled.CameraAlt,
+            contentDescription = null,
+            tint = Blue,
+            modifier = Modifier.size(24.dp)
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(12.dp)
+                .clip(CircleShape)
+                .background(Blue),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Filled.Add,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(9.dp)
+            )
+        }
     }
 }
 

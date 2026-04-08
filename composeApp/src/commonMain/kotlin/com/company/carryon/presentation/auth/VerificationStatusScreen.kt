@@ -62,9 +62,9 @@ import org.jetbrains.compose.resources.painterResource
 
 private val VerifyBlue = Color(0xFF2F80ED)
 private val VerifyBg = Color(0xFFF3F4F9)
-private val SoftBlue = Color(0xFFA6D2F3)
-private val SoftBlue20 = Color(0x33A6D2F3)
-private val SoftBlue30 = Color(0x4DA6D2F3)
+private val SoftBlue = Color(0xFFAECFF3)
+private val SoftBlue20 = Color(0x2EAECFF3)
+private val SoftBlue30 = Color(0x40AFC7E7)
 private val PureBlack = Color(0xFF000000)
 
 @Composable
@@ -106,16 +106,16 @@ private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = VerifyBlue, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = VerifyBlue, modifier = Modifier.size(17.dp))
                     Spacer(Modifier.width(12.dp))
-                    Text("Precision Navigator", fontWeight = FontWeight.ExtraBold, color = PureBlack, fontSize = 17.sp)
+                    Text("Precision Navigator", fontWeight = FontWeight.Bold, color = PureBlack, fontSize = 18.sp)
                 }
-                Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(24.dp))
+                Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(22.dp))
             }
 
             Column(
@@ -146,8 +146,8 @@ private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
                 Text(
                     "Please complete all steps to unlock full navigation and route dispatch features.",
                     color = PureBlack.copy(alpha = 0.65f),
-                    fontSize = 16.sp,
-                    lineHeight = 24.sp
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp
                 )
 
                 StatusCard(
@@ -165,7 +165,8 @@ private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
                     desc = "Registration and insurance documents are being processed by our compliance team.",
                     pill = "Under Review",
                     pillIconRes = Res.drawable.verify_badge_under_review,
-                    progress = 0.66f
+                    progress = 0.66f,
+                    onCardClick = { navigator.navigateTo(Screen.VehicleDetailsInput) }
                 )
                 StatusCard(
                     iconRes = Res.drawable.verify_identity_check,
@@ -184,7 +185,7 @@ private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
                     colors = CardDefaults.cardColors(containerColor = SoftBlue30)
                 ) {
                     Column(
-                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 20.dp),
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 22.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text("Need assistance?", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = PureBlack)
@@ -201,7 +202,7 @@ private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
                             Image(
                                 painter = painterResource(Res.drawable.verify_support_icon),
                                 contentDescription = null,
-                                modifier = Modifier.size(15.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                             Spacer(Modifier.width(6.dp))
                             Text("Contact Support Desk", color = VerifyBlue, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -241,19 +242,19 @@ private fun StatusCard(
     onPrimary: (() -> Unit)? = null,
     onCardClick: (() -> Unit)? = null
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
             .then(
                 if (onCardClick != null) Modifier.clickable { onCardClick() } else Modifier
             ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(44.dp).background(SoftBlue20, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                    Image(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(20.dp))
+                Box(modifier = Modifier.size(40.dp).background(SoftBlue20, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                    Image(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(18.dp))
                 }
                 Box(modifier = Modifier.background(SoftBlue, RoundedCornerShape(999.dp)).padding(horizontal = 12.dp, vertical = 4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -273,27 +274,27 @@ private fun StatusCard(
                             )
                             Spacer(Modifier.width(4.dp))
                         }
-                        Text(pill, color = VerifyBlue, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(pill, color = VerifyBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = PureBlack)
-            Text(desc, color = PureBlack.copy(alpha = 0.65f), fontSize = 13.sp, lineHeight = 19.sp)
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PureBlack)
+            Text(desc, color = PureBlack.copy(alpha = 0.65f), fontSize = 12.sp, lineHeight = 16.sp)
             if (primary != null && onPrimary != null) {
                 Button(
                     onClick = onPrimary,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue)
                 ) {
-                    Text(primary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.width(6.dp))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
             }
-            Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(SoftBlue20, RoundedCornerShape(999.dp))) {
+            Box(modifier = Modifier.fillMaxWidth().height(3.dp).background(SoftBlue20, RoundedCornerShape(999.dp))) {
                 if (progress > 0f) {
-                    Box(modifier = Modifier.fillMaxWidth(progress).height(4.dp).background(VerifyBlue, RoundedCornerShape(999.dp)))
+                    Box(modifier = Modifier.fillMaxWidth(progress).height(3.dp).background(VerifyBlue, RoundedCornerShape(999.dp)))
                 }
             }
         }

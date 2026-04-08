@@ -1,6 +1,7 @@
 package com.company.carryon.presentation.auth
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,11 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -43,18 +43,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import drive_app.composeapp.generated.resources.Res
+import drive_app.composeapp.generated.resources.vehicle_front_view
+import drive_app.composeapp.generated.resources.vehicle_side_view
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.VehicleType
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
 private val VerifyBlue = Color(0xFF2F80ED)
-private val VerifyBg = Color(0xFFF9F9FF)
-private val MutedBlue = Color(0xFFA6D2F3)
+private val VerifyBg = Color(0xFFF6F7FB)
+private val MutedBlue = Color(0xFFBFD5F6)
 
 @Composable
 fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
@@ -84,26 +90,27 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(Icons.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.clickable { navigator.goBack() })
+            Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = Color(0xFF6F7480), modifier = Modifier.size(22.dp))
             Text("Carry On", color = VerifyBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(Modifier.width(18.dp))
+            Icon(Icons.Filled.NotificationsNone, contentDescription = "Notifications", tint = Color(0xFF6F7480), modifier = Modifier.size(20.dp))
         }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(2.dp))
+            Text("VehicleDetails", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF242833))
+            Text("Provide accurate vehicle identification details for insurance and manifest verification.", color = Color(0xFF5E6574), fontSize = 13.sp, lineHeight = 18.sp)
+            Spacer(Modifier.height(2.dp))
+
             Text("STEP 2 OF 3: VEHICLE DETAILS", color = VerifyBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             Box(modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(999.dp)).background(MutedBlue)) {
                 Box(modifier = Modifier.fillMaxWidth(0.66f).height(4.dp).clip(RoundedCornerShape(999.dp)).background(VerifyBlue))
             }
-
-            Text("Vehicle Assets", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
-            Text("Provide accurate vehicle identification details for insurance and manifest verification.", color = Color(0xFF414755), fontSize = 14.sp)
 
             VerifyInput("Vehicle Model", model, { model = it }, "e.g. Ford Transit")
             VerifyInput("Year", year, { if (it.length <= 4) year = it }, "2024", KeyboardType.Number)
@@ -120,9 +127,12 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
                 CapacityCard("CUSTOM", "High Spec", selectedCapacity == "CUSTOM", Modifier.weight(1f)) { selectedCapacity = "CUSTOM" }
             }
 
-            Text("Visual Documentation", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF414755))
-            DocUploadCard("FRONT VIEW")
-            DocUploadCard("SIDE PROFILE")
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Visual Documentation", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF414755))
+                Text("Max 5MB/image", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = VerifyBlue)
+            }
+            DocUploadCard("FRONT VIEW", Res.drawable.vehicle_front_view)
+            DocUploadCard("SIDE PROFILE", Res.drawable.vehicle_side_view)
 
             Button(
                 onClick = {
@@ -134,15 +144,22 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
                         licensePlate = licensePlate,
                         color = selectedCapacity
                     )
-                    navigator.navigateTo(Screen.DocumentUpload)
+                    navigator.navigateTo(Screen.VerificationStatus)
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue),
                 shape = RoundedCornerShape(12.dp),
                 enabled = licensePlate.isNotBlank() && model.isNotBlank()
             ) {
-                Text("Save & Continue", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Save & Continue", fontSize = 17.sp, fontWeight = FontWeight.Bold)
             }
+
+            Text(
+                "By clicking complete, you verify that all vehicle data provided matches official government records.",
+                color = Color(0xFF9CA3AF),
+                fontSize = 9.sp,
+                lineHeight = 12.sp
+            )
 
             if (vehicleState is UiState.Error) {
                 Text((vehicleState as UiState.Error).message, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
@@ -170,7 +187,13 @@ private fun VerifyInput(
             placeholder = { Text(placeholder, color = Color(0x88717786)) },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(10.dp),
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFFF6F7FB),
+                unfocusedContainerColor = Color(0xFFF6F7FB),
+                focusedBorderColor = Color(0x1A5E6574),
+                unfocusedBorderColor = Color(0x1A5E6574)
+            )
         )
     }
 }
@@ -197,24 +220,38 @@ private fun CapacityCard(title: String, subtitle: String, selected: Boolean, mod
 }
 
 @Composable
-private fun DocUploadCard(label: String) {
+private fun DocUploadCard(label: String, backgroundRes: DrawableResource) {
     Card(
-        modifier = Modifier.fillMaxWidth().height(170.dp),
-        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth().height(134.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFE6E8F3)),
-        border = BorderStroke(2.dp, Color(0x4DC1C6D7))
+        border = BorderStroke(1.dp, Color(0x26C1C6D7))
     ) {
-        Column(
+        Box(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            contentAlignment = Alignment.Center
         ) {
-            Box(modifier = Modifier.size(46.dp).clip(RoundedCornerShape(23.dp)).background(Color.White), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.PhotoCamera, contentDescription = null, tint = VerifyBlue)
+            Image(
+                painter = painterResource(backgroundRes),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.54f)))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(23.dp))
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = VerifyBlue)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(label, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF111827))
+                Text("Tap to upload", fontSize = 10.sp, color = Color(0xFF64748B))
             }
-            Spacer(Modifier.height(8.dp))
-            Text(label, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            Text("Tap to upload", fontSize = 10.sp, color = Color(0xFF64748B))
         }
     }
 }

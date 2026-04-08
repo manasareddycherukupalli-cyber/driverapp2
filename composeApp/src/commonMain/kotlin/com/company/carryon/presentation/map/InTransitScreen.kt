@@ -194,7 +194,10 @@ fun InTransitScreen(navigator: AppNavigator) {
                         Text("Report\nIssue", fontWeight = FontWeight.SemiBold)
                     }
                     Button(
-                        onClick = { navigator.navigateTo(Screen.ArrivedAtDrop) },
+                        onClick = {
+                            navigator.selectedJobId = navigator.selectedJobId ?: "CR-4872"
+                            navigator.navigateTo(Screen.ArrivedAtDrop)
+                        },
                         modifier = Modifier.weight(2f).height(48.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = ITBlue)

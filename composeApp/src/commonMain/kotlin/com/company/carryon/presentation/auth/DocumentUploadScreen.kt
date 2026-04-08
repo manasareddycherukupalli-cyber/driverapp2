@@ -67,31 +67,7 @@ fun DocumentUploadScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
             Icon(Icons.Filled.NotificationsNone, contentDescription = null, tint = Color(0xFF6F7480))
         }
 
-        Spacer(Modifier.height(22.dp))
-        androidx.compose.material3.Text(
-            "STEP 2 OF 3: VEHICLE DETAILS",
-            color = VerifyBlue,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(6.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .clip(RoundedCornerShape(999.dp))
-                .background(Color(0xFFB8D2F8))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.66f)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(VerifyBlue)
-            )
-        }
-
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(26.dp))
         androidx.compose.material3.Text("IdentityVerification", fontSize = 39.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
         Spacer(Modifier.height(8.dp))
         androidx.compose.material3.Text(

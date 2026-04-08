@@ -37,6 +37,7 @@ sealed interface Screen {
     data object InTransitNavigation : Screen
     data object ArrivedAtDrop : Screen
     data object ProofOfDelivery : Screen
+    data object DeliveryComplete : Screen
     data object MapNavigation : Screen
     data object Wallet : Screen
     data object TransactionHistory : Screen

@@ -47,6 +47,16 @@ private val RegBlue  = Color(0xFF2F80ED)
 private val RegBlack = Color(0xFF16161E)
 private val RegGray  = Color(0xFF828282)
 
+private fun mapAuthErrorMessage(error: Throwable): String {
+    val message = error.message.orEmpty()
+    return when {
+        message.contains("Request timeout", ignoreCase = true) ||
+            message.contains("request_timeout", ignoreCase = true) ->
+            "Request timed out. Please check your internet and try again."
+        else -> message.ifBlank { "Failed to send OTP" }
+    }
+}
+
 /**
  * RegistrationScreen — Sign Up screen using the same Figma
  * design tokens and component patterns as LoginScreen (node 143:3000).
@@ -220,7 +230,7 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                         authViewModel.onOtpSent(email)
                         navigator.navigateTo(Screen.OtpVerification)
                     } catch (e: Exception) {
-                        errorMessage = e.message ?: "Failed to send OTP"
+                        errorMessage = mapAuthErrorMessage(e)
                         isLoading = false
                     }
                 }

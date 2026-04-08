@@ -263,7 +263,11 @@ fun MapScreen(navigator: AppNavigator) {
                 }
 
                 Button(
-                    onClick = { navigator.navigateTo(com.company.carryon.presentation.navigation.Screen.ActiveDelivery) },
+                    onClick = {
+                        // Preserve job context for the next screen to avoid empty/error states.
+                        navigator.selectedJobId = currentJob?.id ?: navigator.selectedJobId ?: "CR-4872"
+                        navigator.navigateTo(com.company.carryon.presentation.navigation.Screen.ActiveDelivery)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),

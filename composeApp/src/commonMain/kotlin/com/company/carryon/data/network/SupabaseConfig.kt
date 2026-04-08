@@ -7,6 +7,7 @@ import io.github.jan.supabase.compose.auth.googleNativeLogin
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
+import kotlin.time.Duration.Companion.seconds
 
 object SupabaseConfig {
     // Web Client ID from Google Cloud Console (OAuth 2.0 > Web application)
@@ -20,6 +21,9 @@ object SupabaseConfig {
         supabaseUrl = "https://liwhjhkqlwufnbekegas.supabase.co",
         supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxpd2hqaGtxbHd1Zm5iZWtlZ2FzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3ODM1OTYsImV4cCI6MjA4NzM1OTU5Nn0.kRFk1p3S4C6wQwKgkh5zhN3hJ_r2EfkEPqsvQ_tPvhg"
     ) {
+        // Default is 10s in supabase-kt; OTP requests can exceed that on slower local/dev networks.
+        requestTimeout = 30.seconds
+
         install(Auth) {
             flowType = FlowType.IMPLICIT
             scheme = DEEP_LINK_SCHEME

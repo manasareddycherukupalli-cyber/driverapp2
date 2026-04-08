@@ -145,8 +145,8 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             onMenuClick = { navigator.switchTab(Screen.Profile) },
             onNotificationsClick = { navigator.navigateTo(Screen.Notifications) },
             onJobClick = {
-                navigator.selectedJobId = "DE-9921"
-                navigator.navigateTo(Screen.MapNavigation)
+                navigator.selectedJobId = activeJob?.id ?: "CR-4872"
+                navigator.navigateTo(Screen.JobDetails)
             }
         )
         return
@@ -158,8 +158,8 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             onMenuClick = { navigator.switchTab(Screen.Profile) },
             onNotificationsClick = { navigator.navigateTo(Screen.Notifications) },
             onJobClick = {
-                navigator.selectedJobId = "DE-9921"
-                navigator.navigateTo(Screen.MapNavigation)
+                navigator.selectedJobId = activeJob?.id ?: "CR-4872"
+                navigator.navigateTo(Screen.JobDetails)
             }
         )
         return

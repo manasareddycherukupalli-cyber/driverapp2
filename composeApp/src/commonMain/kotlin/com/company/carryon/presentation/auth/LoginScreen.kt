@@ -48,6 +48,19 @@ private val DesignBlue  = Color(0xFF2F80ED)
 private val DesignBlack = Color(0xFF16161E)
 private val DesignGray  = Color(0xFF828282)
 
+private fun mapAuthErrorMessage(error: Throwable): String {
+    val message = error.message.orEmpty()
+    return when {
+        message.contains("Unable to resolve host", ignoreCase = true) ||
+            message.contains("No address associated with hostname", ignoreCase = true) ->
+            "Cannot reach auth server (DNS/network issue). If using emulator, verify internet and set Android Private DNS to Automatic/Off."
+        message.contains("Request timeout", ignoreCase = true) ||
+            message.contains("request_timeout", ignoreCase = true) ->
+            "Request timed out. Please check your internet and try again."
+        else -> message.ifBlank { "Failed to send OTP" }
+    }
+}
+
 /**
  * LoginScreen — pixel-accurate recreation of the Figma
  * "SIGN IN [In Active]" screen (node 1:258).
@@ -209,7 +222,7 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                         }
                         authViewModel.onOtpSent(email)
                     } catch (e: Exception) {
-                        authViewModel.onOtpSendError(e.message ?: "Failed to send OTP")
+                        authViewModel.onOtpSendError(mapAuthErrorMessage(e))
                     }
                 }
             },
