@@ -1,7 +1,9 @@
 package com.company.carryon.presentation.profile
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,28 +16,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.LockClock
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,13 +40,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
 import com.company.carryon.presentation.navigation.AppNavigator
+import drive_app.composeapp.generated.resources.Res
+import drive_app.composeapp.generated.resources.edit_profile_avatar
+import org.jetbrains.compose.resources.painterResource
+
+private val EditBg = Color(0xFFF9F9FF)
+private val EditBlue = Color(0xFF2F80ED)
+private val EditBody = Color(0xFF414755)
+private val EditInputBg = Color(0x33A6D2F3)
 
 @Composable
 fun EditProfileScreen(navigator: AppNavigator) {
@@ -59,17 +63,15 @@ fun EditProfileScreen(navigator: AppNavigator) {
     val driver by viewModel.currentDriver.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
 
-    var name by remember { mutableStateOf(driver?.name ?: "") }
-    var email by remember { mutableStateOf(driver?.email ?: "") }
-    var emergencyContact by remember { mutableStateOf(driver?.emergencyContact ?: "") }
-    val phone = driver?.phone ?: "+1 (555) 928-3401"
-    val residentialAddress = emergencyContact.ifBlank { "742 Evergreen Terrace,\nSpringfield, IL 62704" }
+    var name by remember { mutableStateOf(driver?.name ?: "Marcus Thompson") }
+    var email by remember { mutableStateOf(driver?.email ?: "m.thompson@logistics.com") }
+    val phone = driver?.phone?.ifBlank { "+1 (555) 928-3401" } ?: "+1 (555) 928-3401"
+    val address = "742 Evergreen Terrace,\nSpringfield, IL 62704"
 
     LaunchedEffect(driver) {
         driver?.let {
-            if (name.isBlank()) name = it.name
-            if (email.isBlank()) email = it.email
-            if (emergencyContact.isBlank()) emergencyContact = it.emergencyContact
+            if (name == "Marcus Thompson") name = it.name.ifBlank { name }
+            if (email == "m.thompson@logistics.com") email = it.email.ifBlank { email }
         }
     }
 
@@ -77,246 +79,210 @@ fun EditProfileScreen(navigator: AppNavigator) {
         if (updateState is UiState.Success) navigator.goBack()
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F7FB))
+            .background(EditBg)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { navigator.goBack() }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color(0xFF4474DE)
-                )
-            }
-            Text(
-                text = "Settings",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp,
-                color = Color(0xFF1D232F)
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
-                text = "DRIVER PORTAL",
-                fontSize = 10.sp,
-                color = Color(0xFF9AA5BC),
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(bottom = 170.dp)
         ) {
-            Text(
-                text = "Edit Profile",
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 24.sp,
-                lineHeight = 40.sp,
-                color = Color(0xFF2B3242)
-            )
-            Text(
-                text = "Update your professional details and driver credentials.",
-                color = Color(0xFF7A859D),
-                fontSize = 13.sp
-            )
+            EditTopBar(navigator)
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp)
+            Column(
+                modifier = Modifier.padding(horizontal = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Text("Edit Profile", color = Color.Black, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Update your professional details and driver\ncredentials.",
+                    color = EditBody,
+                    fontSize = 16.sp,
+                    lineHeight = 24.sp
+                )
+
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Surface(
-                        modifier = Modifier.size(96.dp),
-                        shape = RoundedCornerShape(48.dp),
-                        color = Color(0xFFEAF0FB)
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .border(4.dp, Color(0xFFD8E2FF), CircleShape)
+                            .padding(4.dp)
+                            .clip(CircleShape)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Filled.Person,
-                                contentDescription = null,
-                                tint = Color(0xFF5E6C89),
-                                modifier = Modifier.size(54.dp)
-                            )
-                        }
+                        Image(
+                            painter = painterResource(Res.drawable.edit_profile_avatar),
+                            contentDescription = "Profile Photo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
                     }
                     Spacer(Modifier.height(8.dp))
-                    TextButton(onClick = { }) {
-                        Text(
-                            text = "Change Photo",
-                            color = Color(0xFF4474DE),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                    Text("Change Photo", color = Color(0xFF0058BC), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                AccountStatusCard()
+                ProfileFormCard(name = name, email = email, phone = phone, address = address)
+                PasswordCard()
+
+                if (updateState is UiState.Error) {
+                    Text((updateState as UiState.Error).message, color = Color(0xFFB3261E), fontSize = 12.sp)
                 }
             }
+        }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF1FF))
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = "ACCOUNT STATUS",
-                        fontSize = 10.sp,
-                        color = Color(0xFF7E90B1),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.Badge,
-                            contentDescription = null,
-                            tint = Color(0xFF4474DE),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "Verified Partner",
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2C3852)
-                        )
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = "Your profile information is visible to dispatchers and warehouse managers to ensure secure hand-offs.",
-                        fontSize = 12.sp,
-                        color = Color(0xFF6E7991),
-                        lineHeight = 17.sp
-                    )
-                }
-            }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ReadOnlyField("Full Name", name.ifBlank { "Marcus Thompson" }, Icons.Filled.Person)
-                    EditableField("Email Address", email, Icons.Filled.Email, onChange = { email = it })
-                    ReadOnlyField("Phone Number", phone, Icons.Filled.Phone)
-                    ReadOnlyField("Residential Address", residentialAddress, Icons.Filled.LocationOn, singleLine = false)
-                }
-            }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF1FF))
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.LockClock, contentDescription = null, tint = Color(0xFF5E6C89))
-                        Spacer(Modifier.width(10.dp))
-                        Column {
-                            Text("Update Password", fontWeight = FontWeight.SemiBold, color = Color(0xFF2C3852))
-                            Text("Last changed 4 months ago", fontSize = 11.sp, color = Color(0xFF6E7991))
-                        }
-                    }
-                    Text("Change", color = Color(0xFF4474DE), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                }
-            }
-
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(Color.White.copy(alpha = 0.9f))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Button(
-                onClick = { viewModel.updateProfile(name, email, emergencyContact) },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = name.isNotBlank() && email.isNotBlank() && updateState !is UiState.Loading,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A78E5)),
-                shape = RoundedCornerShape(10.dp)
+                onClick = { viewModel.updateProfile(name, email, "") },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = EditBlue)
             ) {
-                Text("Save Changes", fontWeight = FontWeight.SemiBold)
+                Text("Save Changes", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
             Button(
                 onClick = { navigator.goBack() },
-                modifier = Modifier.fillMaxWidth().height(46.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC5DAF4), contentColor = Color(0xFF4474DE)),
-                shape = RoundedCornerShape(10.dp)
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA6D2F3), contentColor = EditBlue)
             ) {
-                Text("Cancel", fontWeight = FontWeight.SemiBold)
+                Text("Cancel", color = EditBlue, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
-
-            if (updateState is UiState.Error) {
-                Text(
-                    text = (updateState as UiState.Error).message,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            Spacer(Modifier.height(12.dp))
         }
     }
 }
 
 @Composable
-private fun ReadOnlyField(
+private fun EditTopBar(navigator: AppNavigator) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = { navigator.goBack() }) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = EditBlue, modifier = Modifier.size(16.dp))
+        }
+        Text("Settings", fontSize = 20.sp, lineHeight = 28.sp, color = Color(0xFF181C23), fontWeight = FontWeight.Bold)
+        Spacer(Modifier.weight(1f))
+        Text("DRIVER PORTAL", color = Color(0xFF64748B), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.width(8.dp))
+    }
+}
+
+@Composable
+private fun AccountStatusCard() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(EditInputBg, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 14.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .width(8.dp)
+                        .height(40.dp)
+                        .background(EditBlue, RoundedCornerShape(999.dp))
+                )
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text("ACCOUNT STATUS", color = EditBlue, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Verified Partner", color = Color.Black, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Text(
+                "Your profile information is visible to\ndispatchers and warehouse managers to\nensure secure hand-offs.",
+                color = EditBody,
+                fontSize = 14.sp,
+                lineHeight = 22.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProfileFormCard(name: String, email: String, phone: String, address: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White, RoundedCornerShape(12.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        InfoField("Full Name", name, Icons.Filled.PersonOutline, singleLine = true)
+        InfoField("Email Address", email, Icons.Filled.Email, singleLine = true)
+        InfoField("Phone Number", phone, Icons.Filled.Phone, singleLine = true)
+        InfoField("Residential Address", address, Icons.Filled.LocationOn, singleLine = false)
+    }
+}
+
+@Composable
+private fun InfoField(
     label: String,
     value: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    singleLine: Boolean = true
+    singleLine: Boolean
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, color = Color(0xFF606C85), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, color = EditBody, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFF1F4FA), RoundedCornerShape(10.dp))
-                .border(1.dp, Color(0xFFE2E8F4), RoundedCornerShape(10.dp))
-                .padding(horizontal = 10.dp, vertical = if (singleLine) 12.dp else 10.dp),
+                .background(EditInputBg, RoundedCornerShape(12.dp))
+                .border(1.dp, Color(0x33C1C6D7), RoundedCornerShape(12.dp))
+                .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = if (singleLine) 14.dp else 16.dp),
             verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top
         ) {
-            Icon(icon, contentDescription = null, tint = Color(0xFF8A96AF), modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = value,
-                color = Color(0xFF303A4F),
-                fontSize = 13.sp,
-                lineHeight = 17.sp,
-                textAlign = TextAlign.Start
-            )
+            Icon(icon, contentDescription = null, tint = Color(0xFF8A96A9), modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(value, color = Color.Black, fontSize = 16.sp, lineHeight = 24.sp)
         }
     }
 }
 
 @Composable
-private fun EditableField(
-    label: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onChange: (String) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, color = Color(0xFF606C85), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-        OutlinedTextField(
-            value = value,
-            onValueChange = onChange,
-            singleLine = true,
-            leadingIcon = { Icon(icon, contentDescription = null, tint = Color(0xFF8A96AF)) },
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color(0xFFF1F4FA),
-                focusedContainerColor = Color(0xFFF1F4FA),
-                unfocusedBorderColor = Color(0xFFE2E8F4),
-                focusedBorderColor = Color(0xFF94A8D3)
-            )
-        )
+private fun PasswordCard() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(EditInputBg, RoundedCornerShape(12.dp))
+            .border(1.dp, Color(0x1AC1C6D7), RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color(0xFFE6E8F3), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.History, contentDescription = null, tint = Color(0xFF5E6C89), modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text("Update Password", color = Color(0xFF181C23), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text("Last changed 4 months ago", color = EditBody, fontSize = 12.sp)
+            }
+        }
+        Text("Change", color = Color(0xFF0058BC), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { })
     }
 }

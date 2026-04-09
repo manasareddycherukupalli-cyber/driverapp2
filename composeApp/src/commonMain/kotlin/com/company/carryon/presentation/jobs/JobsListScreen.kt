@@ -2,221 +2,220 @@ package com.company.carryon.presentation.jobs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.runtime.*
+import androidx.compose.foundation.Image
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.company.carryon.data.model.*
-import com.company.carryon.presentation.components.*
+import com.company.carryon.data.model.DeliveryJob
+import com.company.carryon.data.model.UiState
+import com.company.carryon.presentation.components.ErrorState
+import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
-import com.company.carryon.presentation.theme.*
+import drive_app.composeapp.generated.resources.Res
+import drive_app.composeapp.generated.resources.jobs_profile_avatar
+import org.jetbrains.compose.resources.painterResource
 
-/**
- * JobsListScreen — Tabbed list of Active, Scheduled, and Completed jobs.
- */
+private val JobsBlue = Color(0xFF2F80ED)
+private val JobsBlueLight = Color(0xFF97CBF1)
+private val JobsBg = Color(0xFFF4F5F8)
+private val JobsText = Color(0xFF202124)
+private val JobsMuted = Color(0xDE000000)
+private val JobsDivider = Color(0x1A000000)
+
 @Composable
 fun JobsListScreen(navigator: AppNavigator) {
     val viewModel = remember { JobsViewModel() }
     val activeJobs by viewModel.activeJobs.collectAsState()
-    val scheduledJobs by viewModel.scheduledJobs.collectAsState()
-    val completedJobs by viewModel.completedJobs.collectAsState()
-
-    var selectedTab by remember { mutableIntStateOf(navigator.initialJobsTabIndex.coerceIn(0, 2)) }
-    LaunchedEffect(Unit) {
-        navigator.initialJobsTabIndex = 0
-    }
-    val tabs = listOf("Active", "Scheduled", "Completed")
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(JobsBg)
     ) {
-        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Filled.Menu, contentDescription = null, tint = Color(0xFF6F7480), modifier = Modifier.size(26.dp))
+            Text("Carry On", color = JobsBlue, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            Icon(Icons.Filled.NotificationsNone, contentDescription = null, tint = Color(0xFF6F7480), modifier = Modifier.size(24.dp))
+        }
+
         Text(
-            text = "My Jobs",
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
+            "Jobs",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = JobsText,
+            modifier = Modifier.padding(start = 24.dp, bottom = 14.dp)
         )
 
-        // Tab row
-        TabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = Orange500,
-            indicator = { tabPositions ->
-                if (selectedTab < tabPositions.size) {
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                        color = Orange500
-                    )
-                }
-            }
+        Card(
+            modifier = Modifier
+                .fillMaxSize(),
+            shape = RoundedCornerShape(topStart = 27.dp, topEnd = 27.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    text = {
-                        Text(
-                            text = title,
-                            fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (selectedTab == index) Orange500 else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                )
-            }
-        }
-
-        // Tab content
-        when (selectedTab) {
-            0 -> JobsList(activeJobs, navigator, "No active jobs", "Go online to receive job requests", "📋")
-            1 -> JobsList(scheduledJobs, navigator, "No scheduled jobs", "Scheduled jobs will appear here", "📅")
-            2 -> JobsList(completedJobs, navigator, "No completed jobs", "Your delivery history will appear here", "✅")
-        }
-    }
-}
-
-@Composable
-private fun JobsList(
-    state: UiState<List<DeliveryJob>>,
-    navigator: AppNavigator,
-    emptyTitle: String,
-    emptySubtitle: String,
-    emptyEmoji: String
-) {
-    when (state) {
-        is UiState.Loading -> LoadingScreen()
-        is UiState.Error -> ErrorState(state.message)
-        is UiState.Success -> {
-            if (state.data.isEmpty()) {
-                EmptyState(title = emptyTitle, subtitle = emptySubtitle, emoji = emptyEmoji)
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(state.data) { job ->
-                        JobListCard(
-                            job = job,
-                            onClick = {
-                                navigator.selectedJobId = job.id
-                                navigator.navigateTo(Screen.JobDetails)
-                            }
-                        )
+            when (activeJobs) {
+                is UiState.Loading, UiState.Idle -> LoadingScreen()
+                is UiState.Error -> ErrorState((activeJobs as UiState.Error).message)
+                is UiState.Success -> {
+                    val jobs = (activeJobs as UiState.Success<List<DeliveryJob>>).data
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 18.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        item { Spacer(Modifier.height(8.dp)) }
+                        items(jobs.take(3)) { job ->
+                            JobTruckItem(
+                                job = job,
+                                onOpen = {
+                                    navigator.selectedJobId = job.id
+                                    navigator.navigateTo(Screen.JobDetails)
+                                }
+                            )
+                        }
+                        item { Spacer(Modifier.height(12.dp)) }
                     }
                 }
             }
         }
-        is UiState.Idle -> LoadingScreen()
     }
 }
 
 @Composable
-private fun JobListCard(job: DeliveryJob, onClick: () -> Unit) {
-    val statusColor = when (job.status) {
-        JobStatus.DELIVERED -> Green500
-        JobStatus.CANCELLED -> Red500
-        JobStatus.PENDING -> Yellow500
-        else -> Orange500
-    }
-    val statusBg = when (job.status) {
-        JobStatus.DELIVERED -> Green100
-        JobStatus.CANCELLED -> Red100
-        JobStatus.PENDING -> Yellow100
-        else -> Orange100
-    }
+private fun JobTruckItem(job: DeliveryJob, onOpen: () -> Unit) {
+    val driverName = job.customerName.ifBlank { "Name" }
+    val taskName = job.packageType.ifBlank { "Chemical Delivery" }
+    val departed = job.scheduledAt?.takeIf { it.isNotBlank() } ?: "20 Feb, 05:00 PM"
+    val location = job.pickup.address.ifBlank { "123 Main Street, Anytown, IND 845103" }
 
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            .padding(top = 12.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Top row: ID + Status + Earnings
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "#${job.id}",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    StatusBadge(
-                        text = job.status.displayName,
-                        color = statusColor,
-                        backgroundColor = statusBg
+        Text(
+            "These are the available truck",
+            fontSize = 12.7.sp,
+            color = Color.Black,
+            modifier = Modifier.padding(bottom = 10.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(68.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE6E6E6)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(Res.drawable.jobs_profile_avatar),
+                        contentDescription = null,
+                        modifier = Modifier.size(68.dp)
                     )
                 }
-                Text(
-                    text = "RM${job.estimatedEarnings.toInt()}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Orange500
-                )
+                Text(driverName, fontSize = 19.5.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
             }
 
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
-            Spacer(Modifier.height(12.dp))
-
-            // Pickup
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("📍", fontSize = 14.sp)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = job.pickup.shortAddress.ifBlank { job.pickup.address },
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(Modifier.height(6.dp))
-
-            // Dropoff
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🏁", fontSize = 14.sp)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = job.dropoff.shortAddress.ifBlank { job.dropoff.address },
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Bottom row: package info + distance + duration
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text("📦 ${job.packageSize.displayName}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("📏 ${job.distance} km", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("⏱ ${job.displayDurationMinutes} min", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                JobDetailLine("Task", taskName)
+                JobDetailLine("Departed", departed)
+                JobDetailLine("Current Location", location)
+                JobDetailLine("Trip Cost", "Rs ${job.estimatedEarnings.toInt().coerceAtLeast(10000)}")
             }
         }
+
+        HorizontalDivider(
+            color = JobsDivider,
+            thickness = 1.dp,
+            modifier = Modifier.padding(top = 8.dp, bottom = 10.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { onOpen() }
+            ) {
+                Icon(Icons.Outlined.Call, contentDescription = null, tint = JobsBlue, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Get in Contact", fontSize = 13.65.sp, fontWeight = FontWeight.Medium, color = JobsBlue)
+            }
+            Text(
+                "Decline",
+                fontSize = 13.65.sp,
+                fontWeight = FontWeight.Medium,
+                color = JobsBlueLight,
+                modifier = Modifier.clickable { }
+            )
+        }
+    }
+}
+
+@Composable
+private fun JobDetailLine(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 9.75.sp,
+            fontWeight = FontWeight.Medium,
+            color = JobsMuted,
+            modifier = Modifier.width(86.dp)
+        )
+        Text(
+            text = value,
+            fontSize = if (label == "Current Location") 9.5.sp else 9.75.sp,
+            color = Color.Black,
+            maxLines = if (label == "Current Location") 2 else 1
+        )
     }
 }

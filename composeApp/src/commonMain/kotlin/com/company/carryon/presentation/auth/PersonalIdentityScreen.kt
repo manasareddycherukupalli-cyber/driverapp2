@@ -1,8 +1,6 @@
 package com.company.carryon.presentation.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,11 +19,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -41,6 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -82,16 +83,7 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Personal Identity", fontWeight = FontWeight.ExtraBold, fontSize = 40.sp, color = Color(0xFF1E1F25))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.width(28.dp).height(8.dp).clip(RoundedCornerShape(99.dp)).background(Blue))
-                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF9BC3F5)))
-                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFB9D5F7)))
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Box(modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(99.dp)).background(Color(0xFFA8C8F3))) {
-            Box(modifier = Modifier.fillMaxWidth(0.33f).height(4.dp).clip(RoundedCornerShape(99.dp)).background(Blue))
+            Text("Personal Identity", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = Color(0xFF1E1F25))
         }
 
         Spacer(Modifier.height(20.dp))
@@ -104,10 +96,20 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
                 Spacer(Modifier.height(10.dp))
                 Box(
                     modifier = Modifier
-                        .size(110.dp)
+                        .size(132.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFD0E3F8))
-                        .border(1.dp, Blue.copy(alpha = 0.65f), CircleShape),
+                        .drawBehind {
+                            val strokeWidth = 3.dp.toPx()
+                            drawCircle(
+                                color = Blue.copy(alpha = 0.8f),
+                                radius = (size.minDimension - strokeWidth) / 2f,
+                                style = Stroke(
+                                    width = strokeWidth,
+                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 10f), 0f)
+                                )
+                            )
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     ProfilePhotoIcon()
@@ -171,26 +173,26 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
 
 @Composable
 private fun ProfilePhotoIcon() {
-    Box(modifier = Modifier.size(34.dp), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.size(74.dp), contentAlignment = Alignment.Center) {
         Icon(
-            Icons.Filled.CameraAlt,
+            Icons.Outlined.AddAPhoto,
             contentDescription = null,
             tint = Blue,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(42.dp)
         )
         Box(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(12.dp)
+                .align(Alignment.BottomEnd)
+                .size(30.dp)
                 .clip(CircleShape)
                 .background(Blue),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Filled.Add,
+                Icons.Filled.Edit,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(9.dp)
+                modifier = Modifier.size(14.dp)
             )
         }
     }

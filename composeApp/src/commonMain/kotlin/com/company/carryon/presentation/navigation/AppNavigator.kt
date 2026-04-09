@@ -18,7 +18,6 @@ sealed interface Screen {
     data object PersonalIdentity : Screen
     data object DocumentUpload : Screen
     data object VehicleDetailsInput : Screen
-    data object SelectVehicle : Screen
     data object ReadyToDrive : Screen
     data object VerificationStatus : Screen
     data object LocationPermission : Screen

@@ -77,6 +77,8 @@ import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.round
 
 private val HomeBlue = Color(0xFF2F80ED)
 private val HomeDarkBlue = Color(0xFF000000)
@@ -367,13 +369,22 @@ private fun FinalHomeDashboard(
                 SummaryItem(
                     id = job.id.takeLast(6),
                     subtitle = if (status == "COMPLETED") "Delivered to ${job.dropoff.shortAddress}" else "Pickup: ${job.pickup.shortAddress}",
-                    amount = "RM ${"%.2f".format(job.estimatedEarnings)}",
+                    amount = "RM ${formatTwoDecimals(job.estimatedEarnings)}",
                     status = status
                 )
             }
         }
         Spacer(Modifier.height(8.dp))
     }
+}
+
+private fun formatTwoDecimals(value: Double): String {
+    val cents = round(value * 100.0).toLong()
+    val absCents = abs(cents)
+    val whole = absCents / 100
+    val fraction = (absCents % 100).toString().padStart(2, '0')
+    val sign = if (cents < 0) "-" else ""
+    return "$sign$whole.$fraction"
 }
 
 @Composable
@@ -758,7 +769,12 @@ private fun JobsQueueItem(onClick: () -> Unit) {
                     .background(Color(0xFFE8ECF4)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.Person, contentDescription = null, tint = HomeBlue, modifier = Modifier.size(24.dp))
+                Image(
+                    painter = painterResource(Res.drawable.jobs_profile_avatar),
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp),
+                    contentScale = ContentScale.Crop
+                )
             }
             Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {

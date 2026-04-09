@@ -1,9 +1,12 @@
 package com.company.carryon.presentation.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -20,6 +23,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import drive_app.composeapp.generated.resources.Res
+import drive_app.composeapp.generated.resources.notify_app_promotions
+import drive_app.composeapp.generated.resources.notify_earnings_reports
+import drive_app.composeapp.generated.resources.notify_order_updates
+import drive_app.composeapp.generated.resources.notify_push_notifications
+import drive_app.composeapp.generated.resources.ic_nearby
+import drive_app.composeapp.generated.resources.vehicle_driver_alex_navigator
+import drive_app.composeapp.generated.resources.vehicle_ford_transit_cargo_xl
+import drive_app.composeapp.generated.resources.vehicle_spec_cargo_volume
+import drive_app.composeapp.generated.resources.vehicle_spec_fuel_type
+import drive_app.composeapp.generated.resources.vehicle_spec_max_payload
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 private fun SettingsTopBar(title: String, onBack: () -> Unit) {
@@ -41,42 +57,102 @@ fun NotificationPreferencesScreen(navigator: AppNavigator) {
     var earnings by remember { mutableStateOf(false) }
     var promos by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color(0xFFF9F9FF))
-    ) {
-        SettingsTopBar("Settings") { navigator.goBack() }
-        Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF9F9FF))) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            IconButton(onClick = { navigator.goBack() }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF0058BC))
+            }
+            Text("Settings", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFF181C23))
+            Spacer(Modifier.weight(1f))
+            Icon(Icons.Filled.Search, contentDescription = "Search", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Spacer(Modifier.height(6.dp))
             Text("COMMUNICATION", color = Color(0xFF2F80ED), fontSize = 12.sp, letterSpacing = 1.sp, fontWeight = FontWeight.SemiBold)
-            Text("Notification\nPreferences", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, lineHeight = 42.sp, color = Color(0xFF181C23))
-            Spacer(Modifier.height(8.dp))
-            Text("Manage how you receive updates about your deliveries, earnings, and platform news.", color = Color(0xFF414755), fontSize = 16.sp, lineHeight = 24.sp)
-            Spacer(Modifier.height(20.dp))
+            Text("Notification Preferences", fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 40.sp, color = Color(0xFF181C23))
+            Text(
+                "Manage how you receive updates about your\ndeliveries, earnings, and platform news.",
+                color = Color(0xFF414755),
+                fontSize = 16.sp,
+                lineHeight = 26.sp
+            )
 
-            NotificationCard("Push Notifications", "The master switch for all immediate device-level alerts and sound notifications.", Icons.Filled.Notifications, push) { push = it }
-            NotificationCard("Order Updates", "Real-time status changes, pickup assignments, and critical delivery instructions.", Icons.Filled.LocalShipping, orders) { orders = it }
-            NotificationCard("Earnings Reports", "Weekly summaries, instant payout confirmations, and monthly tax document alerts.", Icons.Filled.AccountBalanceWallet, earnings) { earnings = it }
-            NotificationCard("App Promotions", "New feature announcements, seasonal bonuses, and exclusive partnership offers.", Icons.Filled.Campaign, promos) { promos = it }
+            NotificationCard(
+                "Push Notifications",
+                "The master switch for\nall immediate device-\nlevel alerts and sound\nnotifications.",
+                Res.drawable.notify_push_notifications,
+                push
+            ) { push = it }
 
-            Spacer(Modifier.height(16.dp))
+            NotificationCard(
+                "Order Updates",
+                "Real-time status\nchanges, pickup\nassignments, and\ncritical delivery\ninstructions.",
+                Res.drawable.notify_order_updates,
+                orders
+            ) { orders = it }
+
+            NotificationCard(
+                "Earnings Reports",
+                "Weekly summaries,\ninstant payout\nconfirmations, and\nmonthly tax document\nalerts.",
+                Res.drawable.notify_earnings_reports,
+                earnings
+            ) { earnings = it }
+
+            NotificationCard(
+                "App Promotions",
+                "New feature\nannouncements,\nseasonal bonuses, and\nexclusive partnership\noffers.",
+                Res.drawable.notify_app_promotions,
+                promos
+            ) { promos = it }
+
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF2F80ED))
             ) {
-                Column(Modifier.padding(24.dp)) {
-                    Text("Need a break?", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                    Spacer(Modifier.height(8.dp))
-                    Text("You can temporarily silence all alerts using Focus Mode during your off-hours.", color = Color(0xCCFFFFFF))
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedButton(onClick = { }, colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Color(0xFF2F80ED))) {
-                        Text("Enable Focus Mode", fontWeight = FontWeight.SemiBold)
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(horizontal = 22.dp, vertical = 24.dp)) {
+                        Text("Need a break?", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 28.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "You can temporarily silence all alerts\nusing Focus Mode during your off-hours.",
+                            color = Color(0xCCFFFFFF),
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF2F80ED)),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text("Enable Focus Mode", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        }
                     }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 10.dp, bottom = 8.dp)
+                            .size(56.dp)
+                            .border(6.dp, Color(0x1FFFFFFF), RoundedCornerShape(999.dp))
+                    )
                 }
             }
             Spacer(Modifier.height(24.dp))
         }
+
+        NotificationBottomBar()
     }
 }
 
@@ -84,14 +160,15 @@ fun NotificationPreferencesScreen(navigator: AppNavigator) {
 private fun NotificationCard(
     title: String,
     description: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconRes: DrawableResource,
     enabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33C1C6D7))
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(18.dp),
@@ -103,17 +180,60 @@ private fun NotificationCard(
                     modifier = Modifier.size(48.dp).background(Color(0x33A6D2F3), RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, contentDescription = null, tint = Color(0xFF2F80ED))
+                    Image(
+                        painter = painterResource(iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text(title, fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color(0xFF2F80ED), lineHeight = 28.sp)
+                    Text(title, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = Color(0xFF2F80ED), lineHeight = 28.sp)
                     Spacer(Modifier.height(4.dp))
                     Text(description, color = Color(0xFF414755), fontSize = 14.sp, lineHeight = 20.sp)
                 }
             }
-            Switch(checked = enabled, onCheckedChange = onToggle)
+            Switch(
+                checked = enabled,
+                onCheckedChange = onToggle,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = Color(0xFF2F80ED),
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFFA6D2F3),
+                    uncheckedBorderColor = Color(0xFFA6D2F3)
+                )
+            )
         }
+    }
+}
+
+@Composable
+private fun NotificationBottomBar() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xF2FFFFFF), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BottomTab("ROUTE", Icons.Filled.Map, false)
+        BottomTab("HISTORY", Icons.Filled.History, false)
+        BottomTab("VEHICLE", Icons.Filled.LocalShipping, false)
+        BottomTab("SETTINGS", Icons.Filled.Settings, true)
+    }
+}
+
+@Composable
+private fun BottomTab(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, selected: Boolean) {
+    Column(
+        modifier = if (selected) Modifier.background(Color(0xFF0058BC), RoundedCornerShape(12.dp)).padding(horizontal = 16.dp, vertical = 4.dp) else Modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Icon(icon, contentDescription = label, tint = if (selected) Color.White else Color(0xFF181C23).copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+        Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = if (selected) Color.White else Color(0xFF181C23).copy(alpha = 0.6f))
     }
 }
 
@@ -131,71 +251,94 @@ fun LanguageScreen(navigator: AppNavigator) {
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF9F9FF))) {
         SettingsTopBar("Settings") { navigator.goBack() }
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 14.dp)
         ) {
-            Text("Language", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, lineHeight = 46.sp, color = Color(0xFF181C23))
-            Spacer(Modifier.height(8.dp))
-            Text("Select your preferred language for the navigation and dashboard interface.", color = Color(0xFF414755), fontSize = 16.sp, lineHeight = 24.sp)
-            Spacer(Modifier.height(20.dp))
+            Text("Language", fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 40.sp, color = Color(0xFF181C23))
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Select your preferred language for the\nnavigation and dashboard interface.",
+                color = Color(0xFF414755),
+                fontSize = 16.sp,
+                lineHeight = 24.sp
+            )
+            Spacer(Modifier.height(16.dp))
             languages.forEach { (name, subtitle) ->
                 val selectedRow = selected == name
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clickable { selected = name },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp)
+                        .clickable { selected = name },
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = if (selectedRow) Color.White else Color(0x33A6D2F3)),
-                    border = if (selectedRow) androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF0058BC)) else null
+                    colors = CardDefaults.cardColors(containerColor = Color(0x33A6D2F3)),
+                    border = if (selectedRow) androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF2F80ED)) else null
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(18.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
-                                modifier = Modifier.size(48.dp).background(if (selectedRow) Color(0x140070EB) else Color.White, RoundedCornerShape(999.dp)),
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .background(if (selectedRow) Color(0x33A6D2F3) else Color.White, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Filled.Language, contentDescription = null, tint = Color(0xFF2F80ED))
+                                Icon(Icons.Filled.Language, contentDescription = null, tint = Color(0xFF2F80ED), modifier = Modifier.size(17.dp))
                             }
                             Spacer(Modifier.width(12.dp))
                             Column {
-                                Text(name, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+                                Text(name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF414755))
                                 Text(subtitle, color = Color(0xFF64748B), fontSize = 14.sp)
                             }
                         }
                         Icon(
                             imageVector = if (selectedRow) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
                             contentDescription = null,
-                            tint = if (selectedRow) Color(0xFF2F80ED) else Color(0xFFB0B7C8)
+                            tint = if (selectedRow) Color(0xFF2F80ED) else Color(0xFFB8C3D7),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(14.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF2F80ED))
             ) {
-                Column(Modifier.padding(24.dp)) {
-                    Icon(Icons.Filled.Public, contentDescription = null, tint = Color.White)
-                    Spacer(Modifier.height(12.dp))
-                    Text("Global Connectivity", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+                Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
+                    Icon(Icons.Filled.Public, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.height(10.dp))
+                    Text("Global Connectivity", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 32.sp, lineHeight = 28.sp)
                     Spacer(Modifier.height(6.dp))
-                    Text("Changes will apply across all your linked logistics terminals and driver manifests instantly.", color = Color(0xE6FFFFFF))
+                    Text(
+                        "Changes will apply across all your linked\nlogistics terminals and driver manifests\ninstantly.",
+                        color = Color(0xCCFFFFFF),
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp
+                    )
                 }
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
         }
+        NotificationBottomBar()
     }
 }
 
 @Composable
 fun VehicleInfoScreen(navigator: AppNavigator) {
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F7FB))) {
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF9F9FF))) {
         SettingsTopBar("Vehicle Details") { navigator.goBack() }
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp)
         ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -204,17 +347,21 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
             ) {
                 Box(
                     modifier = Modifier
-                        .height(148.dp)
+                        .height(158.dp)
                         .fillMaxWidth()
                         .background(Color(0xFFE8EDF7)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = Color(0xFF7485A5), modifier = Modifier.size(76.dp))
+                    Image(
+                        painter = painterResource(Res.drawable.vehicle_ford_transit_cargo_xl),
+                        contentDescription = "Ford Transit Cargo XL",
+                        modifier = Modifier.fillMaxSize()
+                    )
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(10.dp)
-                            .background(Color(0xFF4B79E6), RoundedCornerShape(30.dp))
+                            .padding(12.dp)
+                            .background(Color(0xFF4B79E6), RoundedCornerShape(999.dp))
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text("EN ROUTE", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
@@ -222,7 +369,7 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Text("Ford Transit - Cargo XL", fontSize = 24.sp, lineHeight = 34.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF262E3F))
+            Text("Ford Transit - Cargo XL", fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF262E3F))
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.background(Color(0xFFD8E6FF), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 3.dp)) {
@@ -235,42 +382,52 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
             }
             Spacer(Modifier.height(14.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                VehicleSpecCard("MAX PAYLOAD", "2500 kg", Icons.Filled.Inventory2, Modifier.weight(1f))
-                VehicleSpecCard("CARGO VOLUME", "12 m³", Icons.Filled.ViewInAr, Modifier.weight(1f))
+                VehicleSpecCard("MAX PAYLOAD", "2500 kg", Res.drawable.vehicle_spec_max_payload, Modifier.weight(1f))
+                VehicleSpecCard("CARGO VOLUME", "12 m³", Res.drawable.vehicle_spec_cargo_volume, Modifier.weight(1f))
             }
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                VehicleSpecCard("FUEL TYPE", "Electric", Icons.Filled.Bolt, Modifier.weight(1f))
-                VehicleSpecCard("RANGE", "320 km", Icons.Filled.LocationOn, Modifier.weight(1f))
+                VehicleSpecCard("FUEL TYPE", "Electric", Res.drawable.vehicle_spec_fuel_type, Modifier.weight(1f))
+                VehicleSpecCard("RANGE", "320 km", Res.drawable.ic_nearby, Modifier.weight(1f))
             }
             Spacer(Modifier.height(12.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF1FF))
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
-                                .background(Color(0xFF8EA5D4), RoundedCornerShape(17.dp)),
+                                .size(44.dp)
+                                .background(Color.White, CircleShape),
                             contentAlignment = Alignment.Center
-                        ) { Icon(Icons.Filled.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp)) }
+                        ) {
+                            Image(
+                                painter = painterResource(Res.drawable.vehicle_driver_alex_navigator),
+                                contentDescription = "Marcus Thompson",
+                                modifier = Modifier.size(42.dp)
+                            )
+                        }
                         Spacer(Modifier.width(10.dp))
                         Column {
                             Text("Assigned Driver", fontSize = 10.sp, color = Color(0xFF7B88A2))
-                            Text("Marcus Thompson", fontWeight = FontWeight.SemiBold, color = Color(0xFF2C3852), fontSize = 14.sp)
+                            Text("Marcus\nThompson", fontWeight = FontWeight.SemiBold, color = Color(0xFF2C3852), fontSize = 18.sp, lineHeight = 22.sp)
                             Text("Fleet ID: #STR-9942", fontSize = 11.sp, color = Color(0xFF7B88A2))
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Filled.Phone, contentDescription = null, tint = Color(0xFF4B79E6), modifier = Modifier.size(18.dp))
-                        Icon(Icons.Filled.Message, contentDescription = null, tint = Color(0xFF4B79E6), modifier = Modifier.size(18.dp))
+                        Box(Modifier.size(32.dp).background(Color.White, CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.Phone, contentDescription = null, tint = Color(0xFF8EA5D4), modifier = Modifier.size(16.dp))
+                        }
+                        Box(Modifier.size(32.dp).background(Color.White, CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.Message, contentDescription = null, tint = Color(0xFF8EA5D4), modifier = Modifier.size(16.dp))
+                        }
                     }
                 }
             }
@@ -280,23 +437,55 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Current Capacity Utilization", fontWeight = FontWeight.Bold, color = Color(0xFF2C3852))
-                    Spacer(Modifier.height(10.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
-                        listOf(20, 28, 36, 42, 30, 24).forEachIndexed { index, height ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(height.dp)
-                                    .background(if (index == 3) Color(0xFF4B79E6) else Color(0xFFE2E8F4), RoundedCornerShape(4.dp))
-                            )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(64.dp)
+                            .background(Color(0x0D0058BC), CircleShape)
+                    )
+                    Column(modifier = Modifier.padding(32.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    Text("Current Capacity Utilization", fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 28.sp, color = Color(0xFF181C23))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        val barHeights = listOf(51.19f, 76.8f, 108.8f, 83.19f, 57.59f, 38.39f)
+                        barHeights.forEachIndexed { index, height ->
+                            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(height.dp)
+                                        .background(
+                                            when (index) {
+                                                2 -> Color(0x330058BC)
+                                                3 -> Color(0xFF2F80ED)
+                                                else -> Color(0x1A0058BC)
+                                            },
+                                            RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                                        )
+                                )
+                                if (index == 3) {
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(y = (-32).dp)
+                                            .background(Color(0xFF181C23), RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("YOURS", color = Color(0xFFF9F9FF), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, lineHeight = 15.sp)
+                                    }
+                                }
+                            }
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Space Reserved: 1.2m³", fontSize = 12.sp, color = Color(0xFF7B88A2))
-                        Text("72% Full", fontSize = 12.sp, color = Color(0xFF4B79E6), fontWeight = FontWeight.SemiBold)
+                        Text("Space Reserved: 1.2m³", fontSize = 14.sp, color = Color(0xFF414755), fontWeight = FontWeight.Medium, lineHeight = 20.sp)
+                        Text("72% Full", fontSize = 14.sp, color = Color(0xFF2F80ED), fontWeight = FontWeight.SemiBold, lineHeight = 20.sp)
+                    }
                     }
                 }
             }
@@ -314,19 +503,37 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC6DAF5), contentColor = Color(0xFF4B79E6))
             ) { Text("View Vehicle Manifest", fontWeight = FontWeight.SemiBold) }
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(14.dp))
+        }
+        VehicleBottomBar()
+    }
+}
+
+@Composable
+private fun VehicleSpecCard(label: String, value: String, iconRes: DrawableResource, modifier: Modifier = Modifier) {
+    Card(modifier = modifier, shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Image(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(16.dp))
+            Text(label, color = Color(0xFF78839A), fontSize = 9.sp, letterSpacing = 0.8.sp, fontWeight = FontWeight.SemiBold)
+            Text(value, color = Color(0xFF242C3E), fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
         }
     }
 }
 
 @Composable
-private fun VehicleSpecCard(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier) {
-    Card(modifier = modifier, shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(icon, contentDescription = null, tint = Color(0xFF4B79E6), modifier = Modifier.size(16.dp))
-            Text(label, color = Color(0xFF78839A), fontSize = 9.sp, letterSpacing = 0.8.sp, fontWeight = FontWeight.SemiBold)
-            Text(value, color = Color(0xFF242C3E), fontWeight = FontWeight.Bold, fontSize = 23.sp)
-        }
+private fun VehicleBottomBar() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xF2FFFFFF), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BottomTab("Explore", Icons.Filled.Explore, false)
+        BottomTab("Deliveries", Icons.Filled.LocalShipping, false)
+        BottomTab("Activity", Icons.Filled.History, false)
+        BottomTab("Account", Icons.Filled.Person, true)
     }
 }
 

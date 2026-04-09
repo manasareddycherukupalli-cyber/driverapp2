@@ -21,12 +21,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Button
@@ -36,6 +37,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -142,7 +146,7 @@ private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
                     }
                 }
 
-                Text("verification", fontSize = 42.sp, fontWeight = FontWeight.SemiBold, color = PureBlack)
+                Text("verification", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = PureBlack)
                 Text(
                     "Please complete all steps to unlock full navigation and route dispatch features.",
                     color = PureBlack.copy(alpha = 0.65f),
@@ -217,14 +221,64 @@ private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
             ) {
-                VerifyBottomTab("ROUTES", Icons.Filled.DirectionsCar, selected = false)
-                VerifyBottomTab("VERIFY", Icons.Filled.Verified, selected = true)
-                VerifyBottomTab("HISTORY", Icons.Filled.History, selected = false)
-                VerifyBottomTab("ACCOUNT", Icons.Filled.AccountCircle, selected = false)
+                NavigationBar(
+                    containerColor = Color.White,
+                    contentColor = PureBlack
+                ) {
+                    NavigationBarItem(
+                        selected = true,
+                        onClick = { navigator.switchTab(Screen.Home) },
+                        icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
+                        label = { Text("Home") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = VerifyBlue,
+                            selectedTextColor = VerifyBlue,
+                            unselectedIconColor = PureBlack.copy(alpha = 0.45f),
+                            unselectedTextColor = PureBlack.copy(alpha = 0.45f),
+                            indicatorColor = Color(0x33A6D2F3)
+                        )
+                    )
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = { navigator.switchTab(Screen.Jobs) },
+                        icon = { Icon(Icons.Filled.LocalShipping, contentDescription = "Jobs") },
+                        label = { Text("Jobs") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = VerifyBlue,
+                            selectedTextColor = VerifyBlue,
+                            unselectedIconColor = PureBlack.copy(alpha = 0.45f),
+                            unselectedTextColor = PureBlack.copy(alpha = 0.45f),
+                            indicatorColor = Color(0x33A6D2F3)
+                        )
+                    )
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = { navigator.switchTab(Screen.Earnings) },
+                        icon = { Icon(Icons.Filled.AccountBalanceWallet, contentDescription = "Earnings") },
+                        label = { Text("Earnings") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = VerifyBlue,
+                            selectedTextColor = VerifyBlue,
+                            unselectedIconColor = PureBlack.copy(alpha = 0.45f),
+                            unselectedTextColor = PureBlack.copy(alpha = 0.45f),
+                            indicatorColor = Color(0x33A6D2F3)
+                        )
+                    )
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = { navigator.switchTab(Screen.Profile) },
+                        icon = { Icon(Icons.Filled.Person, contentDescription = "Profile") },
+                        label = { Text("Profile") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = VerifyBlue,
+                            selectedTextColor = VerifyBlue,
+                            unselectedIconColor = PureBlack.copy(alpha = 0.45f),
+                            unselectedTextColor = PureBlack.copy(alpha = 0.45f),
+                            indicatorColor = Color(0x33A6D2F3)
+                        )
+                    )
+                }
             }
         }
     }
@@ -298,28 +352,6 @@ private fun StatusCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun VerifyBottomTab(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    selected: Boolean
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Icon(
-            icon,
-            contentDescription = label,
-            tint = if (selected) VerifyBlue else PureBlack.copy(alpha = 0.45f),
-            modifier = Modifier.size(16.dp)
-        )
-        Text(
-            label,
-            color = if (selected) VerifyBlue else PureBlack.copy(alpha = 0.45f),
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 

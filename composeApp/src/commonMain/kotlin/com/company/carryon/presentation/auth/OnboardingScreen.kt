@@ -2,6 +2,7 @@ package com.company.carryon.presentation.auth
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,6 +36,8 @@ import org.jetbrains.compose.resources.painterResource
  */
 @Composable
 fun OnboardingScreen(navigator: AppNavigator) {
+    val onboardingButtonBlue = Color(0xFF2F80ED)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -117,7 +120,7 @@ fun OnboardingScreen(navigator: AppNavigator) {
                 onClick = { navigator.navigateTo(Screen.Registration) },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CarryBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = onboardingButtonBlue)
             ) {
                 Text("Create an account", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             }
@@ -126,9 +129,10 @@ fun OnboardingScreen(navigator: AppNavigator) {
                 onClick = { navigator.navigateTo(Screen.Login) },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = CarryBlue)
+                border = BorderStroke(1.dp, onboardingButtonBlue),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = onboardingButtonBlue)
             ) {
-                Text("Log In", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = CarryBlue)
+                Text("Log In", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = onboardingButtonBlue)
             }
         }
 
