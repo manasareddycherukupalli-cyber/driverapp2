@@ -51,6 +51,10 @@ class HomeViewModel : ViewModel() {
     private val _activeJobs = MutableStateFlow<UiState<List<DeliveryJob>>>(UiState.Idle)
     val activeJobs: StateFlow<UiState<List<DeliveryJob>>> = _activeJobs.asStateFlow()
 
+    // Today's completed jobs for the summary section
+    private val _todayCompletedJobs = MutableStateFlow<UiState<List<DeliveryJob>>>(UiState.Idle)
+    val todayCompletedJobs: StateFlow<UiState<List<DeliveryJob>>> = _todayCompletedJobs.asStateFlow()
+
     // Incoming job requests (sorted queue)
     private val _incomingJobs = MutableStateFlow<List<DeliveryJob>>(emptyList())
     val incomingJobs: StateFlow<List<DeliveryJob>> = _incomingJobs.asStateFlow()
@@ -141,6 +145,7 @@ class HomeViewModel : ViewModel() {
     fun loadDashboardData() {
         loadEarnings()
         loadActiveJobs()
+        loadTodayCompletedJobs()
         loadNotifications()
     }
 
@@ -444,6 +449,25 @@ class HomeViewModel : ViewModel() {
                     } else {
                         _activeJobs.value = UiState.Error(it.message ?: "Failed to load jobs")
                     }
+                }
+        }
+    }
+
+    /** Load today's completed jobs for the summary section */
+    private fun loadTodayCompletedJobs() {
+        viewModelScope.launch {
+            _todayCompletedJobs.value = UiState.Loading
+            jobRepository.getCompletedJobs()
+                .onSuccess { jobs ->
+                    val todayPrefix = Clock.System.now().toString().take(10) // "YYYY-MM-DD"
+                    val todayJobs = jobs.filter { job ->
+                        (job.deliveredAt ?: job.completedAt ?: job.createdAt)
+                            ?.startsWith(todayPrefix) == true
+                    }
+                    _todayCompletedJobs.value = UiState.Success(todayJobs)
+                }
+                .onFailure {
+                    _todayCompletedJobs.value = UiState.Error(it.message ?: "Failed to load")
                 }
         }
     }

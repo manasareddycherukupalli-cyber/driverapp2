@@ -27,20 +27,29 @@ import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.company.carryon.data.model.UiState
+import com.company.carryon.presentation.delivery.DeliveryViewModel
+import com.company.carryon.presentation.navigation.Screen
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +81,10 @@ private val DefaultCenter = LatLng(12.9716, 77.5946)
 fun MapScreen(navigator: AppNavigator) {
     val jobId = navigator.selectedJobId
     val viewModel = remember { MapViewModel() }
+    val deliveryViewModel = remember { DeliveryViewModel() }
+    val cancelState by deliveryViewModel.cancelState.collectAsState()
+    var showCancelMenu by remember { mutableStateOf(false) }
+    var showCancelDialog by remember { mutableStateOf(false) }
     val driverLocation by viewModel.driverLocation.collectAsState()
     val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
     val isTracking by viewModel.isTracking.collectAsState()
@@ -91,6 +104,13 @@ fun MapScreen(navigator: AppNavigator) {
     if (jobId == null) {
         ErrorState("No active job selected") { navigator.goBack() }
         return
+    }
+
+    LaunchedEffect(cancelState) {
+        if (cancelState is UiState.Success) {
+            navigator.clearPersistedDeliveryState()
+            navigator.navigateAndClearStack(Screen.Home)
+        }
     }
 
     LaunchedEffect(jobId) {
@@ -170,7 +190,47 @@ fun MapScreen(navigator: AppNavigator) {
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = NavBlue)
-                Icon(Icons.Filled.MoreVert, contentDescription = null, tint = NavBlue)
+                Box {
+                    Icon(
+                        Icons.Filled.MoreVert,
+                        contentDescription = "More options",
+                        tint = NavBlue,
+                        modifier = Modifier.clickable { showCancelMenu = true }
+                    )
+                    DropdownMenu(
+                        expanded = showCancelMenu,
+                        onDismissRequest = { showCancelMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Cancel Job", color = MaterialTheme.colorScheme.error) },
+                            onClick = {
+                                showCancelMenu = false
+                                showCancelDialog = true
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (showCancelDialog) {
+                AlertDialog(
+                    onDismissRequest = { showCancelDialog = false },
+                    title = { Text("Cancel Job?") },
+                    text = { Text("The job will be returned to the queue for another driver.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showCancelDialog = false
+                            jobId?.let { deliveryViewModel.cancelJob(it) }
+                        }) {
+                            Text("Cancel Job", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showCancelDialog = false }) {
+                            Text("Keep Job")
+                        }
+                    }
+                )
             }
         }
 
@@ -308,7 +368,7 @@ fun MapScreen(navigator: AppNavigator) {
                     onClick = {
                         currentJob?.id?.let {
                             navigator.selectedJobId = it
-                            navigator.navigateTo(com.company.carryon.presentation.navigation.Screen.ActiveDelivery)
+                            navigator.navigateTo(Screen.ActiveDelivery)
                         }
                     },
                     enabled = currentJob != null,

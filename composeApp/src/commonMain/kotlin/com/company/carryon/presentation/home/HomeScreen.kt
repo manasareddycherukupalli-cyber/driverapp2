@@ -113,6 +113,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
     val isOnline by viewModel.isOnline.collectAsState()
     val earningsState by viewModel.earningsSummary.collectAsState()
     val activeJobsState by viewModel.activeJobs.collectAsState()
+    val todayCompletedJobsState by viewModel.todayCompletedJobs.collectAsState()
     val incomingJobs by viewModel.incomingJobs.collectAsState()
     val expiringIncomingJobIds by viewModel.expiringIncomingJobIds.collectAsState()
     val unreadCount by viewModel.unreadNotificationCount.collectAsState()
@@ -195,6 +196,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
         isOnline = isOnline,
         earningsState = earningsState,
         activeJobsState = activeJobsState,
+        todayCompletedJobsState = todayCompletedJobsState,
         driverLocation = driverLocation,
         currentLocationName = currentLocationName,
         mapStyleUrl = mapStyleUrl,
@@ -218,6 +220,7 @@ private fun FinalHomeDashboard(
     isOnline: Boolean,
     earningsState: UiState<EarningsSummary>,
     activeJobsState: UiState<List<DeliveryJob>>,
+    todayCompletedJobsState: UiState<List<DeliveryJob>>,
     driverLocation: Pair<Double, Double>?,
     currentLocationName: String?,
     mapStyleUrl: String,
@@ -229,7 +232,7 @@ private fun FinalHomeDashboard(
     val strings = LocalStrings.current
     val todayEarnings = (earningsState as? UiState.Success)?.data?.todayEarnings
     val deliveries = (earningsState as? UiState.Success)?.data?.todayDeliveries
-    val jobs = (activeJobsState as? UiState.Success)?.data.orEmpty().take(2)
+    val jobs = (todayCompletedJobsState as? UiState.Success)?.data.orEmpty().take(2)
 
     Column(
         modifier = Modifier
@@ -377,12 +380,11 @@ private fun FinalHomeDashboard(
             }
         } else {
             jobs.forEach { job ->
-                val status = if (job.status == JobStatus.DELIVERED) "COMPLETED" else "PENDING"
                 SummaryItem(
-                    id = job.id.takeLast(6),
-                    subtitle = if (status == "COMPLETED") "Delivered to ${job.dropoff.shortAddress}" else "Pickup: ${job.pickup.shortAddress}",
+                    id = job.displayOrderId.ifBlank { job.id.takeLast(6) },
+                    subtitle = "Delivered to ${job.dropoff.shortAddress}",
                     amount = "RM ${formatTwoDecimals(job.estimatedEarnings)}",
-                    status = status
+                    status = "COMPLETED"
                 )
             }
         }

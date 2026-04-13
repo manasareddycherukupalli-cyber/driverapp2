@@ -199,7 +199,7 @@ private fun PastJobCard(job: DeliveryJob, onClick: () -> Unit) {
                 ) {
                     Column {
                         Text(
-                            "#${job.id.takeLast(8).uppercase()}",
+                            job.displayOrderId.let { if (it.isNotBlank()) if (it.startsWith("#")) it else "#$it" else "#${job.id.takeLast(8).uppercase()}" },
                             color = JobsBlue,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
