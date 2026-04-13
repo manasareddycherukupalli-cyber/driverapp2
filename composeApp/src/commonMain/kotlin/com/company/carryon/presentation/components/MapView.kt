@@ -23,5 +23,6 @@ expect fun MapViewComposable(
     zoom: Double = 12.0,
     markers: List<MapMarker> = emptyList(),
     routeGeometry: List<LatLng>? = null,
+    showDriverLocation: Boolean = false,
     onMapClick: ((Double, Double) -> Unit)? = null
 )

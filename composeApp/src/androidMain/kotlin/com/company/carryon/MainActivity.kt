@@ -27,13 +27,6 @@ class MainActivity : ComponentActivity() {
             Log.d("MainActivity", "POST_NOTIFICATIONS permission granted: $granted")
         }
 
-    private val requestLocationPermission =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-            val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
-            Log.d("MainActivity", "Location permissions: fine=$fineGranted, coarse=$coarseGranted")
-        }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -41,7 +34,6 @@ class MainActivity : ComponentActivity() {
         initLocationProvider(applicationContext)
         createNotificationChannel()
         requestNotificationPermissionIfNeeded()
-        requestLocationPermissionIfNeeded()
         retrieveFcmToken()
 
         setContent {
@@ -57,20 +49,6 @@ class MainActivity : ComponentActivity() {
             if (!alreadyGranted) {
                 requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
-        }
-    }
-
-    private fun requestLocationPermissionIfNeeded() {
-        val fineGranted = ContextCompat.checkSelfPermission(
-            this, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!fineGranted) {
-            requestLocationPermission.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            )
         }
     }
 

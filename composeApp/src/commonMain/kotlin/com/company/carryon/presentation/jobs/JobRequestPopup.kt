@@ -30,11 +30,11 @@ fun JobRequestPopup(
     onReject: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var timeRemaining by remember(job.id) { mutableStateOf(30) }
+    var timeRemaining by remember(job.id) { mutableStateOf(60) }
 
-    // Countdown timer — auto-reject after 30 seconds
+    // Countdown timer — auto-reject after 60 seconds
     LaunchedEffect(job.id) {
-        timeRemaining = 30
+        timeRemaining = 60
         while (timeRemaining > 0) {
             delay(1000)
             timeRemaining--
@@ -71,12 +71,12 @@ fun JobRequestPopup(
                 // Timer badge
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = if (timeRemaining <= 10) Red100 else Orange100
+                    color = if (timeRemaining <= 15) Red100 else Orange100
                 ) {
                     Text(
                         text = "⏱ ${timeRemaining}s remaining",
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                        color = if (timeRemaining <= 10) Red500 else Orange600,
+                        color = if (timeRemaining <= 15) Red500 else Orange600,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 13.sp
                     )

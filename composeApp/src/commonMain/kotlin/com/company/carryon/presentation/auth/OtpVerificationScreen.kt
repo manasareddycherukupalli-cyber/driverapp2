@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.network.SupabaseConfig
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
@@ -28,6 +29,7 @@ import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 /**
  * OtpVerificationScreen — 6-digit code entry with custom phone keypad.
@@ -35,6 +37,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
+    val strings = LocalStrings.current
     val otpLength = 6
     var otpValues by remember { mutableStateOf(List(otpLength) { "" }) }
     var resendTimer by remember { mutableStateOf(30) }
@@ -76,14 +79,14 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                 .padding(horizontal = 28.dp)
         ) {
             Text(
-                text = "Enter the Code",
+                text = strings.enterTheCode,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1A1A2E)
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "A verification code has been sent to your email",
+                text = strings.verificationCodeSentToEmail,
                 fontSize = 14.sp,
                 color = Color(0xFF6B6B6B)
             )
@@ -135,10 +138,10 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            Text("Don't receive code? ", fontSize = 14.sp, color = Color(0xFF6B6B6B))
+            Text(strings.dontReceiveCode, fontSize = 14.sp, color = Color(0xFF6B6B6B))
             if (canResend) {
                 Text(
-                    text = "Resend again",
+                    text = strings.resendAgain,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = CarryBlue,
@@ -159,7 +162,7 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                     }
                 )
             } else {
-                Text("Resend in ${resendTimer}s", fontSize = 14.sp, color = Color(0xFFAAAAAA))
+                Text(strings.resendTimer(resendTimer), fontSize = 14.sp, color = Color(0xFFAAAAAA))
             }
         }
 
@@ -195,22 +198,20 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                         val accessToken = session?.accessToken
                         if (accessToken != null) {
                             authViewModel.onSupabaseTokenReceived(accessToken)
-                            // Wait for sync result and route accordingly
-                            authViewModel.otpVerifyState.collect { state ->
-                                when (state) {
-                                    is UiState.Success -> {
-                                        val screen = authViewModel.determinePostAuthScreen(state.data)
-                                        navigator.navigateAndClearStack(screen)
-                                        return@collect
-                                    }
-                                    is UiState.Error -> {
-                                        // Safe default: land on verification summary screen
-                                        navigator.navigateAndClearStack(Screen.VerificationStatus)
-                                        return@collect
-                                    }
-                                    else -> {} // Loading or Idle — keep waiting
+                            // Wait for the first terminal state from sync result.
+                            when (val state = authViewModel.otpVerifyState.first {
+                                it is UiState.Success || it is UiState.Error
+                            }) {
+                                is UiState.Success -> {
+                                    val screen = authViewModel.determinePostAuthScreen(state.data)
+                                    navigator.navigateAndClearStack(screen)
                                 }
+                                is UiState.Error -> {
+                                    errorMessage = state.message
+                                }
+                                else -> {}
                             }
+                            isVerifying = false
                         } else {
                             errorMessage = "Verification succeeded but no session found"
                             isVerifying = false
@@ -240,7 +241,7 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                     strokeWidth = 2.dp
                 )
             } else {
-                Text("Next", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Text(strings.next, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             }
         }
 

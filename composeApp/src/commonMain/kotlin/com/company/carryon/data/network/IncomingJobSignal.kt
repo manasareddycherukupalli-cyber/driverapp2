@@ -1,10 +1,17 @@
 package com.company.carryon.data.network
 
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+
 /**
- * Shared flag set by the platform-specific push notification handler (FcmService on Android)
- * when a JOB_REQUEST push arrives. The HomeViewModel polling loop checks and clears this flag
- * to trigger an immediate incoming-job check without waiting for the next poll interval.
+ * Shared event stream used by the platform-specific push notification handler (FcmService on Android)
+ * to wake the in-app incoming jobs fetch path immediately.
  */
 object IncomingJobSignal {
-    @kotlin.concurrent.Volatile var pendingCheck: Boolean = false
+    private val _events = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val events = _events.asSharedFlow()
+
+    fun signalIncomingJob() {
+        _events.tryEmit(Unit)
+    }
 }

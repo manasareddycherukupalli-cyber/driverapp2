@@ -46,11 +46,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
 @Composable
 fun HelpCenterScreen(navigator: AppNavigator) {
+    val strings = LocalStrings.current
     var searchQuery by remember { mutableStateOf("") }
 
     Column(
@@ -67,7 +69,7 @@ fun HelpCenterScreen(navigator: AppNavigator) {
             IconButton(onClick = { navigator.goBack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
             }
-            Text("Help Center", fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635))
+            Text(strings.helpCenter, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635))
         }
 
         Column(
@@ -83,14 +85,14 @@ fun HelpCenterScreen(navigator: AppNavigator) {
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF4B79E6))
             ) {
                 Column(Modifier.padding(14.dp)) {
-                    Text("How can we help\nyou today?", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp)
+                    Text(strings.howCanWeHelp, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp)
                     Spacer(Modifier.height(10.dp))
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         singleLine = true,
                         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Color(0xFF8094C5)) },
-                        placeholder = { Text("Search for articles, guides, or keywords.", fontSize = 12.sp, color = Color(0xFF90A1C7)) },
+                        placeholder = { Text(strings.searchPlaceholder, fontSize = 12.sp, color = Color(0xFF90A1C7)) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -104,20 +106,20 @@ fun HelpCenterScreen(navigator: AppNavigator) {
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Categories", fontWeight = FontWeight.Bold, color = Color(0xFF2C3852))
-                Text("SELECT A TOPIC", fontSize = 10.sp, color = Color(0xFF9BA7C0), fontWeight = FontWeight.SemiBold)
+                Text(strings.categories, fontWeight = FontWeight.Bold, color = Color(0xFF2C3852))
+                Text(strings.selectATopic, fontSize = 10.sp, color = Color(0xFF9BA7C0), fontWeight = FontWeight.SemiBold)
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                HelpCategoryCard("Getting\nStarted", "Account setup and first steps for new drivers.", Icons.Filled.DirectionsCar, Modifier.weight(1f))
-                HelpCategoryCard("Payments", "Direct deposit, earnings, and tax reimbursement.", Icons.Filled.AttachMoney, Modifier.weight(1f))
+                HelpCategoryCard(strings.gettingStarted, strings.gettingStartedDesc, Icons.Filled.DirectionsCar, Modifier.weight(1f))
+                HelpCategoryCard(strings.payments, strings.paymentsDesc, Icons.Filled.AttachMoney, Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                HelpCategoryCard("Safety", "Incident reporting and safety guidelines.", Icons.Filled.Security, Modifier.weight(1f))
-                HelpCategoryCard("App Issues", "Technical glitches and app navigation help.", Icons.AutoMirrored.Filled.HelpOutline, Modifier.weight(1f))
+                HelpCategoryCard(strings.safety, strings.safetyDesc, Icons.Filled.Security, Modifier.weight(1f))
+                HelpCategoryCard(strings.appIssues, strings.appIssuesDesc, Icons.AutoMirrored.Filled.HelpOutline, Modifier.weight(1f))
             }
 
-            Text("Top Questions", fontWeight = FontWeight.Bold, color = Color(0xFF2C3852))
+            Text(strings.topQuestions, fontWeight = FontWeight.Bold, color = Color(0xFF2C3852))
             QuestionRow("How do I update my vehicle registration?")
             QuestionRow("What to do if a customer is not available for delivery?")
             QuestionRow("Understanding the weekly pay summary.")
@@ -138,9 +140,9 @@ fun HelpCenterScreen(navigator: AppNavigator) {
                         Icon(Icons.Filled.Emergency, contentDescription = null, tint = Color(0xFF4B79E6))
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text("Still need help?", fontWeight = FontWeight.Bold, color = Color(0xFF2C3852))
+                    Text(strings.stillNeedHelp, fontWeight = FontWeight.Bold, color = Color(0xFF2C3852))
                     Text(
-                        "Our logistic support team is available 24/7 to assist with active route issues or account inquiries.",
+                        strings.logisticSupportAvailable,
                         color = Color(0xFF7B88A2),
                         fontSize = 12.sp,
                         lineHeight = 16.sp
@@ -151,10 +153,10 @@ fun HelpCenterScreen(navigator: AppNavigator) {
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4B79E6))
                     ) {
-                        Text("Contact Support", fontWeight = FontWeight.SemiBold)
+                        Text(strings.contactSupport, fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(Modifier.height(4.dp))
-                    Text("AVERAGE WAIT TIME: 1 MIN", fontSize = 10.sp, color = Color(0xFF93A1BB))
+                    Text(strings.averageWaitTime, fontSize = 10.sp, color = Color(0xFF93A1BB))
                 }
             }
 
@@ -164,9 +166,9 @@ fun HelpCenterScreen(navigator: AppNavigator) {
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF1FF))
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Support Resources", color = Color(0xFF6E7991), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    ResourceRow("Driver Handbook PDF")
-                    ResourceRow("Video Tutorials")
+                    Text(strings.supportResources, color = Color(0xFF6E7991), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    ResourceRow(strings.driverHandbook)
+                    ResourceRow(strings.videoTutorials)
                 }
             }
 

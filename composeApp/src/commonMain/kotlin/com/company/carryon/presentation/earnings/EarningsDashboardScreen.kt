@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.*
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
@@ -31,6 +32,7 @@ import com.company.carryon.presentation.theme.*
  */
 @Composable
 fun EarningsDashboardScreen(navigator: AppNavigator) {
+    val strings = LocalStrings.current
     val viewModel = remember { EarningsViewModel() }
     val earningsState by viewModel.earningsSummary.collectAsState()
     val transactionsState by viewModel.transactions.collectAsState()
@@ -43,7 +45,7 @@ fun EarningsDashboardScreen(navigator: AppNavigator) {
     ) {
         // Header
         Text(
-            text = "Earnings",
+            text = strings.earnings,
             fontWeight = FontWeight.Bold,
             fontSize = 24.sp,
             color = MaterialTheme.colorScheme.onSurface,
@@ -107,8 +109,8 @@ fun EarningsDashboardScreen(navigator: AppNavigator) {
             // Recent transactions header
             item {
                 SectionHeader(
-                    title = "Recent Transactions",
-                    action = "See All",
+                    title = strings.recentTransactions,
+                    action = strings.seeAll,
                     onActionClick = { navigator.navigateTo(Screen.Wallet) }
                 )
             }
@@ -128,6 +130,7 @@ fun EarningsDashboardScreen(navigator: AppNavigator) {
 
 @Composable
 private fun EarningsHeaderCard(earnings: EarningsSummary, period: EarningsPeriod) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -146,7 +149,7 @@ private fun EarningsHeaderCard(earnings: EarningsSummary, period: EarningsPeriod
         ) {
             Column {
                 Text(
-                    text = "${period.displayName}'s Earnings",
+                    text = strings.periodEarningsLabel(period.displayName),
                     color = Color.White,
                     fontSize = 14.sp
                 )
@@ -166,15 +169,15 @@ private fun EarningsHeaderCard(earnings: EarningsSummary, period: EarningsPeriod
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     Column {
                         Text("${earnings.todayDeliveries}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Deliveries", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                        Text(strings.deliveriesLabel, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
                     }
                     Column {
                         Text("RM${earnings.tipEarnings.toInt()}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Tips", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                        Text(strings.tips, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
                     }
                     Column {
                         Text("RM${earnings.bonusEarnings.toInt()}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Bonus", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                        Text(strings.bonus, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
                     }
                 }
             }
@@ -184,26 +187,27 @@ private fun EarningsHeaderCard(earnings: EarningsSummary, period: EarningsPeriod
 
 @Composable
 private fun EarningsStatsGrid(earnings: EarningsSummary) {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         StatCard(
-            title = "Deliveries",
+            title = strings.deliveriesLabel,
             value = "${earnings.totalDeliveries}",
             icon = Icons.Filled.LocalShipping,
             iconTint = Blue500,
             modifier = Modifier.weight(1f)
         )
         StatCard(
-            title = "Online Hours",
+            title = strings.onlineHours,
             value = "${earnings.onlineHours}h",
             icon = Icons.Filled.Schedule,
             iconTint = Green500,
             modifier = Modifier.weight(1f)
         )
         StatCard(
-            title = "Bonus",
+            title = strings.bonus,
             value = "RM${earnings.bonusEarnings.toInt()}",
             icon = Icons.Filled.Star,
             iconTint = Yellow500,

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.*
 import com.company.carryon.presentation.components.*
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.theme.*
 
@@ -29,6 +30,7 @@ import com.company.carryon.presentation.theme.*
  */
 @Composable
 fun WalletScreen(navigator: AppNavigator) {
+    val strings = LocalStrings.current
     val viewModel = remember { EarningsViewModel() }
     val walletState by viewModel.walletInfo.collectAsState()
     val transactionsState by viewModel.transactions.collectAsState()
@@ -42,7 +44,7 @@ fun WalletScreen(navigator: AppNavigator) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         DriveAppTopBar(
-            title = "Wallet",
+            title = strings.wallet,
             onBackClick = { navigator.goBack() }
         )
 
@@ -73,7 +75,7 @@ fun WalletScreen(navigator: AppNavigator) {
             // Transaction history
             item {
                 Text(
-                    text = "Transaction History",
+                    text = strings.transactionHistory,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -83,7 +85,7 @@ fun WalletScreen(navigator: AppNavigator) {
             when (val state = transactionsState) {
                 is UiState.Success -> {
                     if (state.data.isEmpty()) {
-                        item { EmptyState("No transactions yet", emoji = "💳") }
+                        item { EmptyState(strings.noTransactionsYet, emoji = "💳") }
                     } else {
                         items(state.data) { TransactionItem(it) }
                     }
@@ -109,6 +111,7 @@ fun WalletScreen(navigator: AppNavigator) {
 
 @Composable
 private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -126,7 +129,7 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
                 .padding(24.dp)
         ) {
             Column {
-                Text("Available Balance", color = Color.White, fontSize = 14.sp)
+                Text(strings.availableBalance, color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = "RM${wallet.balance.toInt()}",
@@ -149,7 +152,7 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
                 ) {
                     Icon(Icons.Filled.AccountBalance, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Withdraw to Bank", fontWeight = FontWeight.Bold)
+                    Text(strings.withdrawToBank, fontWeight = FontWeight.Bold)
                 }
                 if (wallet.bankAccountLinked) {
                     Spacer(Modifier.height(8.dp))
@@ -166,19 +169,20 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
 
 @Composable
 private fun WalletStatsRow(wallet: WalletInfo) {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         StatCard(
-            title = "Lifetime",
+            title = strings.lifetimeLabel,
             value = "RM ${(wallet.lifetimeEarnings / 1000).toInt()}K",
             icon = Icons.Filled.TrendingUp,
             iconTint = Green500,
             modifier = Modifier.weight(1f)
         )
         StatCard(
-            title = "Last Payout",
+            title = strings.lastPayout,
             value = "RM ${(wallet.lastPayout ?: 0.0).toInt()}",
             icon = Icons.Filled.Payment,
             iconTint = Blue500,
@@ -193,15 +197,16 @@ private fun WithdrawDialog(
     onConfirm: (Double) -> Unit,
     maxAmount: Double
 ) {
+    val strings = LocalStrings.current
     var amount by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Withdraw Funds", fontWeight = FontWeight.Bold) },
+        title = { Text(strings.withdrawFunds, fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 Text(
-                    text = "Available: RM${maxAmount.toInt()}",
+                    text = "${strings.available}: RM${maxAmount.toInt()}",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -209,7 +214,7 @@ private fun WithdrawDialog(
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
-                    label = { Text("Amount (RM)") },
+                    label = { Text(strings.amountLabel) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
@@ -224,12 +229,12 @@ private fun WithdrawDialog(
                 enabled = (amount.toDoubleOrNull() ?: 0.0) > 0 && (amount.toDoubleOrNull() ?: 0.0) <= maxAmount,
                 colors = ButtonDefaults.buttonColors(containerColor = Green500)
             ) {
-                Text("Withdraw")
+                Text(strings.withdraw)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(strings.cancel)
             }
         }
     )

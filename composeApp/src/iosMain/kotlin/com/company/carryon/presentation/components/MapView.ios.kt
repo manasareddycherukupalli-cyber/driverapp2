@@ -23,16 +23,18 @@ actual fun MapViewComposable(
     zoom: Double,
     markers: List<MapMarker>,
     routeGeometry: List<LatLng>?,
+    showDriverLocation: Boolean,
     onMapClick: ((Double, Double) -> Unit)?
 ) {
     UIKitView(
         factory = {
             MKMapView().apply {
-                showsUserLocation = true
+                showsUserLocation = showDriverLocation
             }
         },
         modifier = modifier,
         update = { mapView ->
+            mapView.showsUserLocation = showDriverLocation
             // Set the region based on center and zoom
             val zoomMeters = 40_000_000.0 / pow2(zoom)
             val center = CLLocationCoordinate2DMake(centerLat, centerLng)

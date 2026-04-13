@@ -45,6 +45,17 @@ actual fun getLastKnownLocation(): Pair<Double, Double>? {
     }
 }
 
+@OptIn(ExperimentalForeignApi::class)
+actual fun getLastKnownHeading(): Float {
+    return locationManager.location?.course?.toFloat()?.takeIf { it >= 0f } ?: 0f
+}
+
+actual fun hasLocationPermission(): Boolean {
+    val status = CLLocationManager.authorizationStatus()
+    return status == kCLAuthorizationStatusAuthorizedWhenInUse ||
+        status == kCLAuthorizationStatusAuthorizedAlways
+}
+
 private class LocationDelegate : NSObject(), CLLocationManagerDelegateProtocol {
     override fun locationManagerDidChangeAuthorization(manager: CLLocationManager) {
         val status = CLLocationManager.authorizationStatus()

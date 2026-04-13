@@ -1,5 +1,8 @@
 package com.company.carryon.presentation.map
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -41,15 +45,22 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import drive_app.composeapp.generated.resources.Res
+import drive_app.composeapp.generated.resources.ic_nav_arrow
 import com.company.carryon.data.model.JobStatus
 import com.company.carryon.data.model.LatLng
-import com.company.carryon.presentation.components.MapMarker
+import com.company.carryon.presentation.components.ErrorState
+import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.components.MapViewComposable
-import com.company.carryon.presentation.components.MarkerColor
 import com.company.carryon.presentation.navigation.AppNavigator
+import org.jetbrains.compose.resources.painterResource
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private val NavBlue = Color(0xFF2F80ED)
 private val NavSoft = Color(0x4DA6D2F3)
@@ -59,16 +70,55 @@ private val DefaultCenter = LatLng(12.9716, 77.5946)
 
 @Composable
 fun MapScreen(navigator: AppNavigator) {
+    val jobId = navigator.selectedJobId
     val viewModel = remember { MapViewModel() }
     val driverLocation by viewModel.driverLocation.collectAsState()
     val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
     val isTracking by viewModel.isTracking.collectAsState()
     val eta by viewModel.etaMinutes.collectAsState()
     val currentJob by viewModel.currentJob.collectAsState()
+    val loadError by viewModel.error.collectAsState()
+    val driverHeading by viewModel.driverHeading.collectAsState()
     val markers by viewModel.markers.collectAsState()
     val routeGeometry by viewModel.routeGeometry.collectAsState()
     val routeError by viewModel.routeError.collectAsState()
+    val animatedHeading by animateFloatAsState(
+        targetValue = driverHeading,
+        animationSpec = tween(durationMillis = 300)
+    )
     val uriHandler = LocalUriHandler.current
+
+    if (jobId == null) {
+        ErrorState("No active job selected") { navigator.goBack() }
+        return
+    }
+
+    LaunchedEffect(jobId) {
+        viewModel.loadJob(jobId)
+    }
+
+    if (currentJob == null && loadError == null) {
+        LoadingScreen("Loading job details...")
+        return
+    }
+
+    if (currentJob == null && loadError != null) {
+        ErrorState(loadError ?: "Failed to load job") {
+            viewModel.loadJob(jobId)
+        }
+        return
+    }
+
+    val destination = currentJob?.let { job ->
+        if (job.status.ordinal <= JobStatus.ARRIVED_AT_PICKUP.ordinal) job.pickup else job.dropoff
+    }
+    val destinationLabel = destination?.shortAddress?.ifBlank { destination.address } ?: "--"
+    val orderIdLabel = currentJob?.displayOrderId
+        ?.takeIf { it.isNotBlank() }
+        ?: currentJob?.id?.takeLast(8)?.uppercase()
+        ?: "--"
+    val earningsLabel = currentJob?.estimatedEarnings?.let { "RM${it.toInt()}" } ?: "--"
+    val distanceLabel = currentJob?.distance?.takeIf { it > 0 }?.let { "${formatOneDecimal(it)} km" } ?: "--"
 
     Box(
         modifier = Modifier
@@ -81,20 +131,7 @@ fun MapScreen(navigator: AppNavigator) {
             centerLat = driverLocation?.first ?: DefaultCenter.lat,
             centerLng = driverLocation?.second ?: DefaultCenter.lng,
             zoom = if (driverLocation != null) 14.2 else 12.0,
-            markers = buildList {
-                if (driverLocation != null) {
-                    add(
-                        MapMarker(
-                            id = "driver",
-                            lat = driverLocation!!.first,
-                            lng = driverLocation!!.second,
-                            title = "You",
-                            color = MarkerColor.BLUE
-                        )
-                    )
-                }
-                addAll(markers)
-            },
+            markers = markers.filterNot { it.id == "driver" },
             routeGeometry = routeGeometry
         )
 
@@ -158,7 +195,7 @@ fun MapScreen(navigator: AppNavigator) {
                     Spacer(Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("NEXT INSTRUCTION", color = NavWhite.copy(alpha = 0.75f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Terus di Jalan\nDamansara", color = NavWhite, fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold)
+                        Text(destinationLabel, color = NavWhite, fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(12.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -179,7 +216,13 @@ fun MapScreen(navigator: AppNavigator) {
                             ) {
                                 Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("Navigate", fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "Navigate",
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                             OutlinedButton(
                                 onClick = {
@@ -201,28 +244,27 @@ fun MapScreen(navigator: AppNavigator) {
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(if (eta > 0) eta.toString() else "8", color = NavWhite, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(if (eta > 0) eta.toString() else "--", color = NavWhite, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
                     Text("MIN", color = NavWhite.copy(alpha = 0.75f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Text(if (isTracking) "TRACKING" else "PAUSED", color = NavWhite.copy(alpha = 0.85f), fontSize = 12.sp)
                     if (routeError != null) {
                         Text("Route unavailable", color = NavWhite.copy(alpha = 0.85f), fontSize = 11.sp)
                     } else {
-                        Text("1.4 km", color = NavWhite.copy(alpha = 0.85f), fontSize = 12.sp)
+                        Text(distanceLabel, color = NavWhite.copy(alpha = 0.85f), fontSize = 12.sp)
                     }
                 }
             }
         }
 
-        Box(
+        Image(
+            painter = painterResource(Res.drawable.ic_nav_arrow),
+            contentDescription = "Your location",
             modifier = Modifier
                 .align(Alignment.Center)
                 .padding(top = 80.dp)
-                .size(42.dp)
-                .background(NavBlue, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Filled.Navigation, contentDescription = null, tint = NavWhite, modifier = Modifier.size(20.dp))
-        }
+                .size(48.dp)
+                .graphicsLayer { rotationZ = animatedHeading }
+        )
 
         Box(
             modifier = Modifier
@@ -255,19 +297,21 @@ fun MapScreen(navigator: AppNavigator) {
                     ChipText("ORDER ID")
                     ChipText("PICKUP TASK")
                 }
-                Text("#DE-9921", color = NavBlack, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                Text("#$orderIdLabel", color = NavBlack, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Route, contentDescription = null, tint = NavBlue, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Kedai Shahril", color = NavBlue, fontWeight = FontWeight.SemiBold)
+                    Text(destinationLabel, color = NavBlue, fontWeight = FontWeight.SemiBold)
                 }
 
                 Button(
                     onClick = {
-                        // Preserve job context for the next screen to avoid empty/error states.
-                        navigator.selectedJobId = currentJob?.id ?: navigator.selectedJobId ?: "CR-4872"
-                        navigator.navigateTo(com.company.carryon.presentation.navigation.Screen.ActiveDelivery)
+                        currentJob?.id?.let {
+                            navigator.selectedJobId = it
+                            navigator.navigateTo(com.company.carryon.presentation.navigation.Screen.ActiveDelivery)
+                        }
                     },
+                    enabled = currentJob != null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -290,7 +334,7 @@ fun MapScreen(navigator: AppNavigator) {
                                 Spacer(Modifier.width(4.dp))
                                 Text("EST. PICKUP", color = NavBlack.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                             }
-                            Text("12:45 PM", color = NavBlack, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(if (eta > 0) "$eta min" else "--", color = NavBlack, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     Card(
@@ -304,7 +348,7 @@ fun MapScreen(navigator: AppNavigator) {
                                 Spacer(Modifier.width(4.dp))
                                 Text("EARNINGS", color = NavBlack.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                             }
-                            Text("RM14.50", color = NavBlack, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(earningsLabel, color = NavBlack, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -329,6 +373,15 @@ fun MapScreen(navigator: AppNavigator) {
             BottomTab("ACCOUNT", false)
         }
     }
+}
+
+private fun formatOneDecimal(value: Double): String {
+    val scaled = (value * 10).roundToInt()
+    val absScaled = abs(scaled)
+    val whole = absScaled / 10
+    val fraction = absScaled % 10
+    val sign = if (scaled < 0) "-" else ""
+    return "$sign$whole.$fraction"
 }
 
 @Composable

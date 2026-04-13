@@ -34,7 +34,9 @@ interface JobApi {
     suspend fun updateJobStatus(jobId: String, status: JobStatus): Result<DeliveryJob>
     suspend fun submitProofOfDelivery(jobId: String, proof: ProofOfDelivery): Result<DeliveryJob>
     suspend fun getIncomingJobRequest(driverId: String): Result<DeliveryJob?>
+    suspend fun getIncomingJobRequests(driverId: String): Result<List<DeliveryJob>>
     suspend fun verifyPickupOtp(jobId: String, otp: String): Result<DeliveryJob>
+    suspend fun requestDeliveryOtp(jobId: String): Result<DeliveryOtpInfo>
     suspend fun cancelJob(jobId: String): Result<Boolean>
 }
 

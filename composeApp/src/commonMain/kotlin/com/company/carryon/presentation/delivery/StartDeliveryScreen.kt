@@ -27,14 +27,26 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.data.model.DeliveryJob
+import com.company.carryon.data.model.UiState
+import com.company.carryon.data.model.displayDurationMinutes
+import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.presentation.components.ErrorState
+import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private val SDBlue = Color(0xFF2F80ED)
 private val SDSoft = Color(0x4DA6D2F3)
@@ -43,6 +55,52 @@ private val SDBlack = Color(0xFF000000)
 
 @Composable
 fun StartDeliveryScreen(navigator: AppNavigator) {
+    val viewModel = remember { DeliveryViewModel() }
+    val jobState by viewModel.currentJob.collectAsState()
+    val jobId = navigator.selectedJobId
+
+    LaunchedEffect(jobId) {
+        jobId?.let { viewModel.loadJob(it) }
+    }
+
+    if (jobId == null) {
+        ErrorState("No active job selected") { navigator.goBack() }
+        return
+    }
+
+    val job = when (val state = jobState) {
+        is UiState.Success -> state.data
+        is UiState.Loading, UiState.Idle -> {
+            LoadingScreen("Loading delivery details...")
+            return
+        }
+        is UiState.Error -> {
+            ErrorState(state.message) { viewModel.loadJob(jobId) }
+            return
+        }
+    }
+
+    StartDeliveryContent(
+        job = job,
+        onStartNavigation = { navigator.navigateTo(Screen.InTransitNavigation) }
+    )
+}
+
+@Composable
+private fun StartDeliveryContent(
+    job: DeliveryJob,
+    onStartNavigation: () -> Unit
+) {
+    val strings = LocalStrings.current
+    val pickupLabel = job.pickup.shortAddress.ifBlank { job.pickup.address }.ifBlank { "--" }
+    val destinationLabel = job.dropoff.shortAddress.ifBlank { job.dropoff.address }.ifBlank { "--" }
+    val receiverLabel = job.dropoff.contactName
+        ?: job.customerName.takeIf { it.isNotBlank() }
+        ?: "--"
+    val etaMajor = job.displayDurationMinutes.takeIf { it > 0 }?.toString() ?: "--"
+    val distanceMajor = job.distance.takeIf { it > 0 }?.let { formatOneDecimal(it) } ?: "--"
+    val orderLabel = job.displayOrderId.takeIf { it.isNotBlank() } ?: job.id.takeLast(8).uppercase()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -62,7 +120,7 @@ fun StartDeliveryScreen(navigator: AppNavigator) {
                     Icon(Icons.Filled.Person, contentDescription = null, tint = SDBlue, modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.width(10.dp))
-                Text("RapidDrop", color = SDBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("#$orderLabel", color = SDBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
             Icon(Icons.Filled.NotificationsNone, contentDescription = null, tint = SDBlack.copy(alpha = 0.6f))
         }
@@ -92,10 +150,10 @@ fun StartDeliveryScreen(navigator: AppNavigator) {
             }
         }
 
-        Text("Ready to Deliver!", color = SDBlack, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+        Text(strings.readyToDeliver, color = SDBlack, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Package collected from ", color = SDBlack.copy(alpha = 0.65f), fontSize = 14.sp)
-            Text("Kedai Shahril", color = SDBlue, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(pickupLabel, color = SDBlue, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         }
 
         Card(
@@ -104,15 +162,15 @@ fun StartDeliveryScreen(navigator: AppNavigator) {
             colors = CardDefaults.cardColors(containerColor = SDSoft)
         ) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("DESTINATION", color = SDBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(strings.destination, color = SDBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                     Column {
-                        Text("Ara Damansara, PJ", color = SDBlack, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
+                        Text(destinationLabel, color = SDBlack, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
                         Spacer(Modifier.height(6.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Filled.Person, contentDescription = null, tint = SDBlack.copy(alpha = 0.65f), modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Nurul Ain", color = SDBlack, fontSize = 14.sp)
+                            Text(receiverLabel, color = SDBlack, fontSize = 14.sp)
                         }
                     }
                     Box(modifier = Modifier.size(30.dp).background(SDWhite, CircleShape), contentAlignment = Alignment.Center) {
@@ -123,19 +181,19 @@ fun StartDeliveryScreen(navigator: AppNavigator) {
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MetricCard("ETA", "~22", "min", Modifier.weight(1f))
-            MetricCard("DISTANCE", "3.2", "km", Modifier.weight(1f))
+            MetricCard(strings.eta, etaMajor, "min", Modifier.weight(1f))
+            MetricCard(strings.distanceLabel, distanceMajor, "km", Modifier.weight(1f))
         }
 
         Button(
-            onClick = { navigator.navigateTo(Screen.InTransitNavigation) },
+            onClick = onStartNavigation,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = SDBlue)
         ) {
-            Text("Start Navigation", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(strings.startNavigation, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Spacer(Modifier.width(8.dp))
             Icon(Icons.Filled.Map, contentDescription = null, tint = SDWhite, modifier = Modifier.size(16.dp))
         }
@@ -148,7 +206,7 @@ fun StartDeliveryScreen(navigator: AppNavigator) {
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = SDWhite, contentColor = SDBlue)
         ) {
-            Text("Report an Issue", fontWeight = FontWeight.SemiBold)
+            Text(strings.reportAnIssue, fontWeight = FontWeight.SemiBold)
         }
 
         Spacer(Modifier.weight(1f))
@@ -165,6 +223,15 @@ fun StartDeliveryScreen(navigator: AppNavigator) {
             SmallTab("ACCOUNT", false)
         }
     }
+}
+
+private fun formatOneDecimal(value: Double): String {
+    val scaled = (value * 10).roundToInt()
+    val absScaled = abs(scaled)
+    val whole = absScaled / 10
+    val fraction = absScaled % 10
+    val sign = if (scaled < 0) "-" else ""
+    return "$sign$whole.$fraction"
 }
 
 @Composable

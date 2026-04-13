@@ -31,12 +31,20 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.data.model.DeliveryJob
+import com.company.carryon.data.model.UiState
+import com.company.carryon.presentation.components.ErrorState
+import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
@@ -47,6 +55,61 @@ private val DropBlack = Color(0xFF000000)
 
 @Composable
 fun ArrivedAtDropScreen(navigator: AppNavigator) {
+    val viewModel = remember { DeliveryViewModel() }
+    val jobState by viewModel.currentJob.collectAsState()
+    val jobId = navigator.selectedJobId
+
+    LaunchedEffect(jobId) {
+        jobId?.let { viewModel.loadJob(it) }
+    }
+
+    if (jobId == null) {
+        ErrorState("No active job selected") { navigator.goBack() }
+        return
+    }
+
+    val job = when (val state = jobState) {
+        is UiState.Success -> state.data
+        is UiState.Loading, UiState.Idle -> {
+            LoadingScreen("Loading delivery details...")
+            return
+        }
+        is UiState.Error -> {
+            ErrorState(state.message) { viewModel.loadJob(jobId) }
+            return
+        }
+    }
+
+    ArrivedAtDropContent(
+        job = job,
+        onBack = { navigator.goBack() },
+        onProceed = { navigator.navigateTo(Screen.ProofOfDelivery) }
+    )
+}
+
+@Composable
+private fun ArrivedAtDropContent(
+    job: DeliveryJob,
+    onBack: () -> Unit,
+    onProceed: () -> Unit
+) {
+    val recipientName = job.dropoff.contactName?.takeIf { it.isNotBlank() }
+        ?: job.customerName.takeIf { it.isNotBlank() }
+        ?: "--"
+    val recipientPhone = job.dropoff.contactPhone?.takeIf { it.isNotBlank() }
+        ?: job.customerPhone.takeIf { it.isNotBlank() }
+        ?: "--"
+    val primaryAddress = job.dropoff.shortAddress.ifBlank { job.dropoff.address }.ifBlank { "--" }
+    val secondaryAddress = when {
+        job.dropoff.address.isBlank() -> ""
+        job.dropoff.shortAddress.isBlank() -> ""
+        job.dropoff.address.equals(job.dropoff.shortAddress, ignoreCase = true) -> ""
+        else -> job.dropoff.address
+    }
+    val instructions = job.dropoff.instructions?.takeIf { it.isNotBlank() }
+        ?: job.notes?.takeIf { it.isNotBlank() }
+        ?: "No special instructions provided."
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -64,7 +127,7 @@ fun ArrivedAtDropScreen(navigator: AppNavigator) {
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = DropBlue,
-                    modifier = Modifier.clickable { navigator.goBack() }
+                    modifier = Modifier.clickable { onBack() }
                 )
                 Spacer(Modifier.width(10.dp))
                 Text("Arrived at Drop", color = DropBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -108,8 +171,8 @@ fun ArrivedAtDropScreen(navigator: AppNavigator) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
                         Text("RECIPIENT", color = DropBlue.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Nurul Ain", color = DropBlack, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("+60 11-2345 6789", color = DropBlack.copy(alpha = 0.65f), fontSize = 14.sp)
+                        Text(recipientName, color = DropBlack, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(recipientPhone, color = DropBlack.copy(alpha = 0.65f), fontSize = 14.sp)
                     }
                     Box(modifier = Modifier.size(44.dp).background(DropBlue, CircleShape), contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.Call, contentDescription = null, tint = DropWhite)
@@ -124,8 +187,10 @@ fun ArrivedAtDropScreen(navigator: AppNavigator) {
                         Icon(Icons.Filled.LocationOn, contentDescription = null, tint = DropBlue, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Column {
-                            Text("Ara Damansara, PJ", color = DropBlack, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Text("Level 3, Office 301", color = DropBlack.copy(alpha = 0.65f), fontSize = 14.sp)
+                            Text(primaryAddress, color = DropBlack, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            if (secondaryAddress.isNotBlank()) {
+                                Text(secondaryAddress, color = DropBlack.copy(alpha = 0.65f), fontSize = 14.sp)
+                            }
                         }
                     }
                 }
@@ -140,7 +205,7 @@ fun ArrivedAtDropScreen(navigator: AppNavigator) {
                         Spacer(Modifier.width(6.dp))
                         Column {
                             Text("INSTRUCTIONS", color = DropBlue.copy(alpha = 0.8f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Ring bell, wait 2 min", color = DropBlack, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(instructions, color = DropBlack, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
                 }
@@ -167,7 +232,7 @@ fun ArrivedAtDropScreen(navigator: AppNavigator) {
         }
 
         Button(
-            onClick = { navigator.navigateTo(Screen.ProofOfDelivery) },
+            onClick = onProceed,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),

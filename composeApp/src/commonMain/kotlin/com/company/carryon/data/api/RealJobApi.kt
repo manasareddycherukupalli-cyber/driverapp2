@@ -77,6 +77,25 @@ class RealJobApi : JobApi {
         response.data
     }
 
+    override suspend fun getIncomingJobRequests(driverId: String): Result<List<DeliveryJob>> = runCatching {
+        try {
+            val response: ApiResponse<List<DeliveryJob>> = client.get("/api/driver/jobs/incoming-list") {
+                withAuth()
+            }.body()
+            response.data ?: emptyList()
+        } catch (err: Exception) {
+            // Backward compatibility: some deployed backends may not yet expose /incoming-list.
+            if ((err.message ?: "").contains("Job not found", ignoreCase = true)) {
+                val fallback: ApiResponse<DeliveryJob?> = client.get("/api/driver/jobs/incoming") {
+                    withAuth()
+                }.body()
+                fallback.data?.let { listOf(it) } ?: emptyList()
+            } else {
+                throw err
+            }
+        }
+    }
+
     override suspend fun verifyPickupOtp(jobId: String, otp: String): Result<DeliveryJob> = runCatching {
         val response: ApiResponse<DeliveryJob> = client.post("/api/driver/jobs/$jobId/verify-pickup-otp") {
             withAuth()
@@ -84,6 +103,15 @@ class RealJobApi : JobApi {
             setBody(mapOf("otp" to otp))
         }.body()
         response.data ?: throw Exception("Failed to verify OTP")
+    }
+
+    override suspend fun requestDeliveryOtp(jobId: String): Result<DeliveryOtpInfo> = runCatching {
+        val response: ApiResponse<DeliveryOtpInfo> = client.post("/api/driver/jobs/$jobId/request-delivery-otp") {
+            withAuth()
+            contentType(ContentType.Application.Json)
+            setBody(emptyMap<String, String>())
+        }.body()
+        response.data ?: throw Exception(response.message ?: "Failed to request delivery OTP")
     }
 
     override suspend fun cancelJob(jobId: String): Result<Boolean> = runCatching {

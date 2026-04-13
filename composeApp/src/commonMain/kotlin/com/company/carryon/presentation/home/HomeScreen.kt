@@ -1,5 +1,9 @@
 package com.company.carryon.presentation.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,7 +45,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -49,6 +55,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -59,6 +66,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,15 +78,19 @@ import com.company.carryon.data.model.EarningsSummary
 import com.company.carryon.data.model.JobStatus
 import com.company.carryon.data.model.LatLng
 import com.company.carryon.data.model.UiState
-import com.company.carryon.presentation.components.MapMarker
+import com.company.carryon.data.model.displayDurationMinutes
+import com.company.carryon.data.model.remainingOfferMillis
+import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.presentation.theme.*
 import com.company.carryon.presentation.components.MapViewComposable
-import com.company.carryon.presentation.components.MarkerColor
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.round
+import kotlin.math.roundToInt
+import kotlin.time.Clock
 
 private val HomeBlue = Color(0xFF2F80ED)
 private val HomeDarkBlue = Color(0xFF000000)
@@ -101,9 +113,11 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
     val isOnline by viewModel.isOnline.collectAsState()
     val earningsState by viewModel.earningsSummary.collectAsState()
     val activeJobsState by viewModel.activeJobs.collectAsState()
-    val incomingJob by viewModel.incomingJob.collectAsState()
+    val incomingJobs by viewModel.incomingJobs.collectAsState()
+    val expiringIncomingJobIds by viewModel.expiringIncomingJobIds.collectAsState()
     val unreadCount by viewModel.unreadNotificationCount.collectAsState()
     val driverLocation by viewModel.driverLocation.collectAsState()
+    val currentLocationName by viewModel.currentLocationName.collectAsState()
     val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -117,7 +131,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
     var startedOnlineFlow by remember { mutableStateOf(false) }
     var showLiveQueue by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isOnline, activeJob?.id, incomingJob?.id, startedOnlineFlow) {
+    LaunchedEffect(isOnline, activeJob?.id, incomingJobs.size, startedOnlineFlow) {
         if (!startedOnlineFlow) {
             onlineState = HomeOnlineState.OFFLINE
             return@LaunchedEffect
@@ -127,16 +141,22 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             startedOnlineFlow = false
             return@LaunchedEffect
         }
-        if (incomingJob == null && activeJob != null && onlineState == HomeOnlineState.JOBS_QUEUE) {
+        if (incomingJobs.isEmpty() && activeJob != null && onlineState == HomeOnlineState.JOBS_QUEUE) {
             onlineState = HomeOnlineState.ACTIVE_JOB
         }
     }
 
-    if (incomingJob != null) {
+    if (incomingJobs.isNotEmpty()) {
         IncomingJobFullScreen(
-            job = incomingJob!!,
-            onReject = { viewModel.rejectIncomingJob() },
-            onAccept = { viewModel.acceptIncomingJob() }
+            jobs = incomingJobs,
+            expiringJobIds = expiringIncomingJobIds,
+            onReject = { jobId -> viewModel.rejectIncomingJob(jobId) },
+            onAccept = { jobId ->
+                viewModel.acceptIncomingJob(jobId) { acceptedJob ->
+                    navigator.selectedJobId = acceptedJob.id
+                    navigator.navigateTo(Screen.JobDetails)
+                }
+            }
         )
         return
     }
@@ -147,8 +167,10 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             onMenuClick = { navigator.switchTab(Screen.Profile) },
             onNotificationsClick = { navigator.navigateTo(Screen.Notifications) },
             onJobClick = {
-                navigator.selectedJobId = activeJob?.id ?: "CR-4872"
-                navigator.navigateTo(Screen.JobDetails)
+                activeJob?.id?.let {
+                    navigator.selectedJobId = it
+                    navigator.navigateTo(Screen.JobDetails)
+                }
             }
         )
         return
@@ -160,8 +182,10 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             onMenuClick = { navigator.switchTab(Screen.Profile) },
             onNotificationsClick = { navigator.navigateTo(Screen.Notifications) },
             onJobClick = {
-                navigator.selectedJobId = activeJob?.id ?: "CR-4872"
-                navigator.navigateTo(Screen.JobDetails)
+                activeJob?.id?.let {
+                    navigator.selectedJobId = it
+                    navigator.navigateTo(Screen.JobDetails)
+                }
             }
         )
         return
@@ -172,6 +196,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
         earningsState = earningsState,
         activeJobsState = activeJobsState,
         driverLocation = driverLocation,
+        currentLocationName = currentLocationName,
         mapStyleUrl = mapStyleUrl,
         onMenuClick = { navigator.switchTab(Screen.Profile) },
         onProfileClick = { navigator.switchTab(Screen.Profile) },
@@ -184,7 +209,6 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
                 startedOnlineFlow = false
             }
         },
-        onLiveNavigationClick = { showLiveQueue = true },
         onViewAll = { navigator.switchToJobsTab(2) }
     )
 }
@@ -195,15 +219,16 @@ private fun FinalHomeDashboard(
     earningsState: UiState<EarningsSummary>,
     activeJobsState: UiState<List<DeliveryJob>>,
     driverLocation: Pair<Double, Double>?,
+    currentLocationName: String?,
     mapStyleUrl: String,
     onMenuClick: () -> Unit,
     onProfileClick: () -> Unit,
     onToggleOnline: () -> Unit,
-    onLiveNavigationClick: () -> Unit,
     onViewAll: () -> Unit
 ) {
-    val todayEarnings = (earningsState as? UiState.Success)?.data?.todayEarnings ?: 420.0
-    val deliveries = (earningsState as? UiState.Success)?.data?.todayDeliveries ?: 12
+    val strings = LocalStrings.current
+    val todayEarnings = (earningsState as? UiState.Success)?.data?.todayEarnings
+    val deliveries = (earningsState as? UiState.Success)?.data?.todayDeliveries
     val jobs = (activeJobsState as? UiState.Success)?.data.orEmpty().take(2)
 
     Column(
@@ -223,7 +248,7 @@ private fun FinalHomeDashboard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = Black.copy(alpha = 0.55f), modifier = Modifier.clickable { onMenuClick() })
-            Text("Dispatch", color = HomeBlue, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Text(strings.dispatch, color = HomeBlue, fontWeight = FontWeight.Bold, fontSize = 24.sp)
             Box(
                 modifier = Modifier
                     .size(32.dp)
@@ -244,7 +269,7 @@ private fun FinalHomeDashboard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(10.dp).background(HomeBlue, CircleShape))
                     Spacer(Modifier.width(10.dp))
-                    Text("Status Online", color = Black, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+                    Text(strings.statusOnline, color = Black, fontWeight = FontWeight.Bold, fontSize = 24.sp)
                 }
                 Switch(
                     checked = isOnline,
@@ -266,8 +291,13 @@ private fun FinalHomeDashboard(
                 colors = CardDefaults.cardColors(containerColor = HomeBlue)
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("TODAY'S EARNINGS", color = White.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    Text("RM ${todayEarnings.toInt()}", color = White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text(strings.todaysEarnings, color = White.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (todayEarnings != null) "RM ${todayEarnings.toInt()}" else "--",
+                        color = White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
             Card(
@@ -276,59 +306,37 @@ private fun FinalHomeDashboard(
                 colors = CardDefaults.cardColors(containerColor = White)
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("DELIVERIES", color = HomeBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    Text(deliveries.toString(), color = HomeBlue, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text(strings.deliveriesHeader, color = HomeBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text(deliveries?.toString() ?: "--", color = HomeBlue, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = White), modifier = Modifier.fillMaxWidth()) {
             Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
-                // Static map background image
-                Image(
-                    painter = painterResource(Res.drawable.map_bukit_bintang),
-                    contentDescription = "Map",
+                // Live Google Maps with driver's real GPS position
+                MapViewComposable(
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    centerLat = driverLocation?.first ?: 3.1478,
+                    centerLng = driverLocation?.second ?: 101.7147,
+                    zoom = 14.0,
+                    showDriverLocation = true
                 )
-                // Bukit Bintang, KL label (top-left)
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(12.dp)
-                        .background(White, RoundedCornerShape(20.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Place, contentDescription = null, tint = HomeBlue, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Bukit Bintang, KL", color = Black, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-                // LIVE pill + navigation icon stacked in center
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                // Current location label (top-left) — resolved via reverse geocoding
+                if (currentLocationName != null) {
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFFB71C1C), RoundedCornerShape(20.dp))
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .align(Alignment.TopStart)
+                            .padding(12.dp)
+                            .background(White, RoundedCornerShape(20.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(7.dp).background(Color.Red, CircleShape))
-                            Spacer(Modifier.width(5.dp))
-                            Text("LIVE", color = White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Filled.Place, contentDescription = null, tint = HomeBlue, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(currentLocationName, color = Black, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    Image(
-                        painter = painterResource(Res.drawable.ic_nav_arrow),
-                        contentDescription = "Navigation",
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clickable { onLiveNavigationClick() }
-                    )
                 }
                 // Crosshair / locate button (bottom-right)
                 Box(
@@ -349,20 +357,24 @@ private fun FinalHomeDashboard(
             }
         }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            QuickActionImage("NEARBY", Res.drawable.ic_nearby)
-            QuickActionImage("ACTIVE", Res.drawable.ic_active)
-            QuickActionImage("WALLET", Res.drawable.ic_wallet)
-        }
-
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Today’s Summary", color = Black, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text("View All", color = HomeBlue, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onViewAll() })
+            Text(strings.todaysSummary, color = Black, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(strings.viewAll, color = HomeBlue, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onViewAll() })
         }
 
         if (jobs.isEmpty()) {
-            SummaryItem("#CR-4872", "Delivered to Pavilion KL", "RM 14.50", "COMPLETED")
-            SummaryItem("#CR-9901", "Pickup: Sentul Point", "RM 8.20", "PENDING")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = White)
+            ) {
+                Text(
+                    text = strings.noActiveJobs,
+                    color = Black.copy(alpha = 0.65f),
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         } else {
             jobs.forEach { job ->
                 val status = if (job.status == JobStatus.DELIVERED) "COMPLETED" else "PENDING"
@@ -487,36 +499,22 @@ private fun HomeTopBar(
 
 @Composable
 private fun BlueMap(driverLocation: Pair<Double, Double>?, mapStyleUrl: String) {
-    val markers = buildList {
-        if (driverLocation != null) {
-            add(
-                MapMarker(
-                    id = "driver",
-                    lat = driverLocation.first,
-                    lng = driverLocation.second,
-                    title = "You",
-                    color = MarkerColor.BLUE
-                )
-            )
-            add(MapMarker(id = "pickup-1", lat = driverLocation.first + 0.002, lng = driverLocation.second - 0.004, title = "Pickup", color = MarkerColor.RED))
-            add(MapMarker(id = "pickup-2", lat = driverLocation.first - 0.003, lng = driverLocation.second + 0.005, title = "Drop", color = MarkerColor.RED))
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         MapViewComposable(
             modifier = Modifier.fillMaxSize(),
             styleUrl = mapStyleUrl,
             centerLat = driverLocation?.first ?: DefaultCenter.lat,
             centerLng = driverLocation?.second ?: DefaultCenter.lng,
-            zoom = if (driverLocation != null) 13.5 else 12.0,
-            markers = markers
+            zoom = if (driverLocation != null) 15.0 else 12.0,
         )
 
-        Box(
+        // Arrow marker centred on driver's current location
+        androidx.compose.foundation.Image(
+            painter = painterResource(Res.drawable.ic_nav_arrow),
+            contentDescription = "Your location",
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0x4D2F80ED))
+                .size(48.dp)
+                .align(Alignment.Center)
         )
 
         Box(
@@ -610,6 +608,7 @@ private fun HomeBottomSheet(content: @Composable ColumnScope.() -> Unit) {
 
 @Composable
 private fun OfflineCta(onGoOnline: () -> Unit) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -628,32 +627,34 @@ private fun OfflineCta(onGoOnline: () -> Unit) {
             ) {
                 Text("≫", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
-            Text("Go Online", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, color = HomeDarkBlue, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(strings.goOnline, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, color = HomeDarkBlue, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
 private fun OnlineSearchingCard() {
+    val strings = LocalStrings.current
     Button(
         onClick = {},
         modifier = Modifier.fillMaxWidth().height(48.dp),
         colors = ButtonDefaults.buttonColors(containerColor = HomeBlue),
         shape = RoundedCornerShape(10.dp)
     ) {
-        Text("You're Online!", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(strings.youreOnline, fontSize = 16.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun FindingJobCard() {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Finding Job", fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Text(strings.findingJob, fontWeight = FontWeight.Bold, fontSize = 24.sp)
             Text(
                 "Effortlessly find your perfect job match with our streamlined 'Finding Job' feature.",
                 color = Color(0xFF414755),
@@ -671,9 +672,9 @@ private fun FindingJobCard() {
                 }
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("Task", color = Color(0xFF596273), fontSize = 10.sp)
-                    Text("Departed", color = Color(0xFF11131A), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Current Location", color = Color(0xFF596273), fontSize = 10.sp)
+                    Text(strings.task, color = Color(0xFF596273), fontSize = 10.sp)
+                    Text(strings.departed, color = Color(0xFF11131A), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    Text(strings.currentLocation, color = Color(0xFF596273), fontSize = 10.sp)
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("Chemical Delivery", color = Color(0xFF11131A), fontSize = 10.sp)
@@ -682,8 +683,8 @@ private fun FindingJobCard() {
                 }
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Name", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Text("Trip Cost", color = Color(0xFF414755), fontSize = 12.sp)
+                Text(strings.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text(strings.tripCost, color = Color(0xFF414755), fontSize = 12.sp)
                 Text("Rs 10000", color = Color(0xFF414755), fontSize = 12.sp)
             }
             Box(modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(99.dp)).background(Color(0xFF97CBF1))) {
@@ -724,6 +725,7 @@ private fun JobsQueueScreen(
     onNotificationsClick: () -> Unit,
     onJobClick: () -> Unit
 ) {
+    val strings = LocalStrings.current
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         HomeTopBar(unreadCount = unreadCount, onMenuClick = onMenuClick, onNotificationsClick = onNotificationsClick)
         Column(
@@ -731,7 +733,7 @@ private fun JobsQueueScreen(
                 .fillMaxSize()
                 .padding(horizontal = 12.dp, vertical = 12.dp)
         ) {
-            Text("Jobs", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color(0xFF11131A), modifier = Modifier.padding(bottom = 8.dp))
+            Text(strings.jobsTitle, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color(0xFF11131A), modifier = Modifier.padding(bottom = 8.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9FB)),
@@ -753,13 +755,14 @@ private fun JobsQueueScreen(
 
 @Composable
 private fun JobsQueueItem(onClick: () -> Unit) {
+    val strings = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
             .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
-        Text("These are the available truck", fontSize = 10.sp, color = Color(0xFF535A6A))
+        Text(strings.theseAreAvailableTruck, fontSize = 10.sp, color = Color(0xFF535A6A))
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
@@ -778,10 +781,10 @@ private fun JobsQueueItem(onClick: () -> Unit) {
             }
             Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text("Task", fontSize = 9.sp, color = Color(0xFF667085))
-                Text("Departed", fontSize = 9.sp, color = Color(0xFF121826))
-                Text("Current Location", fontSize = 9.sp, color = Color(0xFF667085))
-                Text("Trip Cost", fontSize = 9.sp, color = Color(0xFF667085))
+                Text(strings.task, fontSize = 9.sp, color = Color(0xFF667085))
+                Text(strings.departed, fontSize = 9.sp, color = Color(0xFF121826))
+                Text(strings.currentLocation, fontSize = 9.sp, color = Color(0xFF667085))
+                Text(strings.tripCost, fontSize = 9.sp, color = Color(0xFF667085))
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text("Chemical Delivery", fontSize = 9.sp, color = Color(0xFF121826))
@@ -791,85 +794,218 @@ private fun JobsQueueItem(onClick: () -> Unit) {
             }
         }
         Spacer(Modifier.height(6.dp))
-        Text("Name", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF11131A))
+        Text(strings.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF11131A))
         Spacer(Modifier.height(6.dp))
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.Call, contentDescription = null, tint = HomeBlue, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(6.dp))
-            Text("Get in Contact", color = HomeBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(strings.getInContact, color = HomeBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.weight(1f))
-            Text("Decline", color = Color(0xFFA9C4F4), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(strings.decline, color = Color(0xFFA9C4F4), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(10.dp))
         }
     }
 }
 
 @Composable
-private fun IncomingJobCard(job: DeliveryJob, onReject: () -> Unit, onAccept: () -> Unit) {
+private fun IncomingJobCard(
+    job: DeliveryJob,
+    remainingSeconds: Long,
+    onReject: (String) -> Unit,
+    onAccept: (String) -> Unit
+) {
+    val strings = LocalStrings.current
+    val distanceFormatted = ((job.distance * 10.0).roundToInt() / 10.0).toString()
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE8E8E8))
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, Orange500.copy(alpha = 0.35f))
     ) {
-        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Incoming Job Request", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                repeat(5) { idx ->
-                    Box(
-                        modifier = Modifier
-                            .size(if (idx in 1..2) 12.dp else 9.dp)
-                            .clip(CircleShape)
-                            .background(if (idx < 2) HomeBlue else Color(0xFFB7DAF5))
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Earnings row
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "RM${job.estimatedEarnings.toInt()}",
+                    fontSize = 36.sp,
+                    lineHeight = 38.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Orange500
+                )
+                Spacer(Modifier.weight(1f))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Orange100
+                ) {
+                    Text(
+                        text = "$distanceFormatted km",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Orange500
                     )
                 }
             }
-            Spacer(Modifier.height(14.dp))
-            Text(
-                text = "Pickup: ${job.pickup.shortAddress.ifBlank { job.pickup.address }}\nDrop: ${job.dropoff.shortAddress.ifBlank { job.dropoff.address }}",
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(16.dp))
-            Text("Accept Job?", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = if (remainingSeconds <= 15) Color(0xFFFFE2E0) else Color(0xFFFFF4D6)
+            ) {
+                Text(
+                    text = "${remainingSeconds.coerceAtLeast(0)}s left",
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (remainingSeconds <= 15) Color(0xFFD92D20) else Color(0xFFB54708)
+                )
+            }
+
+            HorizontalDivider(color = Gray200)
+
+            // Pickup row
+            Row(verticalAlignment = Alignment.Top) {
+                Box(
+                    modifier = Modifier.size(8.dp).offset(y = 4.dp)
+                        .background(Orange500, CircleShape)
+                )
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(strings.pickup, fontSize = 11.sp, color = Gray500)
+                    Text(
+                        text = job.pickup.address.ifBlank { job.pickup.shortAddress },
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Gray900,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Dropoff row
+            Row(verticalAlignment = Alignment.Top) {
+                Box(
+                    modifier = Modifier.size(8.dp).offset(y = 4.dp)
+                        .background(Gray400, CircleShape)
+                )
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(strings.dropOff, fontSize = 11.sp, color = Gray500)
+                    Text(
+                        text = job.dropoff.address.ifBlank { job.dropoff.shortAddress },
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Gray900,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Duration chip
+            Surface(shape = RoundedCornerShape(8.dp), color = Gray100) {
+                Text(
+                    text = "~${job.displayDurationMinutes} min",
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    fontSize = 12.sp,
+                    color = Gray700,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            // Action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { onReject(job.id) },
+                    modifier = Modifier
+                        .size(52.dp)
+                        .background(Gray100, CircleShape)
+                ) {
+                    Text("✕", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Gray600)
+                }
                 Button(
-                    onClick = onReject,
+                    onClick = { onAccept(job.id) },
                     modifier = Modifier.weight(1f).height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB7DAF5)),
-                    shape = RoundedCornerShape(10.dp)
-                ) { Text("Reject", color = Color.Black, fontSize = 14.sp) }
-                Button(
-                    onClick = onAccept,
-                    modifier = Modifier.weight(1f).height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = HomeBlue),
-                    shape = RoundedCornerShape(10.dp)
-                ) { Text("Accept", fontSize = 14.sp) }
+                    colors = ButtonDefaults.buttonColors(containerColor = Orange500),
+                    shape = RoundedCornerShape(26.dp)
+                ) {
+                    Text(strings.accept, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun IncomingJobFullScreen(job: DeliveryJob, onReject: () -> Unit, onAccept: () -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
+private fun IncomingJobFullScreen(
+    jobs: List<DeliveryJob>,
+    expiringJobIds: Set<String>,
+    onReject: (String) -> Unit,
+    onAccept: (String) -> Unit
+) {
+    val strings = LocalStrings.current
+    var currentTimeMillis by remember {
+        mutableStateOf(Clock.System.now().toEpochMilliseconds())
+    }
+
+    LaunchedEffect(jobs.map { "${it.id}:${it.expiresAt ?: it.createdAt}" }) {
+        while (jobs.isNotEmpty()) {
+            currentTimeMillis = Clock.System.now().toEpochMilliseconds()
+            delay(1000L)
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         HomeTopBar(unreadCount = 0, onMenuClick = {}, onNotificationsClick = {})
-        Spacer(Modifier.height(64.dp))
-        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp)) {
-            IncomingJobCard(job = job, onReject = onReject, onAccept = onAccept)
+        Spacer(Modifier.height(18.dp))
+        Text(
+            text = "${jobs.size} ${if (jobs.size == 1) strings.order else strings.orders}",
+            modifier = Modifier.padding(horizontal = 18.dp),
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(Modifier.height(12.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            jobs.forEach { job ->
+                key(job.id) {
+                    AnimatedVisibility(
+                        visible = job.id !in expiringJobIds,
+                        enter = fadeIn(animationSpec = tween(durationMillis = 150)),
+                        exit = fadeOut(animationSpec = tween(durationMillis = 250))
+                    ) {
+                        IncomingJobCard(
+                            job = job,
+                            remainingSeconds = (job.remainingOfferMillis(currentTimeMillis) + 999L) / 1000L,
+                            onReject = onReject,
+                            onAccept = onAccept
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun ActiveRideCard(job: DeliveryJob, onPrimaryClick: () -> Unit) {
+    val strings = LocalStrings.current
     val statusText = when (job.status) {
-        JobStatus.ACCEPTED, JobStatus.HEADING_TO_PICKUP -> "Ride Accepted!"
-        JobStatus.ARRIVED_AT_PICKUP -> "Arrived!"
-        JobStatus.PICKED_UP, JobStatus.IN_TRANSIT -> "Out for delivery"
-        else -> "Ride Details"
+        JobStatus.ACCEPTED, JobStatus.HEADING_TO_PICKUP -> strings.rideAccepted
+        JobStatus.ARRIVED_AT_PICKUP -> strings.arrivedStatus
+        JobStatus.PICKED_UP, JobStatus.IN_TRANSIT -> strings.outForDelivery
+        else -> strings.rideDetails
     }
 
     Text(
@@ -897,7 +1033,7 @@ private fun ActiveRideCard(job: DeliveryJob, onPrimaryClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = HomeBlue),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Text(if (job.status == JobStatus.ARRIVED_AT_PICKUP) "Arrived!" else "View details", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(if (job.status == JobStatus.ARRIVED_AT_PICKUP) strings.arrivedStatus else strings.viewDetails, fontSize = 18.sp, fontWeight = FontWeight.Bold)
     }
 
     if (job.status == JobStatus.ARRIVED_AT_PICKUP) {
@@ -908,7 +1044,7 @@ private fun ActiveRideCard(job: DeliveryJob, onPrimaryClick: () -> Unit) {
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                text = "Issues with pickup?",
+                text = strings.issuesWithPickup,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
                 textAlign = TextAlign.Center,
                 color = Color(0xFF414755),

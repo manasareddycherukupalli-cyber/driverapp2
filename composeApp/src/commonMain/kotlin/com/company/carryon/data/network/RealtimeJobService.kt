@@ -5,13 +5,16 @@ import com.company.carryon.di.ServiceLocator
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.decodeRecordOrNull
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
 /**
  * Listens to Supabase Realtime Postgres changes on the Booking table.
@@ -25,38 +28,57 @@ object RealtimeJobService {
 
     private var channel: RealtimeChannel? = null
     private var collectJob: Job? = null
+    private var subscribedDriverId: String? = null
 
-    suspend fun startListening(scope: CoroutineScope) {
-        if (channel != null) return // already listening
+    suspend fun startListening(driverId: String, scope: CoroutineScope) {
+        if (channel != null && subscribedDriverId == driverId) return
+        if (channel != null) {
+            stopListening()
+        }
 
         val supabase = SupabaseConfig.client
-        val ch = supabase.channel("incoming-jobs")
+        val ch = supabase.channel("incoming-jobs-$driverId")
 
-        // Listen for INSERTs on the Booking table
         val inserts = ch.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "Booking"
         }
 
-        // Listen for UPDATEs on the Booking table (e.g. PENDING → SEARCHING_DRIVER)
         val updates = ch.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
             table = "Booking"
         }
 
+        val notificationInserts = ch.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "DriverNotification"
+            filter("driverId", FilterOperator.EQ, driverId)
+        }
+
         ch.subscribe()
         channel = ch
+        subscribedDriverId = driverId
 
-        // On any matching change, fetch the latest incoming job via REST API.
-        // This avoids parsing raw Supabase records and reuses the existing
-        // toDeliveryJob() mapping on the backend.
         collectJob = scope.launch {
             launch {
-                inserts.collect {
-                    fetchAndEmitIncomingJob()
+                inserts.collect { action ->
+                    val record = action.decodeRecordOrNull<BookingRealtimeRecord>() ?: return@collect
+                    if (record.status == "SEARCHING_DRIVER") {
+                        fetchAndEmitIncomingJobs()
+                    }
                 }
             }
             launch {
-                updates.collect {
-                    fetchAndEmitIncomingJob()
+                updates.collect { action ->
+                    val record = action.decodeRecordOrNull<BookingRealtimeRecord>() ?: return@collect
+                    if (record.status == "SEARCHING_DRIVER") {
+                        fetchAndEmitIncomingJobs()
+                    }
+                }
+            }
+            launch {
+                notificationInserts.collect { action ->
+                    val record = action.decodeRecordOrNull<DriverNotificationRealtimeRecord>() ?: return@collect
+                    if (record.type == "JOB_REQUEST") {
+                        fetchAndEmitIncomingJobs()
+                    }
                 }
             }
         }
@@ -69,14 +91,25 @@ object RealtimeJobService {
             SupabaseConfig.client.realtime.removeChannel(it)
         }
         channel = null
+        subscribedDriverId = null
     }
 
-    private suspend fun fetchAndEmitIncomingJob() {
-        ServiceLocator.jobRepository.getIncomingRequest()
-            .onSuccess { job ->
-                if (job != null) {
+    private suspend fun fetchAndEmitIncomingJobs() {
+        ServiceLocator.jobRepository.getIncomingRequests()
+            .onSuccess { jobs ->
+                jobs.forEach { job ->
                     _incomingJobs.emit(job)
                 }
             }
     }
 }
+
+@Serializable
+private data class BookingRealtimeRecord(
+    val status: String? = null
+)
+
+@Serializable
+private data class DriverNotificationRealtimeRecord(
+    val type: String? = null
+)

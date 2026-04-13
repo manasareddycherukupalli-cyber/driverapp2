@@ -60,7 +60,9 @@ object HttpClientFactory {
                         println("[HTTP] $message")
                     }
                 }
-                level = LogLevel.BODY
+                // BODY logging can throw parsing issues on some KMP targets for small/empty payloads.
+                // HEADERS keeps visibility without destabilizing response handling.
+                level = LogLevel.HEADERS
             }
             install(HttpTimeout) {
                 requestTimeoutMillis = 30_000

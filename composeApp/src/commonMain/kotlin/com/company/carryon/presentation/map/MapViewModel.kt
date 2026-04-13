@@ -7,6 +7,7 @@ import com.company.carryon.data.model.JobStatus
 import com.company.carryon.data.model.LatLng
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.network.LocationApi
+import com.company.carryon.data.network.getLastKnownHeading
 import com.company.carryon.data.network.getLastKnownLocation
 import com.company.carryon.di.ServiceLocator
 import com.company.carryon.presentation.components.MapMarker
@@ -26,6 +27,8 @@ class MapViewModel : ViewModel() {
     // Driver's current location (real GPS)
     private val _driverLocation = MutableStateFlow<Pair<Double, Double>?>(null)
     val driverLocation: StateFlow<Pair<Double, Double>?> = _driverLocation.asStateFlow()
+    private val _driverHeading = MutableStateFlow(0f)
+    val driverHeading: StateFlow<Float> = _driverHeading.asStateFlow()
 
     // ETA in minutes
     private val _etaMinutes = MutableStateFlow(0)
@@ -72,6 +75,7 @@ class MapViewModel : ViewModel() {
         getLastKnownLocation()?.let { (lat, lng) ->
             if (isValidCoordinate(lat, lng)) {
                 _driverLocation.value = Pair(lat, lng)
+                _driverHeading.value = getLastKnownHeading()
             }
         }
     }
@@ -158,6 +162,7 @@ class MapViewModel : ViewModel() {
                 getLastKnownLocation()?.let { (lat, lng) ->
                     if (isValidCoordinate(lat, lng)) {
                         _driverLocation.value = Pair(lat, lng)
+                        _driverHeading.value = getLastKnownHeading()
                     }
                     // If route hadn't been calculated yet (no GPS at loadJob time), retry now
                     pendingRouteJob?.let { job ->

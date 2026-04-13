@@ -3,6 +3,8 @@ package com.company.carryon.data.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.math.ceil
+import kotlin.time.Instant
+import kotlin.time.Duration.Companion.seconds
 
 // ============================================================
 // AUTH & DRIVER MODELS
@@ -14,6 +16,8 @@ data class Driver(
     val name: String = "",
     val phone: String = "",
     val email: String = "",
+    val driversLicenseNumber: String = "",
+    val dateOfBirth: String = "",
     @SerialName("photo") val profileImageUrl: String? = null,
     val rating: Double = 0.0,
     @SerialName("totalTrips") val totalDeliveries: Int = 0,
@@ -115,17 +119,20 @@ enum class VerificationStatus { PENDING, IN_REVIEW, APPROVED, REJECTED }
 @Serializable
 data class DeliveryJob(
     val id: String = "",
+    val displayOrderId: String = "",
     val status: JobStatus = JobStatus.PENDING,
     val pickup: LocationInfo = LocationInfo(),
     val dropoff: LocationInfo = LocationInfo(),
     val customerName: String = "",
     val customerPhone: String = "",
+    val customerEmail: String = "",
     val packageType: String = "",
     val packageSize: PackageSize = PackageSize.SMALL,
     val estimatedEarnings: Double = 0.0,
     val distance: Double = 0.0,
     val estimatedDuration: Int = 0,
     val createdAt: String? = null,
+    val expiresAt: String? = null,
     val scheduledAt: String? = null,
     val acceptedAt: String? = null,
     val pickedUpAt: String? = null,
@@ -134,6 +141,20 @@ data class DeliveryJob(
     val notes: String? = null,
     val proofOfDelivery: ProofOfDelivery? = null
 )
+
+val DeliveryJob.offerExpiryInstant: Instant?
+    get() = expiresAt.parseIsoInstantOrNull()
+        ?: createdAt.parseIsoInstantOrNull()?.plus(60.seconds)
+
+fun DeliveryJob.remainingOfferMillis(nowEpochMillis: Long): Long {
+    val expiryEpochMillis = offerExpiryInstant?.toEpochMilliseconds() ?: return 0L
+    return (expiryEpochMillis - nowEpochMillis).coerceAtLeast(0L)
+}
+
+private fun String?.parseIsoInstantOrNull(): Instant? {
+    val raw = this ?: return null
+    return runCatching { Instant.parse(raw) }.getOrNull()
+}
 
 val DeliveryJob.displayDurationMinutes: Int
     get() {
@@ -152,6 +173,7 @@ data class LocationInfo(
     val longitude: Double = 0.0,
     val contactName: String? = null,
     val contactPhone: String? = null,
+    val contactEmail: String? = null,
     val instructions: String? = null
 )
 
@@ -183,6 +205,13 @@ data class ProofOfDelivery(
     val otpCode: String? = null,
     val deliveredAt: String? = null,
     val recipientName: String? = null
+)
+
+@Serializable
+data class DeliveryOtpInfo(
+    val recipientEmail: String = "",
+    val otpSentAt: String? = null,
+    val adminOtp: String? = null
 )
 
 // ============================================================

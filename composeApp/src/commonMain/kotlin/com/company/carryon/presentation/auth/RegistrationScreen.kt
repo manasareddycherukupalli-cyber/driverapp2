@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.network.SupabaseConfig
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import drive_app.composeapp.generated.resources.*
@@ -63,14 +64,20 @@ private fun mapAuthErrorMessage(error: Throwable): String {
  */
 @Composable
 fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
+    val strings = LocalStrings.current
     var name         by remember { mutableStateOf("") }
     var email        by remember { mutableStateOf("") }
     var phone        by remember { mutableStateOf("") }
     var isLoading    by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var awaitingGoogleAuth by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     val otpVerifyState by authViewModel.otpVerifyState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        authViewModel.resetOtpState()
+    }
 
     // Navigate after Google sign-in completes (skips OTP screen)
     LaunchedEffect(otpVerifyState) {
@@ -94,7 +101,8 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     // Listen for session changes (handles iOS OAuth callback)
     LaunchedEffect(Unit) {
         SupabaseConfig.client.auth.sessionStatus.collect { status ->
-            if (status is io.github.jan.supabase.auth.status.SessionStatus.Authenticated) {
+            if (awaitingGoogleAuth && status is io.github.jan.supabase.auth.status.SessionStatus.Authenticated) {
+                awaitingGoogleAuth = false
                 val session = SupabaseConfig.client.auth.currentSessionOrNull()
                 if (session != null && !isLoading) {
                     authViewModel.authFlowType = AuthFlowType.SIGNUP
@@ -110,6 +118,7 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         onResult = { result ->
             when (result) {
                 is NativeSignInResult.Success -> {
+                    awaitingGoogleAuth = false
                     coroutineScope.launch {
                         val session = SupabaseConfig.client.auth.currentSessionOrNull()
                         if (session != null) {
@@ -120,10 +129,12 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                     }
                 }
                 is NativeSignInResult.Error -> {
+                    awaitingGoogleAuth = false
                     errorMessage = result.message
                 }
-                is NativeSignInResult.ClosedByUser -> { /* user cancelled */ }
+                is NativeSignInResult.ClosedByUser -> { awaitingGoogleAuth = false }
                 is NativeSignInResult.NetworkError -> {
+                    awaitingGoogleAuth = false
                     errorMessage = "Network error. Please check your connection."
                 }
             }
@@ -143,10 +154,10 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         Text(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = RegBlack, fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
-                    append("Welcome to ")
+                    append(strings.welcomeTo)
                 }
                 withStyle(SpanStyle(color = RegBlue, fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
-                    append("Carry On")
+                    append(strings.appName)
                 }
                 withStyle(SpanStyle(color = Color(0xFF333333), fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
                     append("!")
@@ -157,7 +168,7 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text     = "Hello there, Sign in to Continue",
+            text     = strings.signInToContinue,
             fontSize = 16.sp,
             color    = RegBlack.copy(alpha = 0.8f)
         )
@@ -166,20 +177,20 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
 
         // ── Name field ────────────────────────────────────────
         RegInputField(
-            label         = "Name",
+            label         = strings.name,
             value         = name,
             onValueChange = { name = it },
-            placeholder   = "Enter your Name"
+            placeholder   = strings.enterYourName
         )
 
         Spacer(Modifier.height(25.dp))
 
         // ── Email field ────────────────────────────────────────
         RegInputField(
-            label         = "Email Address",
+            label         = strings.emailAddress,
             value         = email,
             onValueChange = { email = it },
-            placeholder   = "Enter your email",
+            placeholder   = strings.enterYourEmail,
             keyboardType  = KeyboardType.Email
         )
 
@@ -187,17 +198,17 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
 
         // ── Phone field ────────────────────────────────────────
         RegInputField(
-            label         = "Phone Number",
+            label         = strings.phoneNumber,
             value         = phone,
             onValueChange = { phone = it },
-            placeholder   = "+60 12 345 6789",
+            placeholder   = strings.phonePlaceholder,
             keyboardType  = KeyboardType.Phone
         )
 
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "We'll send a verification code to your email",
+            text = strings.otpHint,
             fontSize = 13.sp,
             color = RegGray
         )
@@ -257,7 +268,7 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                 )
             } else {
                 Text(
-                    text       = "Sign Up",
+                    text       = strings.signUpButton,
                     fontWeight = FontWeight.SemiBold,
                     fontSize   = 18.sp
                 )
@@ -273,7 +284,7 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         ) {
             HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
             Text(
-                text     = "Or",
+                text     = strings.or,
                 modifier = Modifier.padding(horizontal = 9.dp),
                 color    = RegGray,
                 fontSize = 16.sp
@@ -293,13 +304,16 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             Spacer(Modifier.width(10.dp))
             RegSocialButton(Res.drawable.ic_google) {
                 if (getPlatform().name.startsWith("Android")) {
+                    awaitingGoogleAuth = true
                     googleSignInAction.startFlow()
                 } else {
                     // iOS: use OAuth web flow
                     coroutineScope.launch {
                         try {
+                            awaitingGoogleAuth = true
                             SupabaseConfig.client.auth.signInWith(Google)
                         } catch (e: Exception) {
+                            awaitingGoogleAuth = false
                             errorMessage = e.message ?: "Google sign-in failed"
                         }
                     }
