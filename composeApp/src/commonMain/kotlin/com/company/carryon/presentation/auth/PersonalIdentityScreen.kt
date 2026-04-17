@@ -23,8 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -56,6 +54,7 @@ import com.company.carryon.data.model.DocumentType
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.network.HttpClientFactory
 import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.util.rememberImagePickerLauncher
@@ -135,15 +134,11 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Filled.Menu, contentDescription = null, tint = Color(0xFF6F7480))
-            Text("Carry On", color = Blue, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Icon(Icons.Filled.NotificationsNone, contentDescription = null, tint = Color(0xFF6F7480))
-        }
+        DriveAppTopBar(
+            title = strings.personalIdentity,
+            onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+            showTitle = false
+        )
 
         Spacer(Modifier.height(16.dp))
         Row(

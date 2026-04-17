@@ -20,8 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Visibility
@@ -51,6 +49,7 @@ import com.company.carryon.data.model.Document
 import com.company.carryon.data.model.DocumentType
 import com.company.carryon.data.model.UiState
 import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.util.rememberImagePickerLauncher
@@ -116,17 +115,11 @@ fun DocumentUploadScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Filled.Menu, contentDescription = null, tint = Color(0xFF6F7480))
-            Text("Carry On", color = VerifyBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Icon(Icons.Filled.NotificationsNone, contentDescription = null, tint = Color(0xFF6F7480))
-        }
+        DriveAppTopBar(
+            title = strings.identityVerification,
+            onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+            showTitle = false
+        )
 
         Spacer(Modifier.height(26.dp))
         Text(strings.identityVerification, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)

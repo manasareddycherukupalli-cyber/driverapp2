@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Warehouse
@@ -43,23 +42,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.EarningsSummary
 import com.company.carryon.data.model.Transaction
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.WalletInfo
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import kotlin.math.abs
 import kotlin.math.round
 
 private val BrandBlue = Color(0xFF2F80ED)
-private val BrandDarkBlue = Color(0xFF034094)
 private val LightBlue = Color(0xFFA6D2F3)
 private val TextPrimary = Color(0xFF181C23)
 private val TextMuted = Color(0xFF414755)
@@ -106,17 +103,11 @@ fun EarningsDashboardScreen(navigator: AppNavigator) {
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        HeaderRow(
-            onMenuClick = { navigator.switchTab(Screen.Home) },
+        DriveAppTopBar(
+            title = "Earning",
+            onBackClick = { navigator.switchTab(Screen.Home) },
+            leadingIcon = Icons.Filled.Menu,
             onNotificationClick = { navigator.navigateTo(Screen.Notifications) }
-        )
-
-        Text(
-            text = "Earning",
-            color = TextPrimary,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
         )
 
         TabSelector(
@@ -177,36 +168,6 @@ fun EarningsDashboardScreen(navigator: AppNavigator) {
 }
 
 @Composable
-private fun HeaderRow(onMenuClick: () -> Unit, onNotificationClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Icon(
-            Icons.Filled.Menu,
-            contentDescription = "Menu",
-            tint = Color(0xFF5E6470),
-            modifier = Modifier.size(22.dp).clickable { onMenuClick() }
-        )
-        Text(
-            buildAnnotatedString {
-                withStyle(SpanStyle(color = BrandBlue, fontWeight = FontWeight.Bold)) { append("Carry") }
-                append(" ")
-                withStyle(SpanStyle(color = BrandDarkBlue, fontWeight = FontWeight.Bold)) { append("On") }
-            },
-            fontSize = 36.sp / 1.6f
-        )
-        Icon(
-            Icons.Filled.NotificationsNone,
-            contentDescription = "Notifications",
-            tint = Color(0xFF5E6470),
-            modifier = Modifier.size(22.dp).clickable { onNotificationClick() }
-        )
-    }
-}
-
-@Composable
 private fun TabSelector(weeklySelected: Boolean, onTodayClick: () -> Unit, onWeeklyClick: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -219,6 +180,8 @@ private fun TabSelector(weeklySelected: Boolean, onTodayClick: () -> Unit, onWee
                     .weight(1f)
                     .clickable { onTodayClick() }
                     .padding(vertical = 8.dp),
+                textAlign = TextAlign.Center,
+                minLines = 1,
                 maxLines = 1
             )
             Text(
@@ -230,10 +193,17 @@ private fun TabSelector(weeklySelected: Boolean, onTodayClick: () -> Unit, onWee
                     .weight(1f)
                     .clickable { onWeeklyClick() }
                     .padding(vertical = 8.dp),
+                textAlign = TextAlign.Center,
+                minLines = 1,
                 maxLines = 1
             )
         }
-        Box(modifier = Modifier.fillMaxWidth().height(2.dp).background(Color(0xFFEFF2F8))) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(Color(0xFFEFF2F8))
+        ) {
             Box(
                 modifier = Modifier
                     .align(if (weeklySelected) Alignment.CenterEnd else Alignment.CenterStart)
@@ -258,7 +228,7 @@ private fun BalanceCard(balance: Double, onWithdraw: () -> Unit) {
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        colors = listOf(Color(0xFF0058BC), Color(0xFF2F80ED))
+                        colors = listOf(BrandBlue, BrandBlue)
                     )
                 )
                 .padding(horizontal = 20.dp, vertical = 18.dp)
@@ -272,7 +242,7 @@ private fun BalanceCard(balance: Double, onWithdraw: () -> Unit) {
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Withdraw Funds", color = Color(0xFF0058BC), fontWeight = FontWeight.SemiBold, fontSize = 14.sp / 1.1f)
+                    Text("Withdraw Funds", color = BrandBlue, fontWeight = FontWeight.SemiBold, fontSize = 14.sp / 1.1f)
                 }
             }
         }
@@ -292,7 +262,7 @@ private fun WeeklySection(netProfit: Double) {
                 Text("Oct 21 - Oct 27, 2023", color = TextMuted, fontSize = 14.sp / 1.05f)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("+$${formatMoney(netProfit)}", color = Color(0xFF0058BC), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("+$${formatMoney(netProfit)}", color = BrandBlue, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 Text("NET PROFIT", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }
         }
@@ -336,17 +306,17 @@ private fun WeeklyBarChart(modifier: Modifier = Modifier) {
                         .fillMaxWidth()
                         .height(maxHeight * (heightValue / 192f))
                         .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                        .background(Color(0xFFF1F3FE))
+                        .background(BrandBlue.copy(alpha = 0.12f))
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(if (index == 3) Color(0xFF0058BC) else Color(0xFF0058BC).copy(alpha = alpha))
+                            .background(if (index == 3) BrandBlue else BrandBlue.copy(alpha = alpha))
                     )
                 }
                 Text(
                     days[index],
-                    color = if (index == 3) Color(0xFF0058BC) else Color(0xFF94A3B8),
+                    color = if (index == 3) BrandBlue else Color(0xFF94A3B8),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold
                 )

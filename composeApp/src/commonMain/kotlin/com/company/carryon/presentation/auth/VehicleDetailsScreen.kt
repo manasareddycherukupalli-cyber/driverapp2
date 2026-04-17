@@ -22,8 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -54,6 +52,7 @@ import drive_app.composeapp.generated.resources.vehicle_side_view
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.VehicleType
 import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import org.jetbrains.compose.resources.DrawableResource
@@ -88,17 +87,11 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
             .fillMaxSize()
             .background(VerifyBg)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = Color(0xFF6F7480), modifier = Modifier.size(22.dp))
-            Text("Carry On", color = VerifyBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Icon(Icons.Filled.NotificationsNone, contentDescription = "Notifications", tint = Color(0xFF6F7480), modifier = Modifier.size(20.dp))
-        }
+        DriveAppTopBar(
+            title = strings.vehicleDetailsTitle,
+            onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+            showTitle = false
+        )
 
         Column(
             modifier = Modifier

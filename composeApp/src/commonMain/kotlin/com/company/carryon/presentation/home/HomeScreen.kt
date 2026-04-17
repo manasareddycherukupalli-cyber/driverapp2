@@ -82,6 +82,7 @@ import com.company.carryon.data.model.displayDurationMinutes
 import com.company.carryon.data.model.remainingOfferMillis
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.theme.*
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.components.MapViewComposable
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
@@ -246,26 +247,13 @@ private fun FinalHomeDashboard(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(White, RoundedCornerShape(14.dp))
-                .padding(horizontal = 10.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = Black.copy(alpha = 0.55f), modifier = Modifier.clickable { onMenuClick() })
-            Text(strings.dispatch, color = HomeBlue, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(SoftBlue20, RoundedCornerShape(16.dp))
-                    .clickable { onProfileClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Filled.Person, contentDescription = "Profile", tint = HomeBlue, modifier = Modifier.size(18.dp))
-            }
-        }
+        DriveAppTopBar(
+            title = strings.dispatch,
+            onBackClick = onMenuClick,
+            leadingIcon = Icons.Filled.Menu,
+            onNotificationClick = onProfileClick,
+            showTitle = false
+        )
 
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = White), modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -471,38 +459,19 @@ private fun SummaryItem(id: String, subtitle: String, amount: String, status: St
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 private fun HomeTopBar(
     unreadCount: Int,
     onMenuClick: () -> Unit,
     onNotificationsClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Icon(Icons.Filled.Menu, contentDescription = "Menu", modifier = Modifier.clickable { onMenuClick() })
-        Text("Carry On", color = HomeBlue, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        BadgedBox(
-            badge = {
-                if (unreadCount > 0) {
-                    Badge(containerColor = Color.Red) {
-                        Text(unreadCount.toString())
-                    }
-                }
-            }
-        ) {
-            Icon(
-                Icons.Filled.NotificationsNone,
-                contentDescription = "Notifications",
-                modifier = Modifier.clickable { onNotificationsClick() }
-            )
-        }
-    }
+    DriveAppTopBar(
+        title = "Home",
+        onBackClick = onMenuClick,
+        leadingIcon = Icons.Filled.Menu,
+        onNotificationClick = onNotificationsClick
+    )
 }
 
 @Composable

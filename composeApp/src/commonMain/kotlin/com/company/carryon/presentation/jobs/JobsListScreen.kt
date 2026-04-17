@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -48,6 +47,7 @@ import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.components.MapMarker
 import com.company.carryon.presentation.components.MapViewComposable
 import com.company.carryon.presentation.components.MarkerColor
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
@@ -57,7 +57,6 @@ private val JobsText = Color(0xFF202124)
 private val JobsMuted = Color(0xFF7A8499)
 private val JobsDivider = Color(0x1A000000)
 private val JobsCardBg = Color.White
-private val JobsEarningsGreen = Color(0xFF27AE60)
 
 @Composable
 fun JobsListScreen(navigator: AppNavigator) {
@@ -69,17 +68,13 @@ fun JobsListScreen(navigator: AppNavigator) {
             .fillMaxSize()
             .background(JobsBg)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Filled.Menu, contentDescription = null, tint = Color(0xFF6F7480), modifier = Modifier.size(26.dp))
-            Text("Carry On", color = JobsBlue, fontSize = 32.sp, fontWeight = FontWeight.Bold)
-            Icon(Icons.Filled.NotificationsNone, contentDescription = null, tint = Color(0xFF6F7480), modifier = Modifier.size(24.dp))
-        }
+        DriveAppTopBar(
+            title = "Past Jobs",
+            onBackClick = { navigator.switchTab(Screen.Home) },
+            leadingIcon = Icons.Filled.Menu,
+            onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+            showTitle = false
+        )
 
         Text(
             "Past Jobs",
@@ -91,7 +86,7 @@ fun JobsListScreen(navigator: AppNavigator) {
 
         Card(
             modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(topStart = 27.dp, topEnd = 27.dp),
+            shape = RoundedCornerShape(0.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             when (completedJobs) {
@@ -152,7 +147,7 @@ private fun PastJobCard(job: DeliveryJob, onClick: () -> Unit) {
     }
 
     val markers = buildList {
-        if (pickupLat != 0.0 || pickupLng != 0.0) add(MapMarker("pickup", pickupLat, pickupLng, "Pickup", MarkerColor.GREEN))
+        if (pickupLat != 0.0 || pickupLng != 0.0) add(MapMarker("pickup", pickupLat, pickupLng, "Pickup", MarkerColor.BLUE))
         if (dropLat != 0.0 || dropLng != 0.0) add(MapMarker("drop", dropLat, dropLng, "Dropoff", MarkerColor.RED))
     }
 
@@ -211,7 +206,7 @@ private fun PastJobCard(job: DeliveryJob, onClick: () -> Unit) {
                     }
                     Text(
                         "RM ${job.estimatedEarnings.toInt()}",
-                        color = JobsEarningsGreen,
+                        color = JobsBlue,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 18.sp
                     )
@@ -254,7 +249,7 @@ private fun RouteAddressRow(isPickup: Boolean, address: String) {
         Icon(
             Icons.Filled.Place,
             contentDescription = null,
-            tint = if (isPickup) Color(0xFF27AE60) else Color(0xFFEB5757),
+            tint = JobsBlue,
             modifier = Modifier.size(16.dp).padding(top = 1.dp)
         )
         Column {

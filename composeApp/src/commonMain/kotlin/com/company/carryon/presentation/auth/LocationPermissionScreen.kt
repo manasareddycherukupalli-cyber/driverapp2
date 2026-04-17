@@ -4,9 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,14 +13,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
@@ -51,38 +46,11 @@ fun LocationPermissionScreen(navigator: AppNavigator, authViewModel: AuthViewMod
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // ---- Top App Bar ----
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Menu,
-                contentDescription = "Menu",
-                tint = Color(0xFF1A1A2E),
-                modifier = Modifier.size(28.dp)
-            )
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = Orange500, fontWeight = FontWeight.Bold)) {
-                        append("Carry ")
-                    }
-                    withStyle(SpanStyle(color = Color(0xFF034094), fontWeight = FontWeight.Bold)) {
-                        append("On")
-                    }
-                },
-                fontSize = 24.sp
-            )
-            Icon(
-                imageVector = Icons.Filled.NotificationsNone,
-                contentDescription = "Notifications",
-                tint = Color(0xFF1A1A2E),
-                modifier = Modifier.size(28.dp)
-            )
-        }
+        DriveAppTopBar(
+            title = strings.enableYourLocation,
+            onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+            showTitle = false
+        )
 
         Spacer(Modifier.height(24.dp))
 

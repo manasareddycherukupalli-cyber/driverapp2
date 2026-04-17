@@ -17,9 +17,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -37,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
@@ -49,15 +49,13 @@ fun SelectVehicleScreen(navigator: AppNavigator) {
     var selected by remember { mutableStateOf("53' Dry Van") }
 
     Column(modifier = Modifier.fillMaxSize().background(Bg)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Filled.ArrowBack, contentDescription = null, modifier = Modifier.clickable { navigator.goBack() })
-            Text("Carry On", color = Blue, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Icon(Icons.Filled.NotificationsNone, contentDescription = null)
-        }
+        DriveAppTopBar(
+            title = "Select Vehicle",
+            onBackClick = { navigator.goBack() },
+            leadingIcon = Icons.Filled.Menu,
+            onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+            showTitle = false
+        )
 
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),

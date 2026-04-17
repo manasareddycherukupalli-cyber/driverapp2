@@ -23,6 +23,7 @@ import com.company.carryon.data.network.getLanguage
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.i18n.getLanguageDisplayName
 import com.company.carryon.presentation.components.AvatarCircle
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
@@ -62,17 +63,13 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 20.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { navigator.goBack() }) {
-                Icon(Icons.Filled.Menu, contentDescription = strings.back, tint = blue)
-            }
-            Text(strings.appName, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, color = Color(0xFF0F172A))
-            AvatarCircle(initials = driverInitials, size = 40.dp)
-        }
+        DriveAppTopBar(
+            title = "Profile",
+            onBackClick = { navigator.switchTab(Screen.Home) },
+            leadingIcon = Icons.Filled.Menu,
+            onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+            showTitle = false
+        )
 
         Spacer(Modifier.height(18.dp))
 

@@ -2,11 +2,14 @@ package com.company.carryon.presentation.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,9 +18,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,34 +33,70 @@ import com.company.carryon.presentation.theme.*
 // TOP APP BAR WITH BACK BUTTON
 // ============================================================
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriveAppTopBar(
     title: String,
     onBackClick: (() -> Unit)? = null,
-    actions: @Composable RowScope.() -> Unit = {}
+    leadingIcon: ImageVector = Icons.AutoMirrored.Filled.ArrowBack,
+    onNotificationClick: (() -> Unit)? = null,
+    showTitle: Boolean = true
 ) {
-    TopAppBar(
-        title = {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            val iconVector = if (onBackClick == null) Icons.Filled.Menu else leadingIcon
+            Icon(
+                imageVector = iconVector,
+                contentDescription = "Navigation",
+                tint = Color(0xFF5E6470),
+                modifier = Modifier
+                    .size(22.dp)
+                    .let { iconModifier ->
+                        if (onBackClick != null) iconModifier.clickable { onBackClick() } else iconModifier
+                    }
+            )
+
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = Color(0xFF2F80ED), fontWeight = FontWeight.Bold)) { append("Carry") }
+                    append(" ")
+                    withStyle(SpanStyle(color = Color(0xFF034094), fontWeight = FontWeight.Bold)) { append("On") }
+                },
+                fontSize = 22.sp
+            )
+
+            Icon(
+                imageVector = Icons.Filled.NotificationsNone,
+                contentDescription = "Notifications",
+                tint = Color(0xFF5E6470),
+                modifier = Modifier
+                    .size(22.dp)
+                    .let { iconModifier ->
+                        if (onNotificationClick != null) iconModifier.clickable { onNotificationClick() } else iconModifier
+                    }
+            )
+        }
+
+        if (showTitle) {
             Text(
                 text = title,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 18.sp
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onSurface
             )
-        },
-        navigationIcon = {
-            if (onBackClick != null) {
-                IconButton(onClick = onBackClick) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-            }
-        },
-        actions = actions,
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface
-        )
-    )
+        }
+    }
 }
 
 // ============================================================

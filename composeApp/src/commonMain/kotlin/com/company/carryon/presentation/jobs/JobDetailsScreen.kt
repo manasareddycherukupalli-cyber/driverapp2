@@ -3,7 +3,6 @@ package com.company.carryon.presentation.jobs
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,11 +20,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
@@ -67,6 +66,7 @@ import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.components.MapMarker
 import com.company.carryon.presentation.components.MapViewComposable
 import com.company.carryon.presentation.components.MarkerColor
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import drive_app.composeapp.generated.resources.Res
@@ -164,7 +164,13 @@ private fun JobDetailsContent(
                 .padding(horizontal = 14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            DispatchTopBar(onBack = { navigator.goBack() })
+            DriveAppTopBar(
+                title = "Dispatch",
+                onBackClick = { navigator.switchTab(Screen.Home) },
+                leadingIcon = Icons.Filled.Menu,
+                onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+                showTitle = false
+            )
             DispatchMapHero(
                 pickupLat = job.pickup.latitude,
                 pickupLng = job.pickup.longitude,
@@ -183,34 +189,6 @@ private fun JobDetailsContent(
             Spacer(Modifier.height(6.dp))
         }
         DispatchBottomBar()
-    }
-}
-
-@Composable
-private fun DispatchTopBar(onBack: () -> Unit) {
-    val strings = LocalStrings.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = DispatchBlue,
-                modifier = Modifier.size(18.dp).clickable { onBack() }
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(strings.dispatch, color = DispatchBlue, fontWeight = FontWeight.Bold, fontSize = 26.sp)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(strings.jobDetails, color = TextMuted, fontWeight = FontWeight.Bold, fontSize = 9.sp)
-            Spacer(Modifier.width(8.dp))
-            Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = DispatchBlue, modifier = Modifier.size(26.dp))
-        }
     }
 }
 

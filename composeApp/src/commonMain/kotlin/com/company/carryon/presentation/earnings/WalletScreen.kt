@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -28,6 +29,7 @@ import com.company.carryon.presentation.theme.*
 private val WalletBlue = Color(0xFF2F80ED)
 private val WalletBlueDark = Color(0xFF1A6ED4)
 private val WalletBg = Color(0xFFF9F9FF)
+private val TransactionCardBg = Color(0xFFA6D2F3).copy(alpha = 0.2f)
 
 /**
  * WalletScreen — Wallet balance, withdrawal, and full transaction history.
@@ -53,7 +55,7 @@ fun WalletScreen(navigator: AppNavigator) {
         )
 
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Wallet balance card
@@ -119,7 +121,8 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(
             modifier = Modifier
@@ -178,14 +181,14 @@ private fun WalletStatsRow(wallet: WalletInfo) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        StatCard(
+        WalletStatCard(
             title = strings.lifetimeLabel,
             value = "RM ${(wallet.lifetimeEarnings / 1000).toInt()}K",
             icon = Icons.Filled.TrendingUp,
             iconTint = WalletBlue,
             modifier = Modifier.weight(1f)
         )
-        StatCard(
+        WalletStatCard(
             title = strings.lastPayout,
             value = "RM ${(wallet.lastPayout ?: 0.0).toInt()}",
             icon = Icons.Filled.Payment,
@@ -200,7 +203,8 @@ private fun TransactionItem(transaction: Transaction) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = TransactionCardBg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -225,6 +229,46 @@ private fun TransactionItem(transaction: Transaction) {
                 text = "RM${kotlin.math.abs(transaction.amount).toInt()}",
                 fontWeight = FontWeight.Bold,
                 color = if (transaction.amount >= 0) WalletBlue else MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+@Composable
+private fun WalletStatCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    iconTint: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = iconTint,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = value,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
