@@ -13,6 +13,15 @@ import com.company.carryon.MainActivity
 import com.company.carryon.R
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import io.ktor.client.request.header
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Handles incoming FCM push notifications and token refresh events.
@@ -23,22 +32,23 @@ import com.google.firebase.messaging.RemoteMessage
  * system tray regardless of whether the app is in the foreground or background.
  */
 class FcmService : FirebaseMessagingService() {
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FcmService", "New FCM token: $token")
-        // Store token locally so it can be sent to backend on next API call
+        // Store token locally and attempt immediate backend sync.
         FcmTokenHolder.token = token
+        syncTokenToBackend(token)
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         Log.d("FcmService", "FCM message received: ${message.data}")
 
-        // If this is a job request push, signal the polling flag so the next
-        // poll (or immediate check) surfaces the popup in-app.
+        // Wake the in-app fetch path immediately when a ride request push arrives.
         if (message.data["type"] == "JOB_REQUEST") {
-            IncomingJobSignal.pendingCheck = true
+            IncomingJobSignal.signalIncomingJob()
         }
 
         // Extract title/body from notification payload, falling back to data payload
@@ -75,6 +85,25 @@ class FcmService : FirebaseMessagingService() {
 
         NotificationManagerCompat.from(this)
             .notify(System.currentTimeMillis().toInt(), notification)
+    }
+
+    private fun syncTokenToBackend(token: String) {
+        // onNewToken can fire while app process is cold-started.
+        // Ensure token storage is initialized before withAuth() reads JWT.
+        initTokenStorage(applicationContext)
+        serviceScope.launch {
+            runCatching {
+                HttpClientFactory.client.put("/api/driver/profile/fcm-token") {
+                    withAuth()
+                    header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    setBody(mapOf("fcmToken" to token))
+                }
+            }.onSuccess {
+                Log.d("FcmService", "FCM token synced to backend")
+            }.onFailure { err ->
+                Log.w("FcmService", "Failed to sync FCM token to backend", err)
+            }
+        }
     }
 }
 

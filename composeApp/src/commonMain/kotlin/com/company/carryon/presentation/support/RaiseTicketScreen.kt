@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.*
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.theme.*
@@ -22,6 +23,7 @@ import com.company.carryon.presentation.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RaiseTicketScreen(navigator: AppNavigator) {
+    val strings = LocalStrings.current
     val viewModel = remember { SupportViewModel() }
     val createState by viewModel.createTicketState.collectAsState()
 
@@ -40,7 +42,7 @@ fun RaiseTicketScreen(navigator: AppNavigator) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         DriveAppTopBar(
-            title = "Raise a Ticket",
+            title = strings.raiseATicket,
             onBackClick = { navigator.goBack() }
         )
 
@@ -52,12 +54,12 @@ fun RaiseTicketScreen(navigator: AppNavigator) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "How can we help?",
+                text = strings.howCanWeHelpQuestion,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Describe your issue and we'll get back to you shortly",
+                text = strings.describeIssueSubtitle,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -71,7 +73,7 @@ fun RaiseTicketScreen(navigator: AppNavigator) {
                     value = selectedCategory.displayName,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Category") },
+                    label = { Text(strings.categoryLabel) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
                     shape = RoundedCornerShape(12.dp)
@@ -96,7 +98,7 @@ fun RaiseTicketScreen(navigator: AppNavigator) {
             OutlinedTextField(
                 value = subject,
                 onValueChange = { subject = it },
-                label = { Text("Subject") },
+                label = { Text(strings.subjectLabel) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
@@ -106,7 +108,7 @@ fun RaiseTicketScreen(navigator: AppNavigator) {
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Describe your issue") },
+                label = { Text(strings.describeYourIssue) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp),
@@ -117,7 +119,7 @@ fun RaiseTicketScreen(navigator: AppNavigator) {
             Spacer(Modifier.height(8.dp))
 
             PrimaryButton(
-                text = "Submit Ticket",
+                text = strings.submitTicket,
                 onClick = { viewModel.createTicket(subject, selectedCategory, description) },
                 enabled = subject.isNotBlank() && description.isNotBlank(),
                 isLoading = createState is UiState.Loading

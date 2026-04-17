@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
@@ -30,6 +31,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -38,6 +42,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.data.model.DeliveryJob
+import com.company.carryon.data.model.JobStatus
+import com.company.carryon.data.model.UiState
+import com.company.carryon.presentation.components.ErrorState
+import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
@@ -48,8 +57,53 @@ private val PickBlack = Color(0xFF000000)
 
 @Composable
 fun PickupInstructionsScreen(navigator: AppNavigator) {
-    val checks = remember { mutableStateListOf(false, false, false, false) }
+    val viewModel = remember { DeliveryViewModel() }
+    val jobState by viewModel.currentJob.collectAsState()
+    val jobId = navigator.selectedJobId
 
+    LaunchedEffect(jobId) {
+        jobId?.let { viewModel.loadJob(it) }
+    }
+
+    if (jobId == null) {
+        ErrorState("No active job selected") { navigator.goBack() }
+        return
+    }
+
+    when (val state = jobState) {
+        is UiState.Loading, UiState.Idle -> LoadingScreen("Loading pickup details...")
+        is UiState.Error -> ErrorState(
+            message = state.message,
+            onRetry = { viewModel.loadJob(jobId) }
+        )
+        is UiState.Success -> PickupInstructionsContent(
+            job = state.data,
+            navigator = navigator,
+            onConfirm = {
+                viewModel.updateStatus(state.data.id, JobStatus.PICKED_UP)
+                navigator.navigateTo(Screen.StartDelivery)
+            }
+        )
+    }
+}
+
+@Composable
+private fun PickupInstructionsContent(
+    job: DeliveryJob,
+    navigator: AppNavigator,
+    onConfirm: () -> Unit
+) {
+    val checks = remember(job.id) { mutableStateListOf(false, false, false, false) }
+    val allChecksComplete = checks.all { it }
+    val displayOrderId = remember(job.id, job.displayOrderId) {
+        job.displayOrderId.takeIf { it.isNotBlank() }
+            ?: job.id.takeLast(8).uppercase()
+    }
+    val destinationLabel = job.dropoff.shortAddress.ifBlank { job.dropoff.address }.ifBlank { "--" }
+    val instructionsLabel = job.pickup.instructions
+        ?.takeIf { it.isNotBlank() }
+        ?: job.notes?.takeIf { it.isNotBlank() }
+        ?: "No special instructions provided."
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -88,7 +142,7 @@ fun PickupInstructionsScreen(navigator: AppNavigator) {
         Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PickWhite), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("CURRENT ASSIGNMENT", color = PickBlack.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                Text("Order #DX-8821", color = PickBlack, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                Text("Order #$displayOrderId", color = PickBlack, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(30.dp).background(PickSoft, RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.LocationOn, contentDescription = null, tint = PickBlue, modifier = Modifier.size(16.dp))
@@ -96,7 +150,7 @@ fun PickupInstructionsScreen(navigator: AppNavigator) {
                     Spacer(Modifier.width(8.dp))
                     Column {
                         Text("Destination", color = PickBlack.copy(alpha = 0.5f), fontSize = 11.sp)
-                        Text("West Seattle, WA 98116", color = PickBlue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        Text(destinationLabel, color = PickBlue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                     }
                 }
             }
@@ -105,8 +159,7 @@ fun PickupInstructionsScreen(navigator: AppNavigator) {
         Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PickBlue), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("EST. EARNINGS", color = PickWhite.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                Text("$24.50", color = PickWhite, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                Text("+ $2.00 Surge", color = PickWhite.copy(alpha = 0.85f), fontSize = 12.sp)
+                Text("RM ${job.estimatedEarnings.toInt()}", color = PickWhite, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
             }
         }
 
@@ -118,7 +171,7 @@ fun PickupInstructionsScreen(navigator: AppNavigator) {
                 Column {
                     Text("Special Instructions", color = PickBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Text(
-                        "Handle with care - fragile items inside. Do not tilt the box. Ensure the package remains upright at all times during transit.",
+                        instructionsLabel,
                         color = PickBlack.copy(alpha = 0.75f),
                         fontSize = 14.sp,
                         lineHeight = 19.sp
@@ -143,14 +196,9 @@ fun PickupInstructionsScreen(navigator: AppNavigator) {
             }
         }
 
-        Text("PICKUP CONTEXT", color = PickBlue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ImageCard("WAREHOUSE VIEW", Modifier.weight(1f))
-            ImageCard("PACKAGE LABEL", Modifier.weight(1f))
-        }
-
         Button(
-            onClick = { navigator.navigateTo(Screen.StartDelivery) },
+            onClick = onConfirm,
+            enabled = allChecksComplete,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -175,33 +223,14 @@ private fun CheckRow(text: String, checked: Boolean, onToggle: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Filled.CheckBoxOutlineBlank,
+            imageVector = if (checked) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
             contentDescription = null,
-            tint = if (checked) PickBlue else PickBlack.copy(alpha = 0.6f),
+            tint = if (checked) PickBlue else PickBlack.copy(alpha = 0.7f),
             modifier = Modifier
                 .size(22.dp)
                 .padding(start = 4.dp)
         )
         Spacer(Modifier.width(8.dp))
         Text(text, color = PickBlack, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun ImageCard(label: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.height(66.dp),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = PickSoft)
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomStart) {
-            Text(
-                label,
-                color = PickWhite,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
     }
 }

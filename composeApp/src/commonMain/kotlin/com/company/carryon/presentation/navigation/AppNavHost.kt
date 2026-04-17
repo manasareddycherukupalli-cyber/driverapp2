@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.auth.*
 import com.company.carryon.presentation.delivery.*
 import com.company.carryon.presentation.earnings.*
@@ -29,27 +30,32 @@ data class BottomNavItem(
     val selectedIcon: ImageVector
 )
 
-val bottomNavItems = listOf(
-    BottomNavItem(Screen.Home, "Home", Icons.Filled.Home, Icons.Filled.Home),
-    BottomNavItem(Screen.Jobs, "Jobs", Icons.Filled.LocalShipping, Icons.Filled.LocalShipping),
-    BottomNavItem(Screen.Earnings, "Earnings", Icons.Filled.AccountBalanceWallet, Icons.Filled.AccountBalanceWallet),
-    BottomNavItem(Screen.Profile, "Profile", Icons.Filled.Person, Icons.Filled.Person),
-)
-
 // ============================================================
 // APP NAV HOST — Renders current screen based on navigator state
 // ============================================================
 
 @Composable
-fun AppNavHost(navigator: AppNavigator) {
+fun AppNavHost(
+    navigator: AppNavigator,
+    currentLanguage: String = "en",
+    onLanguageChanged: (String) -> Unit = {}
+) {
+    val strings = LocalStrings.current
     val currentScreen = navigator.currentScreen
     val showBottomBar = currentScreen in mainTabScreens
     val authViewModel = remember { AuthViewModel() }
 
+    val bottomNavItems = listOf(
+        BottomNavItem(Screen.Home, strings.navHome, Icons.Filled.Home, Icons.Filled.Home),
+        BottomNavItem(Screen.Jobs, strings.navJobs, Icons.Filled.LocalShipping, Icons.Filled.LocalShipping),
+        BottomNavItem(Screen.Earnings, strings.navEarnings, Icons.Filled.AccountBalanceWallet, Icons.Filled.AccountBalanceWallet),
+        BottomNavItem(Screen.Profile, strings.navProfile, Icons.Filled.Person, Icons.Filled.Person),
+    )
+
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                DriveAppBottomBar(navigator)
+                DriveAppBottomBar(navigator, bottomNavItems)
             }
         }
     ) { paddingValues ->
@@ -58,12 +64,9 @@ fun AppNavHost(navigator: AppNavigator) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Render the appropriate screen based on current navigation state
             AnimatedContent(
                 targetState = currentScreen,
-                transitionSpec = {
-                    fadeIn() togetherWith fadeOut()
-                }
+                transitionSpec = { fadeIn() togetherWith fadeOut() }
             ) { screen ->
                 when (screen) {
                     // ---- Splash ----
@@ -77,20 +80,17 @@ fun AppNavHost(navigator: AppNavigator) {
                     Screen.PersonalIdentity -> PersonalIdentityScreen(navigator, authViewModel)
                     Screen.DocumentUpload -> DocumentUploadScreen(navigator, authViewModel)
                     Screen.VehicleDetailsInput -> VehicleDetailsScreen(navigator, authViewModel)
-                    Screen.ReadyToDrive -> ReadyToDriveScreen(navigator)
                     Screen.VerificationStatus -> VerificationStatusScreen(navigator, authViewModel)
                     Screen.LocationPermission -> LocationPermissionScreen(navigator, authViewModel)
 
                     // ---- Main Tabs ----
                     Screen.Home -> {
-                        // Create the home VM only when Home is displayed to avoid
-                        // kicking off location/network startup work during Splash/Auth.
                         val homeViewModel = remember { HomeViewModel() }
                         HomeScreen(navigator, homeViewModel)
                     }
                     Screen.Jobs -> JobsListScreen(navigator)
                     Screen.Earnings -> EarningsDashboardScreen(navigator)
-                    Screen.Profile -> SettingsScreen(navigator)
+                    Screen.Profile -> SettingsScreen(navigator, onLanguageChanged)
 
                     // ---- Sub Screens ----
                     Screen.JobDetails -> JobDetailsScreen(navigator)
@@ -101,14 +101,15 @@ fun AppNavHost(navigator: AppNavigator) {
                     Screen.ArrivedAtDrop -> ArrivedAtDropScreen(navigator)
                     Screen.ProofOfDelivery -> ProofOfDeliveryScreen(navigator)
                     Screen.DeliveryComplete -> DeliveryCompleteScreen(navigator)
+                    Screen.JobReceipt -> JobReceiptScreen(navigator)
                     Screen.MapNavigation -> MapScreen(navigator)
                     Screen.Wallet -> WalletScreen(navigator)
-                    Screen.TransactionHistory -> WalletScreen(navigator) // Reuses wallet
+                    Screen.TransactionHistory -> WalletScreen(navigator)
                     Screen.Ratings -> RatingsScreen(navigator)
                     Screen.EditProfile -> EditProfileScreen(navigator)
-                    Screen.Settings -> SettingsScreen(navigator)
+                    Screen.Settings -> SettingsScreen(navigator, onLanguageChanged)
                     Screen.NotificationPreferences -> NotificationPreferencesScreen(navigator)
-                    Screen.Language -> LanguageScreen(navigator)
+                    Screen.Language -> LanguageScreen(navigator, currentLanguage, onLanguageChanged)
                     Screen.VehicleInfo -> VehicleInfoScreen(navigator)
                     Screen.DocumentsHub -> DocumentsHubScreen(navigator)
                     Screen.TermsOfService -> TermsOfServiceScreen(navigator)
@@ -129,12 +130,12 @@ fun AppNavHost(navigator: AppNavigator) {
 // ============================================================
 
 @Composable
-private fun DriveAppBottomBar(navigator: AppNavigator) {
+private fun DriveAppBottomBar(navigator: AppNavigator, items: List<BottomNavItem>) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface
     ) {
-        bottomNavItems.forEach { item ->
+        items.forEach { item ->
             val isSelected = navigator.currentScreen == item.screen
             NavigationBarItem(
                 selected = isSelected,

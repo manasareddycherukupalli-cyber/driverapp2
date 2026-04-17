@@ -26,6 +26,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,6 +37,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.data.model.UiState
+import com.company.carryon.data.model.displayDurationMinutes
+import com.company.carryon.presentation.components.ErrorState
+import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
@@ -44,6 +52,31 @@ private val DoneText = Color(0xFF242A36)
 
 @Composable
 fun DeliveryCompleteScreen(navigator: AppNavigator) {
+    val viewModel = remember { DeliveryViewModel() }
+    val jobState by viewModel.currentJob.collectAsState()
+    val jobId = navigator.selectedJobId
+
+    if (jobId == null) {
+        ErrorState("No active job selected") { navigator.navigateAndClearStack(Screen.Home) }
+        return
+    }
+
+    LaunchedEffect(jobId) {
+        viewModel.loadJob(jobId)
+    }
+
+    val job = when (val state = jobState) {
+        is UiState.Success -> state.data
+        is UiState.Loading, UiState.Idle -> {
+            LoadingScreen("Loading delivery summary...")
+            return
+        }
+        is UiState.Error -> {
+            ErrorState(state.message) { viewModel.loadJob(jobId) }
+            return
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -83,7 +116,7 @@ fun DeliveryCompleteScreen(navigator: AppNavigator) {
             fontSize = 22.sp
         )
         Text(
-            "Order #CD-92841 has been dropped off.",
+            "Order #${job.id.takeLast(8).uppercase()} has been dropped off.",
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
             color = DoneText.copy(alpha = 0.8f),
@@ -99,26 +132,27 @@ fun DeliveryCompleteScreen(navigator: AppNavigator) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                     Column {
                         Text("EARNINGS", color = DoneBlue.copy(alpha = 0.8f), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
-                        Text("RM 68.00", color = DoneBlue, fontWeight = FontWeight.ExtraBold, fontSize = 38.sp)
+                        Text("RM ${job.estimatedEarnings.toInt()}", color = DoneBlue, fontWeight = FontWeight.ExtraBold, fontSize = 38.sp)
                     }
                     Box(
                         modifier = Modifier
                             .background(Color.White, RoundedCornerShape(999.dp))
                             .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
-                        Text("CD-92841", color = DoneBlue.copy(alpha = 0.9f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(job.id.takeLast(8).uppercase(), color = DoneBlue.copy(alpha = 0.9f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MetricCard(title = "TIME", value = "22", unit = "min", modifier = Modifier.weight(1f))
-                    MetricCard(title = "DISTANCE", value = "3.2", unit = "km", modifier = Modifier.weight(1f))
+                    MetricCard(title = "TIME", value = job.displayDurationMinutes.toString(), unit = "min", modifier = Modifier.weight(1f))
+                    MetricCard(title = "DISTANCE", value = job.distance.toInt().toString(), unit = "km", modifier = Modifier.weight(1f))
                 }
             }
         }
 
         Button(
             onClick = {
+                navigator.clearPersistedDeliveryState()
                 navigator.initialJobsTabIndex = 0
                 navigator.navigateAndClearStack(Screen.Jobs)
             },
@@ -130,7 +164,7 @@ fun DeliveryCompleteScreen(navigator: AppNavigator) {
         }
 
         OutlinedButton(
-            onClick = {},
+            onClick = { navigator.navigateTo(Screen.JobReceipt) },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = DoneBlue),

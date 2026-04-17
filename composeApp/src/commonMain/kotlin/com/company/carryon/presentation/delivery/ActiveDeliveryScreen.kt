@@ -34,15 +34,12 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,8 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DeliveryJob
 import com.company.carryon.data.model.LatLng
-import com.company.carryon.data.model.LocationInfo
-import com.company.carryon.data.model.PackageSize
 import com.company.carryon.data.model.JobStatus
 import com.company.carryon.data.model.UiState
 import com.company.carryon.presentation.components.DriveAppTopBar
@@ -85,7 +80,10 @@ fun ActiveDeliveryScreen(navigator: AppNavigator) {
 
     LaunchedEffect(cancelState) {
         when (val state = cancelState) {
-            is UiState.Success -> navigator.goBack()
+            is UiState.Success -> {
+                navigator.clearPersistedDeliveryState()
+                navigator.goBack()
+            }
             is UiState.Error -> snackbarHostState.showSnackbar(state.message)
             else -> Unit
         }
@@ -110,12 +108,9 @@ fun ActiveDeliveryScreen(navigator: AppNavigator) {
 
             when (val state = jobState) {
                 is UiState.Loading -> LoadingScreen("Loading delivery details...")
-                is UiState.Error -> ActiveDeliveryContent(
-                    job = fallbackActiveJob(jobId),
-                    viewModel = viewModel,
-                    navigator = navigator,
-                    routeGeometry = routeGeometry,
-                    mapMarkers = mapMarkers
+                is UiState.Error -> ErrorState(
+                    message = state.message,
+                    onRetry = { jobId?.let { viewModel.loadJob(it) } }
                 )
                 is UiState.Success -> ActiveDeliveryContent(
                     job = state.data,
@@ -139,8 +134,6 @@ private fun ActiveDeliveryContent(
     mapMarkers: List<MapMarker>
 ) {
     var showCancelDialog by remember { mutableStateOf(false) }
-    val cancelState by viewModel.cancelState.collectAsState()
-    val isCancelling = cancelState is UiState.Loading
 
     if (showCancelDialog) {
         AlertDialog(
@@ -160,8 +153,6 @@ private fun ActiveDeliveryContent(
             }
         )
     }
-    val checks = remember { mutableStateListOf(true, false, false) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -232,7 +223,12 @@ private fun ActiveDeliveryContent(
             }
 
             Text("You've Arrived!", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = ArriveBlack)
-            Text("At Kedai Shahril, Jalan Bukit Bintang", color = ArriveBlue, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(
+                "At ${job.pickup.shortAddress.ifBlank { job.pickup.address }}",
+                color = ArriveBlue,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -243,17 +239,17 @@ private fun ActiveDeliveryContent(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
                             Text("ORDER ID", fontSize = 10.sp, color = ArriveBlack.copy(alpha = 0.55f), fontWeight = FontWeight.SemiBold)
-                            Text("#CR-4872", fontSize = 22.sp, color = ArriveBlack, fontWeight = FontWeight.ExtraBold)
+                            Text("#${job.id.takeLast(8).uppercase()}", fontSize = 22.sp, color = ArriveBlack, fontWeight = FontWeight.ExtraBold)
                         }
                         Column {
                             Text("TYPE", fontSize = 10.sp, color = ArriveBlack.copy(alpha = 0.55f), fontWeight = FontWeight.SemiBold)
-                            Text("Parcel (~2 kg)", fontSize = 18.sp, color = ArriveBlack, fontWeight = FontWeight.Bold)
+                            Text("${job.packageType} (${job.packageSize.displayName})", fontSize = 18.sp, color = ArriveBlack, fontWeight = FontWeight.Bold)
                         }
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
                             Text("SENDER", fontSize = 10.sp, color = ArriveBlack.copy(alpha = 0.55f), fontWeight = FontWeight.SemiBold)
-                            Text("Shahril Bin Ahmad", fontSize = 16.sp, color = ArriveBlack, fontWeight = FontWeight.Bold)
+                            Text(job.pickup.contactName ?: job.customerName.ifBlank { "--" }, fontSize = 16.sp, color = ArriveBlack, fontWeight = FontWeight.Bold)
                         }
                         Box(
                             modifier = Modifier
@@ -269,12 +265,6 @@ private fun ActiveDeliveryContent(
                     }
                 }
             }
-
-            Text("VERIFICATION CHECKLIST", color = ArriveBlack.copy(alpha = 0.65f), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-
-            ChecklistRow("Package sealed securely", checks[0]) { checks[0] = !checks[0] }
-            ChecklistRow("Label information correct", checks[1]) { checks[1] = !checks[1] }
-            ChecklistRow("Fragile sticker attached (If applicable)", checks[2]) { checks[2] = !checks[2] }
 
             Button(
                 onClick = { navigator.navigateTo(Screen.PickupInstructions) },
@@ -319,35 +309,6 @@ private fun StepLabel(text: String, active: Boolean) {
 }
 
 @Composable
-private fun ChecklistRow(text: String, checked: Boolean, onToggle: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onToggle() },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = ArriveWhite)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(
-                selected = checked,
-                onClick = onToggle,
-                colors = RadioButtonDefaults.colors(
-                    selectedColor = ArriveBlue,
-                    unselectedColor = ArriveBlack.copy(alpha = 0.45f)
-                )
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(text, color = ArriveBlack, fontWeight = FontWeight.Medium)
-        }
-    }
-}
-
-@Composable
 private fun BottomMiniTab(label: String, selected: Boolean) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Box(
@@ -360,27 +321,4 @@ private fun BottomMiniTab(label: String, selected: Boolean) {
         }
         Text(label, color = if (selected) ArriveBlue else ArriveBlack.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
     }
-}
-
-private fun fallbackActiveJob(jobId: String?): DeliveryJob {
-    return DeliveryJob(
-        id = if (jobId.isNullOrBlank()) "CR-4872" else jobId,
-        status = JobStatus.ARRIVED_AT_PICKUP,
-        pickup = LocationInfo(
-            address = "Jalan Bukit Bintang, Kuala Lumpur, 55100",
-            shortAddress = "Kedai Shahril"
-        ),
-        dropoff = LocationInfo(
-            address = "Ara Damansara, Petaling Jaya, 47301",
-            shortAddress = "Ara Damansara"
-        ),
-        customerName = "Nurul Ain",
-        customerPhone = "+60 12-555 8493",
-        packageType = "Parcel",
-        packageSize = PackageSize.SMALL,
-        estimatedEarnings = 14.5,
-        distance = 1.4,
-        estimatedDuration = 8,
-        notes = "Fragile sticker attached"
-    )
 }

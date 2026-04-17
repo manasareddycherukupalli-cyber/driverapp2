@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.*
 import com.company.carryon.presentation.components.*
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.theme.*
 
@@ -24,6 +25,7 @@ import com.company.carryon.presentation.theme.*
  */
 @Composable
 fun RatingsScreen(navigator: AppNavigator) {
+    val strings = LocalStrings.current
     val viewModel = remember { RatingsViewModel() }
     val ratingState by viewModel.ratingInfo.collectAsState()
 
@@ -33,7 +35,7 @@ fun RatingsScreen(navigator: AppNavigator) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         DriveAppTopBar(
-            title = "My Ratings",
+            title = strings.myRatings,
             onBackClick = { navigator.goBack() }
         )
 
@@ -48,6 +50,7 @@ fun RatingsScreen(navigator: AppNavigator) {
 
 @Composable
 private fun RatingsContent(info: RatingInfo) {
+    val strings = LocalStrings.current
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -86,7 +89,7 @@ private fun RatingsContent(info: RatingInfo) {
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Based on ${info.totalRatings} ratings",
+                        text = strings.basedOnRatings(info.totalRatings),
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -103,7 +106,7 @@ private fun RatingsContent(info: RatingInfo) {
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Rating Distribution", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    Text(strings.ratingDistribution, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                     Spacer(Modifier.height(12.dp))
                     StarDistributionRow(5, info.fiveStarCount, info.totalRatings)
                     StarDistributionRow(4, info.fourStarCount, info.totalRatings)
@@ -117,7 +120,7 @@ private fun RatingsContent(info: RatingInfo) {
         // Recent feedback
         item {
             Text(
-                text = "Recent Feedback",
+                text = strings.recentFeedback,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
                 modifier = Modifier.padding(vertical = 8.dp)

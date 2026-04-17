@@ -46,10 +46,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.data.model.DocumentType
 import com.company.carryon.data.model.UiState
+import com.company.carryon.data.network.HttpClientFactory
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
+import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.util.toImageBitmap
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.edit_profile_avatar
+import io.ktor.client.call.body
+import io.ktor.client.request.get
 import org.jetbrains.compose.resources.painterResource
 
 private val EditBg = Color(0xFFF9F9FF)
@@ -59,24 +66,42 @@ private val EditInputBg = Color(0x33A6D2F3)
 
 @Composable
 fun EditProfileScreen(navigator: AppNavigator) {
+    val strings = LocalStrings.current
     val viewModel = remember { ProfileViewModel() }
     val driver by viewModel.currentDriver.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
+    val profilePhotoUrl = remember(driver) {
+        driver?.profileImageUrl?.takeIf { it.isNotBlank() }
+            ?: driver?.documents
+                ?.firstOrNull { it.type == DocumentType.PROFILE_PHOTO }
+                ?.imageUrl
+                ?.takeIf { it.isNotBlank() }
+    }
+    var profilePhotoBytes by remember(profilePhotoUrl) { mutableStateOf<ByteArray?>(null) }
+    val profilePhotoBitmap = remember(profilePhotoBytes) { profilePhotoBytes?.toImageBitmap() }
 
-    var name by remember { mutableStateOf(driver?.name ?: "Marcus Thompson") }
-    var email by remember { mutableStateOf(driver?.email ?: "m.thompson@logistics.com") }
-    val phone = driver?.phone?.ifBlank { "+1 (555) 928-3401" } ?: "+1 (555) 928-3401"
-    val address = "742 Evergreen Terrace,\nSpringfield, IL 62704"
+    var name by remember { mutableStateOf(driver?.name.orEmpty()) }
+    var email by remember { mutableStateOf(driver?.email.orEmpty()) }
+    val phone = driver?.phone.orEmpty().ifBlank { "--" }
+    val address = "Address unavailable"
 
     LaunchedEffect(driver) {
         driver?.let {
-            if (name == "Marcus Thompson") name = it.name.ifBlank { name }
-            if (email == "m.thompson@logistics.com") email = it.email.ifBlank { email }
+            if (it.name.isNotBlank()) name = it.name
+            if (it.email.isNotBlank()) email = it.email
         }
     }
 
     LaunchedEffect(updateState) {
         if (updateState is UiState.Success) navigator.goBack()
+    }
+
+    LaunchedEffect(profilePhotoUrl) {
+        profilePhotoBytes = if (profilePhotoUrl.isNullOrBlank()) {
+            null
+        } else {
+            runCatching { HttpClientFactory.client.get(profilePhotoUrl).body<ByteArray>() }.getOrNull()
+        }
     }
 
     Box(
@@ -96,9 +121,9 @@ fun EditProfileScreen(navigator: AppNavigator) {
                 modifier = Modifier.padding(horizontal = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Edit Profile", color = Color.Black, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                Text(strings.editProfile, color = Color.Black, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Update your professional details and driver\ncredentials.",
+                    strings.updateYourDetails,
                     color = EditBody,
                     fontSize = 16.sp,
                     lineHeight = 24.sp
@@ -118,18 +143,33 @@ fun EditProfileScreen(navigator: AppNavigator) {
                             .padding(4.dp)
                             .clip(CircleShape)
                     ) {
-                        Image(
-                            painter = painterResource(Res.drawable.edit_profile_avatar),
-                            contentDescription = "Profile Photo",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        if (profilePhotoBitmap != null) {
+                            Image(
+                                bitmap = profilePhotoBitmap,
+                                contentDescription = "Profile Photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(Res.drawable.edit_profile_avatar),
+                                contentDescription = "Profile Photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text("Change Photo", color = Color(0xFF0058BC), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        strings.changePhoto,
+                        color = Color(0xFF0058BC),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable { navigator.navigateTo(Screen.PersonalIdentity) }
+                    )
                 }
 
-                AccountStatusCard()
+                AccountStatusCard(isVerified = driver?.isVerified == true)
                 ProfileFormCard(name = name, email = email, phone = phone, address = address)
                 PasswordCard()
 
@@ -153,7 +193,7 @@ fun EditProfileScreen(navigator: AppNavigator) {
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = EditBlue)
             ) {
-                Text("Save Changes", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(strings.saveChanges, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
             Button(
                 onClick = { navigator.goBack() },
@@ -161,7 +201,7 @@ fun EditProfileScreen(navigator: AppNavigator) {
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA6D2F3), contentColor = EditBlue)
             ) {
-                Text("Cancel", color = EditBlue, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(strings.cancel, color = EditBlue, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -169,6 +209,7 @@ fun EditProfileScreen(navigator: AppNavigator) {
 
 @Composable
 private fun EditTopBar(navigator: AppNavigator) {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -178,15 +219,16 @@ private fun EditTopBar(navigator: AppNavigator) {
         IconButton(onClick = { navigator.goBack() }) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = EditBlue, modifier = Modifier.size(16.dp))
         }
-        Text("Settings", fontSize = 20.sp, lineHeight = 28.sp, color = Color(0xFF181C23), fontWeight = FontWeight.Bold)
+        Text(strings.settingsTitle, fontSize = 20.sp, lineHeight = 28.sp, color = Color(0xFF181C23), fontWeight = FontWeight.Bold)
         Spacer(Modifier.weight(1f))
-        Text("DRIVER PORTAL", color = Color(0xFF64748B), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Text(strings.driverPortal, color = Color(0xFF64748B), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.width(8.dp))
     }
 }
 
 @Composable
-private fun AccountStatusCard() {
+private fun AccountStatusCard(isVerified: Boolean) {
+    val strings = LocalStrings.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -203,12 +245,18 @@ private fun AccountStatusCard() {
                 )
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text("ACCOUNT STATUS", color = EditBlue, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Verified Partner", color = Color.Black, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.SemiBold)
+                    Text(strings.accountStatus, color = EditBlue, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (isVerified) strings.verifiedPartner else strings.verificationPending,
+                        color = Color.Black,
+                        fontSize = 20.sp,
+                        lineHeight = 28.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
             Text(
-                "Your profile information is visible to\ndispatchers and warehouse managers to\nensure secure hand-offs.",
+                if (isVerified) strings.verifiedProfileDesc else strings.pendingProfileDesc,
                 color = EditBody,
                 fontSize = 14.sp,
                 lineHeight = 22.sp
@@ -219,6 +267,7 @@ private fun AccountStatusCard() {
 
 @Composable
 private fun ProfileFormCard(name: String, email: String, phone: String, address: String) {
+    val strings = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -226,10 +275,10 @@ private fun ProfileFormCard(name: String, email: String, phone: String, address:
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        InfoField("Full Name", name, Icons.Filled.PersonOutline, singleLine = true)
-        InfoField("Email Address", email, Icons.Filled.Email, singleLine = true)
-        InfoField("Phone Number", phone, Icons.Filled.Phone, singleLine = true)
-        InfoField("Residential Address", address, Icons.Filled.LocationOn, singleLine = false)
+        InfoField(strings.fullName, name, Icons.Filled.PersonOutline, singleLine = true)
+        InfoField(strings.emailAddress, email, Icons.Filled.Email, singleLine = true)
+        InfoField(strings.phoneNumber, phone, Icons.Filled.Phone, singleLine = true)
+        InfoField(strings.residentialAddress, address, Icons.Filled.LocationOn, singleLine = false)
     }
 }
 
@@ -259,6 +308,7 @@ private fun InfoField(
 
 @Composable
 private fun PasswordCard() {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -279,10 +329,10 @@ private fun PasswordCard() {
             }
             Spacer(Modifier.width(12.dp))
             Column {
-                Text("Update Password", color = Color(0xFF181C23), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(strings.updatePassword, color = Color(0xFF181C23), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Text("Last changed 4 months ago", color = EditBody, fontSize = 12.sp)
             }
         }
-        Text("Change", color = Color(0xFF0058BC), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { })
+        Text(strings.changePassword, color = Color(0xFF0058BC), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { })
     }
 }

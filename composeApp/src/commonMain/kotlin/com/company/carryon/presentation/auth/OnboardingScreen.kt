@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
@@ -36,6 +37,7 @@ import org.jetbrains.compose.resources.painterResource
  */
 @Composable
 fun OnboardingScreen(navigator: AppNavigator) {
+    val strings = LocalStrings.current
     val onboardingButtonBlue = Color(0xFF2F80ED)
 
     Column(
@@ -87,7 +89,7 @@ fun OnboardingScreen(navigator: AppNavigator) {
                 .padding(horizontal = 28.dp)
         ) {
             Text(
-                text = "Welcome",
+                text = strings.welcome,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1A1A2E)
@@ -95,7 +97,7 @@ fun OnboardingScreen(navigator: AppNavigator) {
             Spacer(Modifier.height(6.dp))
             Text(
                 text = buildAnnotatedString {
-                    append("Have a Better Experience with ")
+                    append(strings.haveBetterExperience)
                     withStyle(SpanStyle(color = CarryBlue, fontWeight = FontWeight.SemiBold)) {
                         append("Carry On")
                     }
@@ -122,7 +124,7 @@ fun OnboardingScreen(navigator: AppNavigator) {
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = onboardingButtonBlue)
             ) {
-                Text("Create an account", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Text(strings.createAccount, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             }
 
             OutlinedButton(
@@ -132,7 +134,7 @@ fun OnboardingScreen(navigator: AppNavigator) {
                 border = BorderStroke(1.dp, onboardingButtonBlue),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = onboardingButtonBlue)
             ) {
-                Text("Log In", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = onboardingButtonBlue)
+                Text(strings.logIn, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = onboardingButtonBlue)
             }
         }
 

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.*
 import com.company.carryon.data.network.AuthenticationException
 import com.company.carryon.di.ServiceLocator
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
@@ -47,6 +48,7 @@ private fun formatTimestamp(ts: String?): String {
 }
 @Composable
 fun NotificationsScreen(navigator: AppNavigator) {
+    val strings = LocalStrings.current
     val repository = remember { ServiceLocator.notificationsRepository }
     var notifications by remember { mutableStateOf<UiState<List<AppNotification>>>(UiState.Idle) }
     val scope = rememberCoroutineScope()
@@ -71,7 +73,7 @@ fun NotificationsScreen(navigator: AppNavigator) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         DriveAppTopBar(
-            title = "Notifications",
+            title = strings.notifications,
             onBackClick = { navigator.goBack() }
         )
 
@@ -93,7 +95,7 @@ fun NotificationsScreen(navigator: AppNavigator) {
             }
             is UiState.Success -> {
                 if (state.data.isEmpty()) {
-                    EmptyState("No Notifications", "You're all caught up!", "🔔")
+                    EmptyState(strings.noNotifications, strings.youreAllCaughtUp, "🔔")
                 } else {
                     // Mark all read button
                     TextButton(
@@ -110,7 +112,7 @@ fun NotificationsScreen(navigator: AppNavigator) {
                             .align(Alignment.End)
                             .padding(horizontal = 16.dp)
                     ) {
-                        Text("Mark all read", color = Orange500, fontWeight = FontWeight.Medium)
+                        Text(strings.markAllRead, color = Orange500, fontWeight = FontWeight.Medium)
                     }
 
                     LazyColumn(

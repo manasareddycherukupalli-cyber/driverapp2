@@ -10,20 +10,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import com.company.carryon.data.model.DeliveryJob
 import com.company.carryon.data.model.UiState
+import com.company.carryon.data.repository.JobRepository
+import com.company.carryon.di.ServiceLocator
 import com.company.carryon.data.network.SupabaseConfig
 import com.company.carryon.data.network.getToken
 import com.company.carryon.data.network.saveToken
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.navigation.mapJobStatusToResumeScreen
+import com.company.carryon.presentation.navigation.resumePriorityForStatus
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.splash_illustration
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import kotlin.time.Instant
 
-private const val FORCE_PRE_HOME_FLOW_ON_LAUNCH = true
+private const val FORCE_PRE_HOME_FLOW_ON_LAUNCH = false
 
 /**
  * SplashScreen — white background, illustration centred and fitted to screen width.
@@ -33,6 +39,7 @@ private const val FORCE_PRE_HOME_FLOW_ON_LAUNCH = true
 fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     val alpha = remember { Animatable(0f) }
     val sessionSyncState by authViewModel.sessionSyncState.collectAsState()
+    val jobRepository = remember { ServiceLocator.jobRepository }
 
     LaunchedEffect(Unit) {
         // Run minimum splash display and auth check in parallel
@@ -79,6 +86,7 @@ fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             // Try to sync with the stored token — if it's still valid, the API call will succeed.
             authViewModel.syncDriverForSession()
         } else {
+            navigator.clearPersistedDeliveryState()
             // No session and no stored token — go to onboarding
             navigator.navigateAndClearStack(Screen.Onboarding)
         }
@@ -89,10 +97,23 @@ fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         if (FORCE_PRE_HOME_FLOW_ON_LAUNCH) return@LaunchedEffect
         when (val state = sessionSyncState) {
             is UiState.Success -> {
-                val screen = authViewModel.determinePostAuthScreen(state.data)
-                navigator.navigateAndClearStack(screen)
+                val backendRestore = tryRestoreFromBackendActiveJobs(navigator, jobRepository)
+                when (backendRestore) {
+                    BackendResumeResult.Restored -> Unit
+                    BackendResumeResult.NoActiveJob -> {
+                        navigator.clearPersistedDeliveryState()
+                        val screen = authViewModel.determinePostAuthScreen(state.data)
+                        navigator.navigateAndClearStack(screen)
+                    }
+                    BackendResumeResult.FetchFailed -> {
+                        navigator.clearPersistedDeliveryState()
+                        val screen = authViewModel.determinePostAuthScreen(state.data)
+                        navigator.navigateAndClearStack(screen)
+                    }
+                }
             }
             is UiState.Error -> {
+                navigator.clearPersistedDeliveryState()
                 // Session exists but sync failed — go to onboarding to re-auth
                 navigator.navigateAndClearStack(Screen.Onboarding)
             }
@@ -115,4 +136,56 @@ fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                 .alpha(alpha.value)
         )
     }
+}
+
+private enum class BackendResumeResult {
+    Restored,
+    NoActiveJob,
+    FetchFailed
+}
+
+private suspend fun tryRestoreFromBackendActiveJobs(
+    navigator: AppNavigator,
+    jobRepository: JobRepository
+): BackendResumeResult {
+    val result = jobRepository.getActiveJobs()
+    return result.fold(
+        onSuccess = { jobs ->
+            val resumableJob = selectBestResumableJob(jobs)
+            if (resumableJob == null) {
+                BackendResumeResult.NoActiveJob
+            } else {
+                val restored = navigator.resumeFromJobStatus(
+                    jobId = resumableJob.id,
+                    status = resumableJob.status
+                )
+                if (restored) BackendResumeResult.Restored else BackendResumeResult.NoActiveJob
+            }
+        },
+        onFailure = {
+            BackendResumeResult.FetchFailed
+        }
+    )
+}
+
+private fun selectBestResumableJob(jobs: List<DeliveryJob>): DeliveryJob? {
+    return jobs
+        .filter { mapJobStatusToResumeScreen(it.status) != null }
+        .maxWithOrNull(
+            compareBy<DeliveryJob>(
+                { resumePriorityForStatus(it.status) },
+                { resumeTimestampMillis(it) ?: Long.MIN_VALUE }
+            )
+        )
+}
+
+private fun resumeTimestampMillis(job: DeliveryJob): Long? {
+    return parseInstantMillis(job.pickedUpAt)
+        ?: parseInstantMillis(job.acceptedAt)
+        ?: parseInstantMillis(job.createdAt)
+}
+
+private fun parseInstantMillis(raw: String?): Long? {
+    if (raw.isNullOrBlank()) return null
+    return runCatching { Instant.parse(raw).toEpochMilliseconds() }.getOrNull()
 }

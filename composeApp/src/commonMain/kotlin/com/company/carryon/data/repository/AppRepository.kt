@@ -127,6 +127,11 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     }
 
     override suspend fun logout() {
+        val driverId = _currentDriver.value?.id
+        if (driverId != null) {
+            // Best-effort token de-registration before local auth state is cleared.
+            runCatching { api.updateFcmToken(driverId, "") }
+        }
         clearToken()
         try {
             SupabaseConfig.client.auth.signOut()
@@ -152,7 +157,9 @@ interface JobRepository {
     suspend fun updateJobStatus(jobId: String, status: JobStatus): Result<DeliveryJob>
     suspend fun submitProof(jobId: String, proof: ProofOfDelivery): Result<DeliveryJob>
     suspend fun getIncomingRequest(): Result<DeliveryJob?>
+    suspend fun getIncomingRequests(): Result<List<DeliveryJob>>
     suspend fun verifyPickupOtp(jobId: String, otp: String): Result<DeliveryJob>
+    suspend fun requestDeliveryOtp(jobId: String): Result<DeliveryOtpInfo>
     suspend fun cancelJob(jobId: String): Result<Boolean>
 }
 
@@ -166,7 +173,9 @@ class JobRepositoryImpl(private val api: JobApi) : JobRepository {
     override suspend fun updateJobStatus(jobId: String, status: JobStatus) = api.updateJobStatus(jobId, status)
     override suspend fun submitProof(jobId: String, proof: ProofOfDelivery) = api.submitProofOfDelivery(jobId, proof)
     override suspend fun getIncomingRequest() = api.getIncomingJobRequest("")
+    override suspend fun getIncomingRequests() = api.getIncomingJobRequests("")
     override suspend fun verifyPickupOtp(jobId: String, otp: String) = api.verifyPickupOtp(jobId, otp)
+    override suspend fun requestDeliveryOtp(jobId: String) = api.requestDeliveryOtp(jobId)
     override suspend fun cancelJob(jobId: String) = api.cancelJob(jobId)
 }
 

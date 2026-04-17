@@ -26,6 +26,10 @@ class DeliveryViewModel : ViewModel() {
     private val _proofState = MutableStateFlow<UiState<DeliveryJob>>(UiState.Idle)
     val proofState: StateFlow<UiState<DeliveryJob>> = _proofState.asStateFlow()
 
+    // Delivery OTP request state
+    private val _deliveryOtpState = MutableStateFlow<UiState<DeliveryOtpInfo>>(UiState.Idle)
+    val deliveryOtpState: StateFlow<UiState<DeliveryOtpInfo>> = _deliveryOtpState.asStateFlow()
+
     // Cancel job state
     private val _cancelState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
     val cancelState: StateFlow<UiState<Boolean>> = _cancelState.asStateFlow()
@@ -102,6 +106,16 @@ class DeliveryViewModel : ViewModel() {
 
     fun clearOtpError() {
         _otpError.value = null
+    }
+
+    /** Generate/send drop-off OTP to recipient (backend-controlled) */
+    fun requestDeliveryOtp(jobId: String) {
+        viewModelScope.launch {
+            _deliveryOtpState.value = UiState.Loading
+            jobRepository.requestDeliveryOtp(jobId)
+                .onSuccess { _deliveryOtpState.value = UiState.Success(it) }
+                .onFailure { _deliveryOtpState.value = UiState.Error(it.message ?: "Failed to request delivery OTP") }
+        }
     }
 
     /** Cancel the job and re-queue it for another driver */

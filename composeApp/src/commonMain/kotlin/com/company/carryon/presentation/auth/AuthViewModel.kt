@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.hasLocationPermission
 import com.company.carryon.data.network.SupabaseConfig
 import com.company.carryon.data.network.getToken
 import com.company.carryon.data.network.saveToken
@@ -51,6 +52,8 @@ class AuthViewModel : ViewModel() {
     // ---- Verification State ----
     private val _verificationState = MutableStateFlow<UiState<Driver>>(UiState.Idle)
     val verificationState: StateFlow<UiState<Driver>> = _verificationState.asStateFlow()
+    private val _profileUpdateState = MutableStateFlow<UiState<Driver>>(UiState.Idle)
+    val profileUpdateState: StateFlow<UiState<Driver>> = _profileUpdateState.asStateFlow()
 
     // ---- Session State ----
     private val _hasValidSession = MutableStateFlow(false)
@@ -67,6 +70,8 @@ class AuthViewModel : ViewModel() {
     var driverName by mutableStateOf("")
     var driverPhone by mutableStateOf("")
     var emergencyContact by mutableStateOf("")
+    private var lastSubmittedDriversLicenseNumber by mutableStateOf("")
+    private var lastSubmittedDateOfBirth by mutableStateOf("")
 
     // ---- Uploaded Documents Tracker ----
     private val _uploadedDocuments = MutableStateFlow<List<Document>>(emptyList())
@@ -128,6 +133,7 @@ class AuthViewModel : ViewModel() {
      */
     fun onSupabaseTokenReceived(token: String) {
         saveToken(token)
+        _hasValidSession.value = true
         viewModelScope.launch {
             _otpVerifyState.value = UiState.Loading
             repository.syncDriver()
@@ -143,16 +149,19 @@ class AuthViewModel : ViewModel() {
                         repository.register(driver)
                             .onSuccess { registerResponse ->
                                 _latestAuthResponse.value = registerResponse
+                                registerResponse.driver?.let { hydrateIdentityFallbacks(it) }
                                 _otpVerifyState.value = UiState.Success(registerResponse)
                             }
                             .onFailure {
                                 // Registration of details failed, but sync succeeded —
                                 // proceed with the sync response so the user isn't blocked
                                 _latestAuthResponse.value = syncResponse
+                                syncResponse.driver?.let { hydrateIdentityFallbacks(it) }
                                 _otpVerifyState.value = UiState.Success(syncResponse)
                             }
                     } else {
                         _latestAuthResponse.value = syncResponse
+                        syncResponse.driver?.let { hydrateIdentityFallbacks(it) }
                         _otpVerifyState.value = UiState.Success(syncResponse)
                     }
                 }
@@ -206,12 +215,19 @@ class AuthViewModel : ViewModel() {
                 repository.uploadDocument(document)
                     .onSuccess { doc ->
                         println("Backend save successful: ${doc.id}")
-                        _documentUploadState.value = UiState.Success(doc)
                         val current = _uploadedDocuments.value.toMutableList()
                         val existingIndex = current.indexOfFirst { it.type == doc.type }
                         if (existingIndex >= 0) current[existingIndex] = doc
                         else current.add(doc)
                         _uploadedDocuments.value = current
+                        _latestAuthResponse.value = _latestAuthResponse.value?.let { response ->
+                            val driver = response.driver ?: return@let response
+                            val mergedByType = linkedMapOf<DocumentType, Document>()
+                            driver.documents.forEach { mergedByType[it.type] = it }
+                            current.forEach { mergedByType[it.type] = it }
+                            response.copy(driver = driver.copy(documents = mergedByType.values.toList()))
+                        }
+                        _documentUploadState.value = UiState.Success(doc)
                         println("Updated uploaded documents list. Count: ${_uploadedDocuments.value.size}")
                     }
                     .onFailure { error ->
@@ -247,7 +263,13 @@ class AuthViewModel : ViewModel() {
                 color = color
             )
             repository.updateVehicle(vehicle)
-                .onSuccess { _vehicleState.value = UiState.Success(it) }
+                .onSuccess { savedVehicle ->
+                    _latestAuthResponse.value = _latestAuthResponse.value?.let { response ->
+                        val driver = response.driver ?: return@let response
+                        response.copy(driver = driver.copy(vehicleDetails = savedVehicle))
+                    }
+                    _vehicleState.value = UiState.Success(savedVehicle)
+                }
                 .onFailure { _vehicleState.value = UiState.Error(it.message ?: "Failed to save vehicle") }
         }
     }
@@ -257,9 +279,71 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             _verificationState.value = UiState.Loading
             repository.getVerificationStatus()
-                .onSuccess { _verificationState.value = UiState.Success(it) }
+                .onSuccess { driver ->
+                    hydrateIdentityFallbacks(driver)
+                    // Backend doesn't return driversLicenseNumber/dateOfBirth in the profile
+                    // response — apply the in-memory fallback so the UI shows the correct state.
+                    val mergedDriver = driver.copy(
+                        driversLicenseNumber = driver.driversLicenseNumber.ifBlank { lastSubmittedDriversLicenseNumber },
+                        dateOfBirth = driver.dateOfBirth.ifBlank { lastSubmittedDateOfBirth }
+                    )
+                    _verificationState.value = UiState.Success(mergedDriver)
+                    _latestAuthResponse.value = _latestAuthResponse.value?.copy(driver = mergedDriver)
+                }
                 .onFailure { _verificationState.value = UiState.Error(it.message ?: "Failed to check status") }
         }
+    }
+
+    fun updateProfile(
+        name: String,
+        phone: String,
+        emergencyContact: String = "",
+        driversLicenseNumber: String? = null,
+        dateOfBirth: String? = null
+    ) {
+        viewModelScope.launch {
+            _profileUpdateState.value = UiState.Loading
+            val current = _latestAuthResponse.value?.driver
+            if (current == null) {
+                _profileUpdateState.value = UiState.Error("No active driver session")
+                return@launch
+            }
+
+            val updated = current.copy(
+                name = name,
+                phone = phone,
+                emergencyContact = emergencyContact,
+                driversLicenseNumber = driversLicenseNumber ?: current.driversLicenseNumber,
+                dateOfBirth = dateOfBirth ?: current.dateOfBirth
+            )
+            lastSubmittedDriversLicenseNumber = updated.driversLicenseNumber
+            lastSubmittedDateOfBirth = updated.dateOfBirth
+            repository.updateProfile(updated)
+                .onSuccess { serverDriver ->
+                    val mergedDriver = serverDriver.copy(
+                        driversLicenseNumber = serverDriver.driversLicenseNumber.ifBlank { updated.driversLicenseNumber },
+                        dateOfBirth = serverDriver.dateOfBirth.ifBlank { updated.dateOfBirth }
+                    )
+
+                    if (serverDriver.driversLicenseNumber.isBlank() && mergedDriver.driversLicenseNumber.isNotBlank()) {
+                        println("[AuthViewModel] Warning: backend profile response missing driversLicenseNumber; using submitted value for session state.")
+                    }
+                    if (serverDriver.dateOfBirth.isBlank() && mergedDriver.dateOfBirth.isNotBlank()) {
+                        println("[AuthViewModel] Warning: backend profile response missing dateOfBirth; using submitted value for session state.")
+                    }
+
+                    _profileUpdateState.value = UiState.Success(mergedDriver)
+                    _latestAuthResponse.value = _latestAuthResponse.value?.copy(driver = mergedDriver)
+                    driverName = mergedDriver.name
+                    driverPhone = mergedDriver.phone
+                    driverEmail = mergedDriver.email
+                }
+                .onFailure { _profileUpdateState.value = UiState.Error(it.message ?: "Profile update failed") }
+        }
+    }
+
+    fun resetProfileUpdateState() {
+        _profileUpdateState.value = UiState.Idle
     }
 
     /**
@@ -268,7 +352,12 @@ class AuthViewModel : ViewModel() {
      */
     fun determinePostAuthScreen(response: AuthResponse): Screen {
         _latestAuthResponse.value = response
-        return Screen.LocationPermission
+        response.driver?.let { hydrateIdentityFallbacks(it) }
+        return if (hasLocationPermission()) {
+            determinePostLocationScreen(response)
+        } else {
+            Screen.LocationPermission
+        }
     }
 
     /**
@@ -276,39 +365,64 @@ class AuthViewModel : ViewModel() {
      * Home is intentionally gated behind verification screens.
      */
     fun determinePostLocationScreen(response: AuthResponse? = _latestAuthResponse.value): Screen {
-        val resolved = response ?: return Screen.VerificationStatus
+        val resolved = response ?: return Screen.Onboarding
         _latestAuthResponse.value = resolved
-        val driver = resolved.driver
-        if (resolved.isNewDriver || authFlowType == AuthFlowType.SIGNUP) {
-            return Screen.VerificationStatus
-        }
-        if (driver == null || driver.documents.isEmpty()) {
-            return Screen.VerificationStatus
-        }
-        if (driver.vehicleDetails == null) {
-            return Screen.VehicleDetailsInput
-        }
-        // Even approved drivers land on verification status first.
-        // The screen's CTA then takes them to Home.
-        return Screen.VerificationStatus
+        return determineNextRequiredScreen(resolved)
     }
 
     /** Legacy entry point kept for compatibility with existing call sites */
     fun determineProfileCompletionScreen(response: AuthResponse): Screen {
-        val driver = response.driver
-        if (response.isNewDriver || authFlowType == AuthFlowType.SIGNUP) {
-            return Screen.VerificationStatus
+        return determineNextRequiredScreen(response)
+    }
+
+    private fun determineNextRequiredScreen(response: AuthResponse): Screen {
+        val rawDriver = response.driver ?: return Screen.PersonalIdentity
+        val mergedByType = linkedMapOf<DocumentType, Document>()
+        rawDriver.documents.forEach { mergedByType[it.type] = it }
+        _uploadedDocuments.value.forEach { mergedByType[it.type] = it }
+        val driver = rawDriver.copy(
+            documents = mergedByType.values.toList(),
+            driversLicenseNumber = rawDriver.driversLicenseNumber.ifBlank { lastSubmittedDriversLicenseNumber },
+            dateOfBirth = rawDriver.dateOfBirth.ifBlank { lastSubmittedDateOfBirth }
+        )
+
+        // Fully approved drivers should not be asked for onboarding details again.
+        if (driver.verificationStatus == VerificationStatus.APPROVED) {
+            return Screen.Home
         }
-        if (driver == null || driver.documents.isEmpty()) {
-            return Screen.VerificationStatus
+
+        if (!isPersonalIdentitySubmitted(driver)) {
+            return Screen.PersonalIdentity
         }
+
         if (driver.vehicleDetails == null) {
             return Screen.VehicleDetailsInput
         }
-        if (driver.verificationStatus != VerificationStatus.APPROVED) {
-            return Screen.VerificationStatus
+
+        if (!isIdentityVerificationSubmitted(driver)) {
+            return Screen.DocumentUpload
         }
-        return Screen.Home
+
+        // Submitted but pending admin approval.
+        return Screen.VerificationStatus
+    }
+
+    private fun isPersonalIdentitySubmitted(driver: Driver): Boolean {
+        val hasCoreProfile = driver.name.isNotBlank() &&
+            driver.email.isNotBlank() &&
+            driver.phone.isNotBlank() &&
+            driver.driversLicenseNumber.isNotBlank()
+        if (!hasCoreProfile) return false
+
+        val profilePhoto = driver.documents.firstOrNull { it.type == DocumentType.PROFILE_PHOTO } ?: return false
+        return profilePhoto.status != DocumentStatus.REJECTED
+    }
+
+    private fun isIdentityVerificationSubmitted(driver: Driver): Boolean {
+        val identityDoc = driver.documents.firstOrNull {
+            it.type == DocumentType.ID_PROOF || it.type == DocumentType.DRIVERS_LICENSE
+        } ?: return false
+        return identityDoc.status != DocumentStatus.REJECTED
     }
 
     // ---- Session Sync State (for SplashScreen) ----
@@ -322,11 +436,21 @@ class AuthViewModel : ViewModel() {
             repository.syncDriver()
                 .onSuccess { response ->
                     _latestAuthResponse.value = response
+                    response.driver?.let { hydrateIdentityFallbacks(it) }
                     _sessionSyncState.value = UiState.Success(response)
                 }
                 .onFailure {
                     _sessionSyncState.value = UiState.Error(it.message ?: "Sync failed")
                 }
+        }
+    }
+
+    private fun hydrateIdentityFallbacks(driver: Driver) {
+        if (driver.driversLicenseNumber.isNotBlank()) {
+            lastSubmittedDriversLicenseNumber = driver.driversLicenseNumber
+        }
+        if (driver.dateOfBirth.isNotBlank()) {
+            lastSubmittedDateOfBirth = driver.dateOfBirth
         }
     }
 

@@ -53,6 +53,7 @@ import drive_app.composeapp.generated.resources.vehicle_front_view
 import drive_app.composeapp.generated.resources.vehicle_side_view
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.VehicleType
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import org.jetbrains.compose.resources.DrawableResource
@@ -64,6 +65,7 @@ private val MutedBlue = Color(0xFFBFD5F6)
 
 @Composable
 fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
+    val strings = LocalStrings.current
     val vehicleState by viewModel.vehicleState.collectAsState()
 
     var selectedType by remember { mutableStateOf(VehicleType.VAN) }
@@ -75,7 +77,10 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
     var selectedCapacity by remember { mutableStateOf("MEDIUM") }
 
     LaunchedEffect(vehicleState) {
-        if (vehicleState is UiState.Success) navigator.navigateTo(Screen.VerificationStatus)
+        if (vehicleState is UiState.Success) {
+            val next = viewModel.determinePostLocationScreen()
+            navigator.navigateAndClearStack(next)
+        }
     }
 
     Column(
@@ -103,21 +108,21 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Spacer(Modifier.height(2.dp))
-            Text("VehicleDetails", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF242833))
-            Text("Provide accurate vehicle identification details for insurance and manifest verification.", color = Color(0xFF5E6574), fontSize = 13.sp, lineHeight = 18.sp)
+            Text(strings.vehicleDetailsTitle, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF242833))
+            Text(strings.vehicleDetailsDesc, color = Color(0xFF5E6574), fontSize = 13.sp, lineHeight = 18.sp)
             Spacer(Modifier.height(2.dp))
 
-            Text("STEP 2 OF 3: VEHICLE DETAILS", color = VerifyBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            Text(strings.step2Of3, color = VerifyBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             Box(modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(999.dp)).background(MutedBlue)) {
                 Box(modifier = Modifier.fillMaxWidth(0.66f).height(4.dp).clip(RoundedCornerShape(999.dp)).background(VerifyBlue))
             }
 
-            VerifyInput("Vehicle Model", model, { model = it }, "e.g. Ford Transit")
-            VerifyInput("Year", year, { if (it.length <= 4) year = it }, "2024", KeyboardType.Number)
-            VerifyInput("License Plate Number", licensePlate, { licensePlate = it.uppercase() }, "ABC-1234")
-            VerifyInput("VIN (Vehicle Identification Number)", vin, { vin = it }, "17-digit code")
+            VerifyInput(strings.vehicleModel, model, { model = it }, "e.g. Ford Transit")
+            VerifyInput(strings.vehicleYear, year, { if (it.length <= 4) year = it }, "2024", KeyboardType.Number)
+            VerifyInput(strings.licensePlate, licensePlate, { licensePlate = it.uppercase() }, "ABC-1234")
+            VerifyInput(strings.vehicleVin, vin, { vin = it }, "17-digit code")
 
-            Text("Vehicle Capacity Class", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF414755))
+            Text(strings.vehicleCapacity, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF414755))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CapacityCard("LIGHT", "Up to 1.5t", selectedCapacity == "LIGHT", Modifier.weight(1f)) { selectedCapacity = "LIGHT" }
                 CapacityCard("MEDIUM", "1.5t - 3.5t", selectedCapacity == "MEDIUM", Modifier.weight(1f)) { selectedCapacity = "MEDIUM" }
@@ -128,11 +133,11 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Visual Documentation", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF414755))
-                Text("Max 5MB/image", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = VerifyBlue)
+                Text(strings.visualDocumentation, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF414755))
+                Text(strings.maxImageSize, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = VerifyBlue)
             }
-            DocUploadCard("FRONT VIEW", Res.drawable.vehicle_front_view)
-            DocUploadCard("SIDE PROFILE", Res.drawable.vehicle_side_view)
+            DocUploadCard(strings.frontView, Res.drawable.vehicle_front_view)
+            DocUploadCard(strings.sideProfile, Res.drawable.vehicle_side_view)
 
             Button(
                 onClick = {
@@ -144,18 +149,17 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
                         licensePlate = licensePlate,
                         color = selectedCapacity
                     )
-                    navigator.navigateTo(Screen.VerificationStatus)
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue),
                 shape = RoundedCornerShape(12.dp),
                 enabled = licensePlate.isNotBlank() && model.isNotBlank()
             ) {
-                Text("Save & Continue", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(strings.saveAndContinue, fontSize = 17.sp, fontWeight = FontWeight.Bold)
             }
 
             Text(
-                "By clicking complete, you verify that all vehicle data provided matches official government records.",
+                strings.vehicleSaveConsent,
                 color = Color(0xFF9CA3AF),
                 fontSize = 9.sp,
                 lineHeight = 12.sp
@@ -221,6 +225,7 @@ private fun CapacityCard(title: String, subtitle: String, selected: Boolean, mod
 
 @Composable
 private fun DocUploadCard(label: String, backgroundRes: DrawableResource) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth().height(134.dp),
         shape = RoundedCornerShape(14.dp),
@@ -250,7 +255,7 @@ private fun DocUploadCard(label: String, backgroundRes: DrawableResource) {
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(label, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF111827))
-                Text("Tap to upload", fontSize = 10.sp, color = Color(0xFF64748B))
+                Text(strings.tapToUpload, fontSize = 10.sp, color = Color(0xFF64748B))
             }
         }
     }

@@ -7,3 +7,5 @@ package com.company.carryon.data.network
  */
 expect fun initLocationProvider(context: Any? = null)
 expect fun getLastKnownLocation(): Pair<Double, Double>?
+expect fun getLastKnownHeading(): Float
+expect fun hasLocationPermission(): Boolean

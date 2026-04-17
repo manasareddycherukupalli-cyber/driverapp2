@@ -21,6 +21,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.data.model.Document
+import com.company.carryon.data.model.DocumentStatus
+import com.company.carryon.data.model.DocumentType
+import com.company.carryon.data.network.saveLanguage
+import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.i18n.getLanguageDisplayName
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import drive_app.composeapp.generated.resources.Res
@@ -29,7 +35,6 @@ import drive_app.composeapp.generated.resources.notify_earnings_reports
 import drive_app.composeapp.generated.resources.notify_order_updates
 import drive_app.composeapp.generated.resources.notify_push_notifications
 import drive_app.composeapp.generated.resources.ic_nearby
-import drive_app.composeapp.generated.resources.vehicle_driver_alex_navigator
 import drive_app.composeapp.generated.resources.vehicle_ford_transit_cargo_xl
 import drive_app.composeapp.generated.resources.vehicle_spec_cargo_volume
 import drive_app.composeapp.generated.resources.vehicle_spec_fuel_type
@@ -238,25 +243,30 @@ private fun BottomTab(label: String, icon: androidx.compose.ui.graphics.vector.I
 }
 
 @Composable
-fun LanguageScreen(navigator: AppNavigator) {
-    var selected by remember { mutableStateOf("English") }
+fun LanguageScreen(
+    navigator: AppNavigator,
+    currentLanguage: String = "en",
+    onLanguageChanged: (String) -> Unit = {}
+) {
+    val strings = LocalStrings.current
+    // Map of language code → display info (native name, subtitle)
     val languages = listOf(
-        "English" to "United States / UK",
-        "Español" to "Spanish",
-        "Français" to "French",
-        "Deutsch" to "German",
-        "اردو" to "Urdu",
-        "हिन्दी" to "Hindi",
+        Triple("en",  "English",       "English (Malaysia)"),
+        Triple("ms",  "Bahasa Melayu", "Malay"),
+        Triple("zh",  "中文",           "Mandarin Chinese"),
+        Triple("ta",  "தமிழ்",          "Tamil"),
     )
+    var selected by remember { mutableStateOf(currentLanguage) }
+
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF9F9FF))) {
-        SettingsTopBar("Settings") { navigator.goBack() }
+        SettingsTopBar(strings.settingsTitle) { navigator.goBack() }
         Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 14.dp)
         ) {
-            Text("Language", fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 40.sp, color = Color(0xFF181C23))
+            Text(strings.selectYourLanguage, fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 40.sp, color = Color(0xFF181C23))
             Spacer(Modifier.height(4.dp))
             Text(
                 "Select your preferred language for the\nnavigation and dashboard interface.",
@@ -265,16 +275,21 @@ fun LanguageScreen(navigator: AppNavigator) {
                 lineHeight = 24.sp
             )
             Spacer(Modifier.height(16.dp))
-            languages.forEach { (name, subtitle) ->
-                val selectedRow = selected == name
+            languages.forEach { (code, nativeName, subtitle) ->
+                val isSelected = selected == code
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 10.dp)
-                        .clickable { selected = name },
+                        .clickable {
+                            selected = code
+                            saveLanguage(code)
+                            onLanguageChanged(code)
+                            navigator.goBack()
+                        },
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0x33A6D2F3)),
-                    border = if (selectedRow) androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF2F80ED)) else null
+                    border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF2F80ED)) else null
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
@@ -285,43 +300,24 @@ fun LanguageScreen(navigator: AppNavigator) {
                             Box(
                                 modifier = Modifier
                                     .size(34.dp)
-                                    .background(if (selectedRow) Color(0x33A6D2F3) else Color.White, CircleShape),
+                                    .background(if (isSelected) Color(0x33A6D2F3) else Color.White, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(Icons.Filled.Language, contentDescription = null, tint = Color(0xFF2F80ED), modifier = Modifier.size(17.dp))
                             }
                             Spacer(Modifier.width(12.dp))
                             Column {
-                                Text(name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF414755))
+                                Text(nativeName, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF414755))
                                 Text(subtitle, color = Color(0xFF64748B), fontSize = 14.sp)
                             }
                         }
                         Icon(
-                            imageVector = if (selectedRow) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+                            imageVector = if (isSelected) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
                             contentDescription = null,
-                            tint = if (selectedRow) Color(0xFF2F80ED) else Color(0xFFB8C3D7),
+                            tint = if (isSelected) Color(0xFF2F80ED) else Color(0xFFB8C3D7),
                             modifier = Modifier.size(18.dp)
                         )
                     }
-                }
-            }
-            Spacer(Modifier.height(14.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF2F80ED))
-            ) {
-                Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
-                    Icon(Icons.Filled.Public, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.height(10.dp))
-                    Text("Global Connectivity", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 32.sp, lineHeight = 28.sp)
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "Changes will apply across all your linked\nlogistics terminals and driver manifests\ninstantly.",
-                        color = Color(0xCCFFFFFF),
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    )
                 }
             }
             Spacer(Modifier.height(14.dp))
@@ -332,6 +328,22 @@ fun LanguageScreen(navigator: AppNavigator) {
 
 @Composable
 fun VehicleInfoScreen(navigator: AppNavigator) {
+    val viewModel = remember { ProfileViewModel() }
+    val driver by viewModel.currentDriver.collectAsState()
+    val vehicle = driver?.vehicleDetails
+    val vehicleName = remember(vehicle?.make, vehicle?.model) {
+        listOfNotNull(
+            vehicle?.make?.takeIf { it.isNotBlank() },
+            vehicle?.model?.takeIf { it.isNotBlank() }
+        ).joinToString(" - ").ifBlank { "Vehicle Not Set" }
+    }
+    val plate = vehicle?.licensePlate?.takeIf { it.isNotBlank() } ?: "Unavailable"
+    val fuelOrColor = vehicle?.color?.takeIf { it.isNotBlank() } ?: "Not provided"
+    val vehicleType = vehicle?.type?.displayName ?: "Unknown"
+    val year = vehicle?.year?.takeIf { it > 0 }?.toString() ?: "Unknown"
+    val docsApproved = driver?.documents.orEmpty().count { it.status == DocumentStatus.APPROVED }
+    val docsPending = driver?.documents.orEmpty().count { it.status == DocumentStatus.PENDING }
+
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF9F9FF))) {
         SettingsTopBar("Vehicle Details") { navigator.goBack() }
         Column(
@@ -369,26 +381,31 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Text("Ford Transit - Cargo XL", fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF262E3F))
+            Text(vehicleName, fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF262E3F))
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.background(Color(0xFFD8E6FF), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                    Text("KCX 4821-B", color = Color(0xFF4B79E6), fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
+                    Text(plate, color = Color(0xFF4B79E6), fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
                 }
                 Spacer(Modifier.width(10.dp))
                 Icon(Icons.Filled.Verified, contentDescription = null, tint = Color(0xFF4B79E6), modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Verified Vehicle", color = Color(0xFF4B79E6), fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                Text(
+                    if (driver?.isVerified == true) "Verified Vehicle" else "Verification Pending",
+                    color = Color(0xFF4B79E6),
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp
+                )
             }
             Spacer(Modifier.height(14.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                VehicleSpecCard("MAX PAYLOAD", "2500 kg", Res.drawable.vehicle_spec_max_payload, Modifier.weight(1f))
-                VehicleSpecCard("CARGO VOLUME", "12 m³", Res.drawable.vehicle_spec_cargo_volume, Modifier.weight(1f))
+                VehicleSpecCard("VEHICLE TYPE", vehicleType, Res.drawable.vehicle_spec_max_payload, Modifier.weight(1f))
+                VehicleSpecCard("MODEL YEAR", year, Res.drawable.vehicle_spec_cargo_volume, Modifier.weight(1f))
             }
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                VehicleSpecCard("FUEL TYPE", "Electric", Res.drawable.vehicle_spec_fuel_type, Modifier.weight(1f))
-                VehicleSpecCard("RANGE", "320 km", Res.drawable.ic_nearby, Modifier.weight(1f))
+                VehicleSpecCard("PRIMARY COLOR", fuelOrColor, Res.drawable.vehicle_spec_fuel_type, Modifier.weight(1f))
+                VehicleSpecCard("DOCS APPROVED", docsApproved.toString(), Res.drawable.ic_nearby, Modifier.weight(1f))
             }
             Spacer(Modifier.height(12.dp))
             Card(
@@ -408,17 +425,24 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                                 .background(Color.White, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Image(
-                                painter = painterResource(Res.drawable.vehicle_driver_alex_navigator),
-                                contentDescription = "Marcus Thompson",
-                                modifier = Modifier.size(42.dp)
+                            Icon(
+                                Icons.Filled.Person,
+                                contentDescription = null,
+                                tint = Color(0xFF8EA5D4),
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                         Spacer(Modifier.width(10.dp))
                         Column {
-                            Text("Assigned Driver", fontSize = 10.sp, color = Color(0xFF7B88A2))
-                            Text("Marcus\nThompson", fontWeight = FontWeight.SemiBold, color = Color(0xFF2C3852), fontSize = 18.sp, lineHeight = 22.sp)
-                            Text("Fleet ID: #STR-9942", fontSize = 11.sp, color = Color(0xFF7B88A2))
+                            Text("Driver Profile", fontSize = 10.sp, color = Color(0xFF7B88A2))
+                            Text(
+                                driver?.name?.ifBlank { "Name unavailable" } ?: "Name unavailable",
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF2C3852),
+                                fontSize = 18.sp,
+                                lineHeight = 22.sp
+                            )
+                            Text("Pending Docs: $docsPending", fontSize = 11.sp, color = Color(0xFF7B88A2))
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -444,48 +468,27 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                             .size(64.dp)
                             .background(Color(0x0D0058BC), CircleShape)
                     )
-                    Column(modifier = Modifier.padding(32.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                    Text("Current Capacity Utilization", fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 28.sp, color = Color(0xFF181C23))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        val barHeights = listOf(51.19f, 76.8f, 108.8f, 83.19f, 57.59f, 38.39f)
-                        barHeights.forEachIndexed { index, height ->
-                            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(height.dp)
-                                        .background(
-                                            when (index) {
-                                                2 -> Color(0x330058BC)
-                                                3 -> Color(0xFF2F80ED)
-                                                else -> Color(0x1A0058BC)
-                                            },
-                                            RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
-                                        )
-                                )
-                                if (index == 3) {
-                                    Box(
-                                        modifier = Modifier
-                                            .offset(y = (-32).dp)
-                                            .background(Color(0xFF181C23), RoundedCornerShape(4.dp))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("YOURS", color = Color(0xFFF9F9FF), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, lineHeight = 15.sp)
-                                    }
-                                }
-                            }
+                    Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text("Current Capacity Utilization", fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 28.sp, color = Color(0xFF181C23))
+                        Text(
+                            "Live telemetry is not available for this vehicle yet. Once dispatch tracking is enabled, utilization and reserved capacity will appear here.",
+                            fontSize = 14.sp,
+                            color = Color(0xFF414755),
+                            lineHeight = 20.sp
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFEAF1FF), RoundedCornerShape(10.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                "Vehicle: $vehicleName",
+                                fontSize = 13.sp,
+                                color = Color(0xFF2F80ED),
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Space Reserved: 1.2m³", fontSize = 14.sp, color = Color(0xFF414755), fontWeight = FontWeight.Medium, lineHeight = 20.sp)
-                        Text("72% Full", fontSize = 14.sp, color = Color(0xFF2F80ED), fontWeight = FontWeight.SemiBold, lineHeight = 20.sp)
-                    }
                     }
                 }
             }
@@ -498,7 +501,7 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
             ) { Text("Track Vehicle Location", fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(8.dp))
             Button(
-                onClick = { },
+                onClick = { navigator.navigateTo(Screen.DocumentsHub) },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC6DAF5), contentColor = Color(0xFF4B79E6))
@@ -539,6 +542,23 @@ private fun VehicleBottomBar() {
 
 @Composable
 fun DocumentsHubScreen(navigator: AppNavigator) {
+    val viewModel = remember { ProfileViewModel() }
+    val driver by viewModel.currentDriver.collectAsState()
+    val requiredTypes = remember {
+        listOf(
+            DocumentType.DRIVERS_LICENSE,
+            DocumentType.VEHICLE_REGISTRATION,
+            DocumentType.INSURANCE,
+            DocumentType.ID_PROOF
+        )
+    }
+    val docsByType = remember(driver?.documents) { driver?.documents.orEmpty().associateBy { it.type } }
+    val approvedCount = requiredTypes.count { docsByType[it]?.status == DocumentStatus.APPROVED }
+    val pendingCount = requiredTypes.count { docsByType[it]?.status == DocumentStatus.PENDING }
+    val rejectedCount = requiredTypes.count { docsByType[it]?.status == DocumentStatus.REJECTED }
+    val actionNeededCount = requiredTypes.size - approvedCount
+    val compliancePercent = ((approvedCount * 100f) / requiredTypes.size).toInt()
+
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F7FB))) {
         SettingsTopBar("Documents") { navigator.goBack() }
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
@@ -546,14 +566,19 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
                 Column(Modifier.padding(14.dp)) {
                     Text("Compliance Status", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, lineHeight = 34.sp, color = Color(0xFF242C3E))
                     Spacer(Modifier.height(6.dp))
-                    Text("Your operational documents are 85% compliant. Please renew expiring items to avoid dispatch interruptions.", color = Color(0xFF6D7890), lineHeight = 18.sp, fontSize = 12.sp)
+                    Text(
+                        "Your required document compliance is $compliancePercent%. Upload missing items and resolve rejected documents to avoid dispatch interruptions.",
+                        color = Color(0xFF6D7890),
+                        lineHeight = 18.sp,
+                        fontSize = 12.sp
+                    )
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Text("3/4", color = Color(0xFF4B79E6), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
+                        Text("$approvedCount/${requiredTypes.size}", color = Color(0xFF4B79E6), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
                         Spacer(Modifier.width(12.dp))
-                        Text("1", color = Color(0xFF4B79E6), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
+                        Text(actionNeededCount.toString(), color = Color(0xFF4B79E6), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
                         Spacer(Modifier.width(4.dp))
-                        Text("PENDING", color = Color(0xFF7B88A2), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Text("ACTION NEEDED", color = Color(0xFF7B88A2), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -573,15 +598,18 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
             Spacer(Modifier.height(14.dp))
             Text("REQUIRED DOCUMENTATION", color = Color(0xFF6D7890), fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp, fontSize = 10.sp)
             Spacer(Modifier.height(8.dp))
-            DocumentRow("Driver's License", "Expires: Oct 24, 2026", "VERIFIED")
-            DocumentRow("Vehicle Insurance", "Expires in 12 Days", "EXPIRING SOON")
-            DocumentRow("Registration Certificate", "Expires: Jan 15, 2025", "VERIFIED")
-            DocumentRow("Health Insurance", "Expired: 3 Days ago", "EXPIRED")
+            requiredTypes.forEach { type ->
+                DocumentRow(type = type, document = docsByType[type])
+            }
             Spacer(Modifier.height(16.dp))
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
                 Column(Modifier.padding(14.dp)) {
                     Text("History", fontWeight = FontWeight.SemiBold, color = Color(0xFF2C3852))
-                    Text("View all previously submitted documents and verification logs for auditing purposes.", fontSize = 11.sp, color = Color(0xFF7B88A2))
+                    Text(
+                        "Total uploaded: ${driver?.documents.orEmpty().size}. Approved: ${driver?.documents.orEmpty().count { it.status == DocumentStatus.APPROVED }}.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF7B88A2)
+                    )
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -597,15 +625,39 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
 }
 
 @Composable
-private fun DocumentRow(title: String, subtitle: String, status: String) {
+private fun DocumentRow(type: DocumentType, document: Document?) {
+    val statusLabel = when (document?.status) {
+        DocumentStatus.APPROVED -> "VERIFIED"
+        DocumentStatus.PENDING -> "PENDING"
+        DocumentStatus.REJECTED -> "REJECTED"
+        null -> "MISSING"
+    }
+    val subtitle = when {
+        document == null -> "Not uploaded yet"
+        document.uploadedAt.isNullOrBlank() -> "Uploaded"
+        else -> "Uploaded: ${document.uploadedAt.take(10)}"
+    }
+
     Card(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF1FF)), shape = RoundedCornerShape(10.dp)) {
         Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
-                Text(title, fontWeight = FontWeight.Bold, color = Color(0xFF2C3852), fontSize = 14.sp)
+                Text(type.displayName, fontWeight = FontWeight.Bold, color = Color(0xFF2C3852), fontSize = 14.sp)
                 Text(subtitle, color = Color(0xFF6D7890), fontSize = 12.sp)
             }
-            Box(Modifier.background(Color(0xFFD2E2FF), RoundedCornerShape(999.dp)).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                Text(status, color = Color(0xFF4B79E6), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+            val pillColor = when (document?.status) {
+                DocumentStatus.APPROVED -> Color(0xFFD2E2FF)
+                DocumentStatus.PENDING -> Color(0xFFEAF1FF)
+                DocumentStatus.REJECTED -> Color(0xFFFFE2E2)
+                null -> Color(0xFFE5E7EB)
+            }
+            val textColor = when (document?.status) {
+                DocumentStatus.APPROVED -> Color(0xFF4B79E6)
+                DocumentStatus.PENDING -> Color(0xFF2F80ED)
+                DocumentStatus.REJECTED -> Color(0xFFB42318)
+                null -> Color(0xFF6B7280)
+            }
+            Box(Modifier.background(pillColor, RoundedCornerShape(999.dp)).padding(horizontal = 8.dp, vertical = 3.dp)) {
+                Text(statusLabel, color = textColor, fontWeight = FontWeight.Bold, fontSize = 9.sp)
             }
         }
     }

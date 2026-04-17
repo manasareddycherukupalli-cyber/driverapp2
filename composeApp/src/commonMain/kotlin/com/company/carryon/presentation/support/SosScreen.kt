@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.*
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.theme.*
@@ -27,6 +28,7 @@ import com.company.carryon.presentation.theme.*
  */
 @Composable
 fun SosScreen(navigator: AppNavigator) {
+    val strings = LocalStrings.current
     val viewModel = remember { SupportViewModel() }
     val sosState by viewModel.sosState.collectAsState()
     var showConfirmDialog by remember { mutableStateOf(false) }
@@ -37,7 +39,7 @@ fun SosScreen(navigator: AppNavigator) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         DriveAppTopBar(
-            title = "Emergency SOS",
+            title = strings.emergencySos,
             onBackClick = { navigator.goBack() }
         )
 
@@ -72,13 +74,13 @@ fun SosScreen(navigator: AppNavigator) {
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "Tap the button in case of emergency",
+                text = strings.tapInEmergency,
                 fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = "Your location will be shared with emergency services and your emergency contact",
+                text = strings.locationSharedWithEmergency,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -93,7 +95,7 @@ fun SosScreen(navigator: AppNavigator) {
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "✅ Emergency alert sent! Help is on the way.",
+                        text = strings.emergencyAlertSent,
                         modifier = Modifier.padding(16.dp),
                         color = Green500,
                         fontWeight = FontWeight.SemiBold,
@@ -106,14 +108,14 @@ fun SosScreen(navigator: AppNavigator) {
                 Spacer(Modifier.height(24.dp))
                 CircularProgressIndicator(color = Red500)
                 Spacer(Modifier.height(8.dp))
-                Text("Sending emergency alert...", color = Red500)
+                Text(strings.sendingEmergencyAlert, color = Red500)
             }
 
             Spacer(Modifier.height(32.dp))
 
             // Emergency contacts
             Text(
-                text = "Quick Contacts",
+                text = strings.quickContacts,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp,
                 modifier = Modifier.fillMaxWidth()
@@ -133,10 +135,10 @@ fun SosScreen(navigator: AppNavigator) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
             icon = { Text("🚨", fontSize = 32.sp) },
-            title = { Text("Trigger Emergency SOS?", fontWeight = FontWeight.Bold) },
+            title = { Text(strings.triggerEmergencySos, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "This will alert emergency services and share your live location. Only use in real emergencies.",
+                    strings.sosAlertWarning,
                     textAlign = TextAlign.Center
                 )
             },
@@ -148,12 +150,12 @@ fun SosScreen(navigator: AppNavigator) {
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Red500)
                 ) {
-                    Text("SEND SOS", fontWeight = FontWeight.Bold)
+                    Text(strings.sendSos, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
-                    Text("Cancel")
+                    Text(strings.cancel)
                 }
             }
         )

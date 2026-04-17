@@ -2,6 +2,9 @@ package com.company.carryon.data.network
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import android.Manifest
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -82,4 +85,19 @@ actual fun getLastKnownLocation(): Pair<Double, Double>? {
             Pair(loc.latitude, loc.longitude)
         } else null
     } catch (_: Exception) { null }
+}
+
+actual fun getLastKnownHeading(): Float = latestLocation?.bearing ?: 0f
+
+actual fun hasLocationPermission(): Boolean {
+    val ctx = appContext ?: return false
+    val fine = ContextCompat.checkSelfPermission(
+        ctx,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+    val coarse = ContextCompat.checkSelfPermission(
+        ctx,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+    return fine || coarse
 }

@@ -16,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 /**
  * HomeViewModel — Manages home dashboard state.
@@ -24,6 +25,9 @@ import kotlinx.coroutines.launch
 class HomeViewModel : ViewModel() {
     companion object {
         private const val INCOMING_POLL_MS = 30_000L
+        private const val INCOMING_QUEUE_LIMIT = 5
+        private const val OFFER_EXPIRY_MS = 60_000L
+        private const val OFFER_FADE_OUT_MS = 250L
     }
 
     private val authRepository = ServiceLocator.authRepository
@@ -47,13 +51,21 @@ class HomeViewModel : ViewModel() {
     private val _activeJobs = MutableStateFlow<UiState<List<DeliveryJob>>>(UiState.Idle)
     val activeJobs: StateFlow<UiState<List<DeliveryJob>>> = _activeJobs.asStateFlow()
 
-    // Incoming job request
-    private val _incomingJob = MutableStateFlow<DeliveryJob?>(null)
-    val incomingJob: StateFlow<DeliveryJob?> = _incomingJob.asStateFlow()
+    // Today's completed jobs for the summary section
+    private val _todayCompletedJobs = MutableStateFlow<UiState<List<DeliveryJob>>>(UiState.Idle)
+    val todayCompletedJobs: StateFlow<UiState<List<DeliveryJob>>> = _todayCompletedJobs.asStateFlow()
+
+    // Incoming job requests (sorted queue)
+    private val _incomingJobs = MutableStateFlow<List<DeliveryJob>>(emptyList())
+    val incomingJobs: StateFlow<List<DeliveryJob>> = _incomingJobs.asStateFlow()
 
     // Driver location for map display
     private val _driverLocation = MutableStateFlow<Pair<Double, Double>?>(null)
     val driverLocation: StateFlow<Pair<Double, Double>?> = _driverLocation.asStateFlow()
+
+    // Reverse-geocoded label shown on the map overlay
+    private val _currentLocationName = MutableStateFlow<String?>(null)
+    val currentLocationName: StateFlow<String?> = _currentLocationName.asStateFlow()
 
     // Map style URL
     private val _mapStyleUrl = MutableStateFlow("")
@@ -65,10 +77,14 @@ class HomeViewModel : ViewModel() {
     // Incoming job polling job
     private var jobPollingJob: Job? = null
     private var isIncomingPollRequestInFlight = false
+    private var offerExpiryJob: Job? = null
 
     // Client-side suppressed job IDs (rejected/accepted in-flight) to avoid popup reappearance races.
     private val suppressedIncomingJobIds = mutableSetOf<String>()
     private var acceptingJobId: String? = null
+    private val incomingOfferExpiryAtMillis = mutableMapOf<String, Long>()
+    private val _expiringIncomingJobIds = MutableStateFlow<Set<String>>(emptySet())
+    val expiringIncomingJobIds: StateFlow<Set<String>> = _expiringIncomingJobIds.asStateFlow()
     private val _acceptInFlight = MutableStateFlow(false)
     val acceptInFlight: StateFlow<Boolean> = _acceptInFlight.asStateFlow()
 
@@ -92,6 +108,7 @@ class HomeViewModel : ViewModel() {
         initLocationProvider()
         loadDashboardData()
         collectRealtimeJobs()
+        collectIncomingSignals()
         initOnlineStatusFromDriver()
         loadMapConfig()
         refreshDriverLocation()
@@ -110,7 +127,7 @@ class HomeViewModel : ViewModel() {
                     // Driver became available/refreshed — refresh dashboard data so stale errors clear.
                     loadDashboardData()
                     if (driver.isOnline) {
-                        startRealtimeSubscription()
+                        startRealtimeSubscription(driver.id)
                         registerFcmToken()
                         startLocationTracking()
                         startJobPolling()
@@ -118,6 +135,7 @@ class HomeViewModel : ViewModel() {
                         stopRealtimeSubscription()
                         stopLocationTracking()
                         stopJobPolling()
+                        clearIncomingOffers()
                     }
                 }
         }
@@ -127,6 +145,7 @@ class HomeViewModel : ViewModel() {
     fun loadDashboardData() {
         loadEarnings()
         loadActiveJobs()
+        loadTodayCompletedJobs()
         loadNotifications()
     }
 
@@ -140,7 +159,7 @@ class HomeViewModel : ViewModel() {
                     _isOnline.value = newStatus
                     if (newStatus) {
                         checkForIncomingJobs()
-                        startRealtimeSubscription()
+                        currentDriver.value?.id?.let { startRealtimeSubscription(it) }
                         registerFcmToken()
                         startLocationTracking()
                         startJobPolling()
@@ -148,6 +167,7 @@ class HomeViewModel : ViewModel() {
                         stopRealtimeSubscription()
                         stopLocationTracking()
                         stopJobPolling()
+                        clearIncomingOffers()
                     }
                 }
                 .onFailure { _toastError.tryEmit(it.message ?: "Failed to update status") }
@@ -162,9 +182,9 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    private fun startRealtimeSubscription() {
+    private fun startRealtimeSubscription(driverId: String) {
         viewModelScope.launch {
-            RealtimeJobService.startListening(viewModelScope)
+            RealtimeJobService.startListening(driverId, viewModelScope)
         }
     }
 
@@ -186,6 +206,14 @@ class HomeViewModel : ViewModel() {
     fun refreshDriverLocation() {
         getLastKnownLocation()?.let { loc ->
             _driverLocation.value = loc
+            reverseGeocodeLocation(loc.first, loc.second)
+        }
+    }
+
+    private fun reverseGeocodeLocation(lat: Double, lng: Double) {
+        viewModelScope.launch {
+            LocationApi.reverseGeocode(lat, lng)
+                .onSuccess { name -> if (name.isNotBlank()) _currentLocationName.value = name }
         }
     }
 
@@ -203,6 +231,7 @@ class HomeViewModel : ViewModel() {
                     _driverLocation.value = Pair(lat, lng)
                     authRepository.updateLocation(lat, lng)
                         .onFailure { _toastError.tryEmit("Location update failed") }
+                    if (!firstFixSent) reverseGeocodeLocation(lat, lng)
                     firstFixSent = true
                 }
                 delay(if (firstFixSent) 30_000L else 2_000L)
@@ -216,34 +245,15 @@ class HomeViewModel : ViewModel() {
         locationTrackingJob = null
     }
 
-    /** Poll /incoming every 30 seconds as a fallback in case Supabase Realtime misses events.
-     *  Also fires immediately on start and when an FCM JOB_REQUEST push signals a pending check. */
+    /** Poll /incoming every 30 seconds as a fallback in case Supabase Realtime or FCM misses an event. */
     private fun startJobPolling() {
         if (jobPollingJob?.isActive == true) return
         jobPollingJob = viewModelScope.launch {
             var firstPoll = true
             while (isActive) {
-                // Check immediately on first iteration or if FCM signalled a job; otherwise wait.
-                val fcmTriggered = IncomingJobSignal.pendingCheck
-                if (!firstPoll && !fcmTriggered) delay(INCOMING_POLL_MS)
-                IncomingJobSignal.pendingCheck = false
+                if (!firstPoll) delay(INCOMING_POLL_MS)
                 firstPoll = false
-
-                if (_incomingJob.value == null && !isIncomingPollRequestInFlight) {
-                    isIncomingPollRequestInFlight = true
-                    jobRepository.getIncomingRequest()
-                        .onSuccess { job ->
-                            if (
-                                job != null &&
-                                job.id !in suppressedIncomingJobIds &&
-                                job.id != acceptingJobId
-                            ) {
-                                _incomingJob.value = job
-                            }
-                        }
-                        .onFailure { _toastError.tryEmit(it.message ?: "Failed to fetch incoming jobs") }
-                    isIncomingPollRequestInFlight = false
-                }
+                refreshIncomingOffers()
             }
         }
     }
@@ -253,25 +263,153 @@ class HomeViewModel : ViewModel() {
         jobPollingJob = null
     }
 
+    private fun startOfferExpiryLoop() {
+        if (offerExpiryJob?.isActive == true) return
+        offerExpiryJob = viewModelScope.launch {
+            while (isActive) {
+                pruneExpiredOffers()
+                delay(1000L)
+            }
+        }
+    }
+
+    private fun stopOfferExpiryLoop() {
+        offerExpiryJob?.cancel()
+        offerExpiryJob = null
+    }
+
+    private fun sortAndCapOffers(jobs: List<DeliveryJob>): List<DeliveryJob> {
+        return jobs
+            .sortedWith { a, b ->
+                val payoutDiff = b.estimatedEarnings.compareTo(a.estimatedEarnings)
+                if (payoutDiff != 0) {
+                    payoutDiff
+                } else {
+                    (b.createdAt ?: "").compareTo(a.createdAt ?: "")
+                }
+            }
+            .take(INCOMING_QUEUE_LIMIT)
+    }
+
+    private fun pruneExpiredOffers() {
+        val now = Clock.System.now().toEpochMilliseconds()
+        val expiringIds = _expiringIncomingJobIds.value
+        val expiredJobIds = _incomingJobs.value
+            .map { it.id }
+            .filter { jobId ->
+                val expiryAtMillis = incomingOfferExpiryAtMillis[jobId] ?: 0L
+                expiryAtMillis <= now && jobId !in expiringIds
+            }
+
+        if (expiredJobIds.isNotEmpty()) {
+            beginOfferExpiry(expiredJobIds)
+        } else if (_incomingJobs.value.isEmpty()) {
+            stopOfferExpiryLoop()
+        }
+    }
+
+    private fun mergeIncomingOffers(newJobs: List<DeliveryJob>) {
+        val now = Clock.System.now().toEpochMilliseconds()
+        val mergedById = LinkedHashMap<String, DeliveryJob>()
+
+        (_incomingJobs.value + newJobs).forEach { job ->
+            if (job.id in suppressedIncomingJobIds) return@forEach
+            if (job.id == acceptingJobId) return@forEach
+            val expiryAtMillis = incomingOfferExpiryAtMillis[job.id]
+                ?: job.offerExpiryInstant?.toEpochMilliseconds()
+                ?: (now + OFFER_EXPIRY_MS)
+
+            incomingOfferExpiryAtMillis[job.id] = expiryAtMillis
+            if (expiryAtMillis <= now) {
+                suppressExpiredOffer(job.id)
+                return@forEach
+            }
+            mergedById[job.id] = job
+        }
+
+        _incomingJobs.value = sortAndCapOffers(mergedById.values.toList())
+        val aliveIds = _incomingJobs.value.map { it.id }.toSet()
+        incomingOfferExpiryAtMillis.keys.retainAll(aliveIds + _expiringIncomingJobIds.value)
+        pruneExpiredOffers()
+        if (_incomingJobs.value.isNotEmpty()) {
+            startOfferExpiryLoop()
+        }
+    }
+
+    private fun removeOffer(jobId: String) {
+        _incomingJobs.value = _incomingJobs.value.filterNot { it.id == jobId }
+        incomingOfferExpiryAtMillis.remove(jobId)
+        _expiringIncomingJobIds.value = _expiringIncomingJobIds.value - jobId
+        if (_incomingJobs.value.isEmpty()) {
+            stopOfferExpiryLoop()
+        }
+    }
+
     private fun collectRealtimeJobs() {
         viewModelScope.launch {
             RealtimeJobService.incomingJobs.collect { job ->
-                // Only show if no job popup is currently displayed
-                if (
-                    _incomingJob.value == null &&
-                    job.id !in suppressedIncomingJobIds &&
-                    job.id != acceptingJobId
-                ) {
-                    _incomingJob.value = job
+                mergeIncomingOffers(listOf(job))
+            }
+        }
+    }
+
+    private fun collectIncomingSignals() {
+        viewModelScope.launch {
+            IncomingJobSignal.events.collect {
+                if (_isOnline.value) {
+                    refreshIncomingOffers()
                 }
             }
         }
+    }
+
+    private fun refreshIncomingOffers() {
+        if (isIncomingPollRequestInFlight) return
+        isIncomingPollRequestInFlight = true
+        viewModelScope.launch {
+            jobRepository.getIncomingRequests()
+                .onSuccess { jobs -> mergeIncomingOffers(jobs) }
+                .onFailure { _toastError.tryEmit(it.message ?: "Failed to fetch incoming jobs") }
+            isIncomingPollRequestInFlight = false
+        }
+    }
+
+    private fun beginOfferExpiry(jobIds: List<String>) {
+        if (jobIds.isEmpty()) return
+        val pendingIds = jobIds.filterNot { it in _expiringIncomingJobIds.value }
+        if (pendingIds.isEmpty()) return
+
+        _expiringIncomingJobIds.value = _expiringIncomingJobIds.value + pendingIds
+        suppressedIncomingJobIds.addAll(pendingIds)
+
+        pendingIds.forEach { jobId ->
+            suppressExpiredOffer(jobId)
+            viewModelScope.launch {
+                delay(OFFER_FADE_OUT_MS)
+                removeOffer(jobId)
+            }
+        }
+    }
+
+    private fun suppressExpiredOffer(jobId: String) {
+        suppressedIncomingJobIds.add(jobId)
+        viewModelScope.launch {
+            jobRepository.rejectJob(jobId)
+        }
+    }
+
+    private fun clearIncomingOffers() {
+        _incomingJobs.value = emptyList()
+        incomingOfferExpiryAtMillis.clear()
+        _expiringIncomingJobIds.value = emptySet()
+        stopOfferExpiryLoop()
     }
 
     override fun onCleared() {
         super.onCleared()
         stopLocationTracking()
         stopJobPolling()
+        stopOfferExpiryLoop()
         viewModelScope.launch {
             RealtimeJobService.stopListening()
         }
@@ -315,12 +453,28 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    /** Load today's completed jobs for the summary section */
+    private fun loadTodayCompletedJobs() {
+        viewModelScope.launch {
+            _todayCompletedJobs.value = UiState.Loading
+            jobRepository.getCompletedJobs()
+                .onSuccess { jobs ->
+                    val todayPrefix = Clock.System.now().toString().take(10) // "YYYY-MM-DD"
+                    val todayJobs = jobs.filter { job ->
+                        (job.deliveredAt ?: job.completedAt ?: job.createdAt)
+                            ?.startsWith(todayPrefix) == true
+                    }
+                    _todayCompletedJobs.value = UiState.Success(todayJobs)
+                }
+                .onFailure {
+                    _todayCompletedJobs.value = UiState.Error(it.message ?: "Failed to load")
+                }
+        }
+    }
+
     /** Check for incoming job requests (simulated polling) */
     private fun checkForIncomingJobs() {
-        viewModelScope.launch {
-            jobRepository.getIncomingRequest()
-                .onSuccess { _incomingJob.value = it }
-        }
+        refreshIncomingOffers()
     }
 
     /** Load notifications */
@@ -351,22 +505,23 @@ class HomeViewModel : ViewModel() {
     }
 
     /** Accept incoming job request */
-    fun acceptIncomingJob() {
-        val job = _incomingJob.value ?: return
+    fun acceptIncomingJob(jobId: String, onAccepted: ((DeliveryJob) -> Unit)? = null) {
+        val job = _incomingJobs.value.firstOrNull { it.id == jobId } ?: return
         if (_acceptInFlight.value) return
         acceptingJobId = job.id
         suppressedIncomingJobIds.add(job.id)
-        _incomingJob.value = null
+        removeOffer(job.id)
         _acceptInFlight.value = true
         viewModelScope.launch {
             val result = jobRepository.acceptJob(job.id)
             result
-                .onSuccess {
+                .onSuccess { acceptedJob ->
                     loadActiveJobs()
+                    onAccepted?.invoke(acceptedJob)
                 }
                 .onFailure {
                     suppressedIncomingJobIds.remove(job.id)
-                    _incomingJob.value = job
+                    mergeIncomingOffers(listOf(job))
                     _toastError.tryEmit(it.message ?: "Failed to accept job")
                 }
             _acceptInFlight.value = false
@@ -375,11 +530,11 @@ class HomeViewModel : ViewModel() {
     }
 
     /** Reject incoming job request */
-    fun rejectIncomingJob() {
-        val job = _incomingJob.value ?: return
+    fun rejectIncomingJob(jobId: String) {
+        val job = _incomingJobs.value.firstOrNull { it.id == jobId } ?: return
         // Track client-side immediately so polling doesn't re-show it before server records it
         suppressedIncomingJobIds.add(job.id)
-        _incomingJob.value = null
+        removeOffer(job.id)
         viewModelScope.launch {
             jobRepository.rejectJob(job.id)
                 .onFailure { _toastError.tryEmit(it.message ?: "Failed to reject job") }
@@ -387,7 +542,7 @@ class HomeViewModel : ViewModel() {
     }
 
     /** Dismiss incoming job popup */
-    fun dismissIncomingJob() {
-        _incomingJob.value = null
+    fun dismissIncomingJob(jobId: String) {
+        removeOffer(jobId)
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -25,12 +26,15 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -38,32 +42,46 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DeliveryJob
 import com.company.carryon.data.model.JobStatus
-import com.company.carryon.data.model.LocationInfo
-import com.company.carryon.data.model.PackageSize
+import com.company.carryon.data.model.LatLng
 import com.company.carryon.data.model.UiState
+import com.company.carryon.data.model.displayDurationMinutes
+import com.company.carryon.data.network.LocationApi
+import com.company.carryon.data.network.getLastKnownLocation
+import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.presentation.components.ErrorState
 import com.company.carryon.presentation.components.LoadingScreen
+import com.company.carryon.presentation.components.MapMarker
+import com.company.carryon.presentation.components.MapViewComposable
+import com.company.carryon.presentation.components.MarkerColor
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.job_dispatch_section
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import org.jetbrains.compose.resources.painterResource
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private val DispatchBlue = Color(0xFF4D7EE7)
 private val DispatchBg = Color(0xFFF6F7FB)
 private val CardBg = Color(0xFFF3F5FA)
 private val TextDark = Color(0xFF222631)
-private val TextMuted = Color(0xFF717A8D)
+private val TextMuted = Color(0xFF4F5B72)
 
 @Composable
 fun JobDetailsScreen(navigator: AppNavigator) {
@@ -77,10 +95,9 @@ fun JobDetailsScreen(navigator: AppNavigator) {
 
     when (val state = jobDetailsState) {
         is UiState.Loading, UiState.Idle -> LoadingScreen()
-        is UiState.Error -> JobDetailsContent(
-            job = fallbackDispatchJob(jobId),
-            navigator = navigator,
-            onUpdateStatus = {}
+        is UiState.Error -> ErrorState(
+            message = state.message,
+            onRetry = { jobId?.let { viewModel.loadJobDetails(it) } }
         )
         is UiState.Success -> JobDetailsContent(
             job = state.data,
@@ -96,6 +113,45 @@ private fun JobDetailsContent(
     navigator: AppNavigator,
     onUpdateStatus: (JobStatus) -> Unit
 ) {
+    var driverLocation by remember(job.id) { mutableStateOf<Pair<Double, Double>?>(null) }
+    var routeGeometry by remember(job.id) { mutableStateOf<List<LatLng>?>(null) }
+    var routeDistanceKm by remember(job.id) { mutableStateOf(0.0) }
+    var routeEtaMinutes by remember(job.id) { mutableStateOf(0) }
+    var routeLoading by remember(job.id) { mutableStateOf(true) }
+
+    val hasPickupCoordinates = remember(job.pickup.latitude, job.pickup.longitude) {
+        isValidCoordinate(job.pickup.latitude, job.pickup.longitude)
+    }
+
+    LaunchedEffect(job.id, job.pickup.latitude, job.pickup.longitude) {
+        routeLoading = true
+        while (isActive) {
+            val location = getLastKnownLocation()
+            driverLocation = location?.takeIf { isValidCoordinate(it.first, it.second) }
+
+            val currentDriverLocation = driverLocation
+            if (currentDriverLocation != null && hasPickupCoordinates) {
+                LocationApi.calculateRoute(
+                    originLat = currentDriverLocation.first,
+                    originLng = currentDriverLocation.second,
+                    destLat = job.pickup.latitude,
+                    destLng = job.pickup.longitude
+                ).onSuccess { result ->
+                    routeDistanceKm = result.distance
+                    routeEtaMinutes = result.duration.takeIf { it > 0 } ?: estimateMinutesFromDistance(result.distance)
+                    routeGeometry = result.geometry
+                }.onFailure {
+                    routeGeometry = null
+                }
+            }
+            routeLoading = false
+            delay(15_000L)
+        }
+    }
+
+    val effectiveDistanceKm = routeDistanceKm.takeIf { it > 0.0 } ?: job.distance
+    val effectiveEtaMinutes = routeEtaMinutes.takeIf { it > 0 } ?: job.displayDurationMinutes
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -109,7 +165,15 @@ private fun JobDetailsContent(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             DispatchTopBar(onBack = { navigator.goBack() })
-            DispatchMapHero()
+            DispatchMapHero(
+                pickupLat = job.pickup.latitude,
+                pickupLng = job.pickup.longitude,
+                driverLocation = driverLocation,
+                routeGeometry = routeGeometry,
+                distanceKm = effectiveDistanceKm,
+                etaMinutes = effectiveEtaMinutes,
+                loading = routeLoading
+            )
             OrderSummaryCard(job)
             RouteCard(job)
             CustomerCard(job)
@@ -124,6 +188,7 @@ private fun JobDetailsContent(
 
 @Composable
 private fun DispatchTopBar(onBack: () -> Unit) {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,10 +204,10 @@ private fun DispatchTopBar(onBack: () -> Unit) {
                 modifier = Modifier.size(18.dp).clickable { onBack() }
             )
             Spacer(Modifier.width(8.dp))
-            Text("Dispatch", color = DispatchBlue, fontWeight = FontWeight.Bold, fontSize = 26.sp)
+            Text(strings.dispatch, color = DispatchBlue, fontWeight = FontWeight.Bold, fontSize = 26.sp)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("JOB DETAILS", color = TextMuted, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+            Text(strings.jobDetails, color = TextMuted, fontWeight = FontWeight.Bold, fontSize = 9.sp)
             Spacer(Modifier.width(8.dp))
             Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = DispatchBlue, modifier = Modifier.size(26.dp))
         }
@@ -150,42 +215,144 @@ private fun DispatchTopBar(onBack: () -> Unit) {
 }
 
 @Composable
-private fun DispatchMapHero() {
+private fun DispatchMapHero(
+    pickupLat: Double,
+    pickupLng: Double,
+    driverLocation: Pair<Double, Double>?,
+    routeGeometry: List<LatLng>?,
+    distanceKm: Double,
+    etaMinutes: Int,
+    loading: Boolean
+) {
+    val hasPickup = isValidCoordinate(pickupLat, pickupLng)
+
+    val markers = buildList {
+        if (driverLocation != null) {
+            add(MapMarker(id = "driver", lat = driverLocation.first, lng = driverLocation.second, title = "You", color = MarkerColor.BLUE))
+        }
+        if (hasPickup) {
+            add(MapMarker(id = "pickup", lat = pickupLat, lng = pickupLng, title = "Pickup", color = MarkerColor.GREEN))
+        }
+    }
+
+    val centerLat = driverLocation?.first ?: pickupLat
+    val centerLng = driverLocation?.second ?: pickupLng
+
     Card(
-        modifier = Modifier.fillMaxWidth().height(232.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(232.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF12202E))
     ) {
-        Image(
-            painter = painterResource(Res.drawable.job_dispatch_section),
-            contentDescription = "Estimated time section",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+        Box(Modifier.fillMaxSize()) {
+            if (hasPickup) {
+                MapViewComposable(
+                    modifier = Modifier.fillMaxSize(),
+                    centerLat = centerLat,
+                    centerLng = centerLng,
+                    zoom = if (driverLocation != null) 14.0 else 13.0,
+                    markers = markers,
+                    routeGeometry = routeGeometry,
+                    showDriverLocation = driverLocation != null
+                )
+            } else {
+                Image(
+                    painter = painterResource(Res.drawable.job_dispatch_section),
+                    contentDescription = "Dispatch map placeholder",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MetricPill(
+                    icon = Icons.Filled.MyLocation,
+                    text = if (!loading && distanceKm > 0) "${formatOneDecimal(distanceKm)} km" else "-- km"
+                )
+                MetricPill(
+                    icon = Icons.Filled.Schedule,
+                    text = if (!loading && etaMinutes > 0) "$etaMinutes MIN" else "-- MIN"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricPill(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color(0xFFEAEFF6))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = DispatchBlue, modifier = Modifier.size(14.dp))
+        DisableSelection {
+            Text(text, color = TextDark, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+        }
     }
 }
 
 @Composable
 private fun OrderSummaryCard(job: DeliveryJob) {
+    val strings = LocalStrings.current
+    val displayOrderId = remember(job.id, job.displayOrderId) {
+        job.displayOrderId.takeIf { it.isNotBlank() }
+            ?: "ORD-${job.id.takeLast(6).uppercase()}"
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column {
-                Text("ORDER ID", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                Text("#${job.id}", color = TextDark, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(strings.orderId, color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    displayOrderId,
+                    color = TextDark,
+                    fontSize = 30.sp,
+                    lineHeight = 34.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("POTENTIAL EARNINGS", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                Text("RM ${job.estimatedEarnings.toInt()}", color = DispatchBlue, fontSize = 37.sp, fontWeight = FontWeight.ExtraBold)
+            HorizontalDivider(color = Color(0xFFE8ECF5))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    strings.potentialEarnings,
+                    color = TextMuted,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    "RM ${job.estimatedEarnings.toInt()}",
+                    color = DispatchBlue,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1
+                )
             }
         }
     }
@@ -193,6 +360,7 @@ private fun OrderSummaryCard(job: DeliveryJob) {
 
 @Composable
 private fun RouteCard(job: DeliveryJob) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -200,13 +368,13 @@ private fun RouteCard(job: DeliveryJob) {
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             RouteStop(
-                label = "PICKUP",
+                label = strings.pickup,
                 title = job.pickup.shortAddress.ifBlank { job.pickup.address },
                 subtitle = job.pickup.address,
                 highlight = DispatchBlue
             )
             RouteStop(
-                label = "DROP-OFF",
+                label = strings.dropOff,
                 title = job.dropoff.shortAddress.ifBlank { job.dropoff.address },
                 subtitle = job.dropoff.address,
                 highlight = DispatchBlue,
@@ -250,6 +418,7 @@ private fun RouteStop(
 
 @Composable
 private fun CustomerCard(job: DeliveryJob) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -268,7 +437,7 @@ private fun CustomerCard(job: DeliveryJob) {
                 }
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text("CUSTOMER", color = TextMuted, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    Text(strings.customer, color = TextMuted, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                     Text(job.customerName, color = TextDark, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Text("★ 4.9", color = DispatchBlue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 }
@@ -296,13 +465,14 @@ private fun CircleActionIcon(icon: androidx.compose.ui.graphics.vector.ImageVect
 
 @Composable
 private fun PackageCard(job: DeliveryJob) {
+    val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = CardBg)
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("PACKAGE DETAILS", color = TextMuted, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+            Text(strings.packageDetails, color = TextMuted, fontWeight = FontWeight.Bold, fontSize = 10.sp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFD5E5FF)), contentAlignment = Alignment.Center) {
                     Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = DispatchBlue, modifier = Modifier.size(18.dp))
@@ -338,11 +508,12 @@ private fun StartDeliveryButton(
     navigator: AppNavigator,
     onUpdateStatus: (JobStatus) -> Unit
 ) {
+    val strings = LocalStrings.current
     val label = when (job.status) {
-        JobStatus.ACCEPTED -> "Start Delivery"
-        JobStatus.HEADING_TO_PICKUP, JobStatus.ARRIVED_AT_PICKUP, JobStatus.PICKED_UP, JobStatus.IN_TRANSIT -> "Continue Delivery"
-        JobStatus.ARRIVED_AT_DROP -> "Complete Delivery"
-        else -> "Start Delivery"
+        JobStatus.ACCEPTED -> strings.startDelivery
+        JobStatus.HEADING_TO_PICKUP, JobStatus.ARRIVED_AT_PICKUP, JobStatus.PICKED_UP, JobStatus.IN_TRANSIT -> strings.continueDelivery
+        JobStatus.ARRIVED_AT_DROP -> strings.completeDelivery
+        else -> strings.startDelivery
     }
 
     Button(
@@ -372,6 +543,7 @@ private fun StartDeliveryButton(
 
 @Composable
 private fun ReportIssueButton() {
+    val strings = LocalStrings.current
     OutlinedButton(
         onClick = {},
         modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -379,12 +551,13 @@ private fun ReportIssueButton() {
         colors = ButtonDefaults.outlinedButtonColors(contentColor = DispatchBlue),
         border = androidx.compose.foundation.BorderStroke(2.dp, DispatchBlue)
     ) {
-        Text("Report Issue", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(strings.reportIssue, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
 private fun DispatchBottomBar() {
+    val strings = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -393,10 +566,10 @@ private fun DispatchBottomBar() {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BottomItem("Deliveries", Icons.Filled.LocalShipping, selected = false)
-        BottomItem("Earnings", Icons.Filled.AccountCircle, selected = true)
-        BottomItem("Inbox", Icons.Filled.MailOutline, selected = false)
-        BottomItem("Account", Icons.Filled.Person, selected = false)
+        BottomItem(strings.deliveriesLabel, Icons.Filled.LocalShipping, selected = false)
+        BottomItem(strings.earnings, Icons.Filled.AccountCircle, selected = true)
+        BottomItem(strings.inboxLabel, Icons.Filled.MailOutline, selected = false)
+        BottomItem(strings.accountLabel, Icons.Filled.Person, selected = false)
     }
 }
 
@@ -415,25 +588,20 @@ private fun BottomItem(label: String, icon: androidx.compose.ui.graphics.vector.
     }
 }
 
-private fun fallbackDispatchJob(jobId: String?): DeliveryJob {
-    return DeliveryJob(
-        id = if (jobId.isNullOrBlank()) "CR-4872" else jobId,
-        status = JobStatus.ACCEPTED,
-        pickup = LocationInfo(
-            address = "Jalan Bukit Bintang, Kuala Lumpur, 55100",
-            shortAddress = "Jalan Bukit Bintang"
-        ),
-        dropoff = LocationInfo(
-            address = "Ara Damansara, Petaling Jaya, 47301",
-            shortAddress = "Ara Damansara"
-        ),
-        customerName = "Nurul Ain",
-        customerPhone = "+60 12-555 8493",
-        packageType = "Parcel",
-        packageSize = PackageSize.SMALL,
-        estimatedEarnings = 68.0,
-        distance = 1.4,
-        estimatedDuration = 24,
-        notes = "Fragile"
-    )
+private fun isValidCoordinate(lat: Double, lng: Double): Boolean {
+    return lat in -90.0..90.0 && lng in -180.0..180.0 && (lat != 0.0 || lng != 0.0)
+}
+
+private fun estimateMinutesFromDistance(distanceKm: Double): Int {
+    if (distanceKm <= 0.0) return 0
+    return kotlin.math.ceil((distanceKm / 30.0) * 60.0).toInt().coerceAtLeast(1)
+}
+
+private fun formatOneDecimal(value: Double): String {
+    val scaled = (value * 10).roundToInt()
+    val absScaled = abs(scaled)
+    val whole = absScaled / 10
+    val fraction = absScaled % 10
+    val sign = if (scaled < 0) "-" else ""
+    return "$sign$whole.$fraction"
 }

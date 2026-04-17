@@ -10,7 +10,9 @@ import platform.UIKit.UIApplication
 import platform.UIKit.UIImage
 import platform.UIKit.UIImageJPEGRepresentation
 import platform.UIKit.UIImagePickerController
+import platform.UIKit.UIImagePickerControllerCameraDevice
 import platform.UIKit.UIImagePickerControllerDelegateProtocol
+import platform.UIKit.UIImagePickerControllerEditedImage
 import platform.UIKit.UIImagePickerControllerOriginalImage
 import platform.UIKit.UIImagePickerControllerSourceType
 import platform.UIKit.UINavigationControllerDelegateProtocol
@@ -27,7 +29,13 @@ actual class ImagePickerLauncher(
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     actual fun launch() {
         val picker = UIImagePickerController()
-        picker.sourceType = UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypePhotoLibrary
+        val cameraSource = UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypeCamera
+        val librarySource = UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypePhotoLibrary
+        val hasCamera = UIImagePickerController.isSourceTypeAvailable(cameraSource)
+        picker.sourceType = if (hasCamera) cameraSource else librarySource
+        if (hasCamera) {
+            picker.cameraDevice = UIImagePickerControllerCameraDevice.UIImagePickerControllerCameraDeviceFront
+        }
 
         val launcher = this
         val delegate = object : NSObject(),
@@ -39,7 +47,8 @@ actual class ImagePickerLauncher(
                 didFinishPickingMediaWithInfo: Map<Any?, *>
             ) {
                 @Suppress("UNCHECKED_CAST")
-                val image = didFinishPickingMediaWithInfo[UIImagePickerControllerOriginalImage] as? UIImage
+                val image = (didFinishPickingMediaWithInfo[UIImagePickerControllerEditedImage] as? UIImage)
+                    ?: (didFinishPickingMediaWithInfo[UIImagePickerControllerOriginalImage] as? UIImage)
                 image?.let {
                     val data: NSData? = UIImageJPEGRepresentation(it, 0.8)
                     data?.let { nsData ->

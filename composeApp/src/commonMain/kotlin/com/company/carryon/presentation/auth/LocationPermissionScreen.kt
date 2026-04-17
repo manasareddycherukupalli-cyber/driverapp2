@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -22,7 +23,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
+import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
 import drive_app.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
@@ -34,7 +37,14 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun LocationPermissionScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     val latestAuthResponse by authViewModel.latestAuthResponse.collectAsState()
+    if (latestAuthResponse == null) {
+        LaunchedEffect(Unit) {
+            navigator.navigateAndClearStack(Screen.Onboarding)
+        }
+        return
+    }
     val nextScreen = authViewModel.determinePostLocationScreen(latestAuthResponse)
+    val strings = LocalStrings.current
 
     Column(
         modifier = Modifier
@@ -91,15 +101,10 @@ fun LocationPermissionScreen(navigator: AppNavigator, authViewModel: AuthViewMod
 
         // ---- Title ----
         Text(
-            text = buildAnnotatedString {
-                withStyle(SpanStyle(color = Color(0xFF1A1A2E), fontWeight = FontWeight.Bold)) {
-                    append("Enable Your\n")
-                }
-                withStyle(SpanStyle(color = Orange500, fontWeight = FontWeight.Bold)) {
-                    append("Location")
-                }
-            },
+            text = strings.enableYourLocation,
             fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = Orange500,
             textAlign = TextAlign.Center,
             lineHeight = 36.sp,
             modifier = Modifier.fillMaxWidth()
@@ -128,7 +133,7 @@ fun LocationPermissionScreen(navigator: AppNavigator, authViewModel: AuthViewMod
                 )
             ) {
                 Text(
-                    text = "Use current location",
+                    text = strings.useCurrentLocation,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -147,7 +152,7 @@ fun LocationPermissionScreen(navigator: AppNavigator, authViewModel: AuthViewMod
                 border = androidx.compose.foundation.BorderStroke(1.5.dp, Orange500)
             ) {
                 Text(
-                    text = "Skip for now",
+                    text = strings.skipForNow,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )

@@ -15,50 +15,54 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DeliveryJob
+import com.company.carryon.data.model.LatLng
 import com.company.carryon.data.model.UiState
+import com.company.carryon.data.network.LocationApi
 import com.company.carryon.presentation.components.ErrorState
 import com.company.carryon.presentation.components.LoadingScreen
+import com.company.carryon.presentation.components.MapMarker
+import com.company.carryon.presentation.components.MapViewComposable
+import com.company.carryon.presentation.components.MarkerColor
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
-import drive_app.composeapp.generated.resources.Res
-import drive_app.composeapp.generated.resources.jobs_profile_avatar
-import org.jetbrains.compose.resources.painterResource
 
 private val JobsBlue = Color(0xFF2F80ED)
-private val JobsBlueLight = Color(0xFF97CBF1)
 private val JobsBg = Color(0xFFF4F5F8)
 private val JobsText = Color(0xFF202124)
-private val JobsMuted = Color(0xDE000000)
+private val JobsMuted = Color(0xFF7A8499)
 private val JobsDivider = Color(0x1A000000)
+private val JobsCardBg = Color.White
+private val JobsEarningsGreen = Color(0xFF27AE60)
 
 @Composable
 fun JobsListScreen(navigator: AppNavigator) {
     val viewModel = remember { JobsViewModel() }
-    val activeJobs by viewModel.activeJobs.collectAsState()
+    val completedJobs by viewModel.completedJobs.collectAsState()
 
     Column(
         modifier = Modifier
@@ -78,7 +82,7 @@ fun JobsListScreen(navigator: AppNavigator) {
         }
 
         Text(
-            "Jobs",
+            "Past Jobs",
             fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold,
             color = JobsText,
@@ -86,33 +90,41 @@ fun JobsListScreen(navigator: AppNavigator) {
         )
 
         Card(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(topStart = 27.dp, topEnd = 27.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
-            when (activeJobs) {
+            when (completedJobs) {
                 is UiState.Loading, UiState.Idle -> LoadingScreen()
-                is UiState.Error -> ErrorState((activeJobs as UiState.Error).message)
+                is UiState.Error -> ErrorState(
+                    (completedJobs as UiState.Error).message,
+                    onRetry = { viewModel.loadCompletedJobs() }
+                )
                 is UiState.Success -> {
-                    val jobs = (activeJobs as UiState.Success<List<DeliveryJob>>).data
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 18.dp),
-                        verticalArrangement = Arrangement.spacedBy(18.dp)
-                    ) {
-                        item { Spacer(Modifier.height(8.dp)) }
-                        items(jobs.take(3)) { job ->
-                            JobTruckItem(
-                                job = job,
-                                onOpen = {
-                                    navigator.selectedJobId = job.id
-                                    navigator.navigateTo(Screen.JobDetails)
-                                }
-                            )
+                    val jobs = (completedJobs as UiState.Success<List<DeliveryJob>>).data
+                    if (jobs.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("No past jobs yet", color = JobsMuted, fontSize = 15.sp)
                         }
-                        item { Spacer(Modifier.height(12.dp)) }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            item { Spacer(Modifier.height(8.dp)) }
+                            items(jobs) { job ->
+                                PastJobCard(
+                                    job = job,
+                                    onClick = {
+                                        navigator.selectedJobId = job.id
+                                        navigator.navigateTo(Screen.JobReceipt)
+                                    }
+                                )
+                            }
+                            item { Spacer(Modifier.height(16.dp)) }
+                        }
                     }
                 }
             }
@@ -121,101 +133,152 @@ fun JobsListScreen(navigator: AppNavigator) {
 }
 
 @Composable
-private fun JobTruckItem(job: DeliveryJob, onOpen: () -> Unit) {
-    val driverName = job.customerName.ifBlank { "Name" }
-    val taskName = job.packageType.ifBlank { "Chemical Delivery" }
-    val departed = job.scheduledAt?.takeIf { it.isNotBlank() } ?: "20 Feb, 05:00 PM"
-    val location = job.pickup.address.ifBlank { "123 Main Street, Anytown, IND 845103" }
+private fun PastJobCard(job: DeliveryJob, onClick: () -> Unit) {
+    val pickupLat = job.pickup.latitude
+    val pickupLng = job.pickup.longitude
+    val dropLat = job.dropoff.latitude
+    val dropLng = job.dropoff.longitude
+    val hasCoords = pickupLat != 0.0 || pickupLng != 0.0 || dropLat != 0.0 || dropLng != 0.0
 
-    Column(
+    val centerLat = when {
+        pickupLat != 0.0 && dropLat != 0.0 -> (pickupLat + dropLat) / 2
+        pickupLat != 0.0 -> pickupLat
+        else -> dropLat
+    }
+    val centerLng = when {
+        pickupLng != 0.0 && dropLng != 0.0 -> (pickupLng + dropLng) / 2
+        pickupLng != 0.0 -> pickupLng
+        else -> dropLng
+    }
+
+    val markers = buildList {
+        if (pickupLat != 0.0 || pickupLng != 0.0) add(MapMarker("pickup", pickupLat, pickupLng, "Pickup", MarkerColor.GREEN))
+        if (dropLat != 0.0 || dropLng != 0.0) add(MapMarker("drop", dropLat, dropLng, "Dropoff", MarkerColor.RED))
+    }
+
+    var routeGeometry by remember { mutableStateOf<List<LatLng>?>(null) }
+    LaunchedEffect(pickupLat, pickupLng, dropLat, dropLng) {
+        if (pickupLat != 0.0 && dropLat != 0.0) {
+            LocationApi.calculateRoute(pickupLat, pickupLng, dropLat, dropLng)
+                .onSuccess { result -> if (result.geometry.isNotEmpty()) routeGeometry = result.geometry }
+        }
+    }
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = JobsCardBg),
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        Text(
-            "These are the available truck",
-            fontSize = 12.7.sp,
-            color = Color.Black,
-            modifier = Modifier.padding(bottom = 10.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
+        Column {
+            // Map showing pickup → dropoff route
+            if (hasCoords) {
+                MapViewComposable(
                     modifier = Modifier
-                        .size(68.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE6E6E6)),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .height(160.dp),
+                    centerLat = centerLat,
+                    centerLng = centerLng,
+                    zoom = 11.0,
+                    markers = markers,
+                    routeGeometry = routeGeometry
+                )
+            }
+
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Order ID + earnings
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = painterResource(Res.drawable.jobs_profile_avatar),
-                        contentDescription = null,
-                        modifier = Modifier.size(68.dp)
+                    Column {
+                        Text(
+                            job.displayOrderId.let { if (it.isNotBlank()) if (it.startsWith("#")) it else "#$it" else "#${job.id.takeLast(8).uppercase()}" },
+                            color = JobsBlue,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        if (!job.completedAt.isNullOrBlank() || !job.deliveredAt.isNullOrBlank()) {
+                            val date = job.completedAt ?: job.deliveredAt ?: ""
+                            Text(date, color = JobsMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                    Text(
+                        "RM ${job.estimatedEarnings.toInt()}",
+                        color = JobsEarningsGreen,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 18.sp
                     )
                 }
-                Text(driverName, fontSize = 19.5.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
-            }
 
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                JobDetailLine("Task", taskName)
-                JobDetailLine("Departed", departed)
-                JobDetailLine("Current Location", location)
-                JobDetailLine("Trip Cost", "Rs ${job.estimatedEarnings.toInt().coerceAtLeast(10000)}")
+                HorizontalDivider(color = JobsDivider)
+
+                // Route: pickup → dropoff
+                RouteAddressRow(
+                    isPickup = true,
+                    address = job.pickup.address.ifBlank { "—" }
+                )
+                RouteAddressRow(
+                    isPickup = false,
+                    address = job.dropoff.address.ifBlank { "—" }
+                )
+
+                HorizontalDivider(color = JobsDivider)
+
+                // Stats row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    StatChip("Distance", "${job.distance.toInt()} km")
+                    StatChip("Duration", "${job.estimatedDuration} min")
+                    if (job.packageType.isNotBlank()) StatChip("Package", job.packageType)
+                }
             }
         }
+    }
+}
 
-        HorizontalDivider(
-            color = JobsDivider,
-            thickness = 1.dp,
-            modifier = Modifier.padding(top = 8.dp, bottom = 10.dp)
+@Composable
+private fun RouteAddressRow(isPickup: Boolean, address: String) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            Icons.Filled.Place,
+            contentDescription = null,
+            tint = if (isPickup) Color(0xFF27AE60) else Color(0xFFEB5757),
+            modifier = Modifier.size(16.dp).padding(top = 1.dp)
         )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { onOpen() }
-            ) {
-                Icon(Icons.Outlined.Call, contentDescription = null, tint = JobsBlue, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(10.dp))
-                Text("Get in Contact", fontSize = 13.65.sp, fontWeight = FontWeight.Medium, color = JobsBlue)
-            }
+        Column {
             Text(
-                "Decline",
-                fontSize = 13.65.sp,
-                fontWeight = FontWeight.Medium,
-                color = JobsBlueLight,
-                modifier = Modifier.clickable { }
+                if (isPickup) "Pickup" else "Dropoff",
+                color = JobsMuted,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                address,
+                color = JobsText,
+                fontSize = 12.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
 
 @Composable
-private fun JobDetailLine(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text(
-            text = label,
-            fontSize = 9.75.sp,
-            fontWeight = FontWeight.Medium,
-            color = JobsMuted,
-            modifier = Modifier.width(86.dp)
-        )
-        Text(
-            text = value,
-            fontSize = if (label == "Current Location") 9.5.sp else 9.75.sp,
-            color = Color.Black,
-            maxLines = if (label == "Current Location") 2 else 1
-        )
+private fun StatChip(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.Start) {
+        Text(label, color = JobsMuted, fontSize = 10.sp)
+        Text(value, color = JobsText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }

@@ -1,5 +1,6 @@
 package com.company.carryon.presentation.components
 
+import android.annotation.SuppressLint
 import android.graphics.Color as AndroidColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -12,6 +13,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng as GmsLatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
@@ -19,6 +21,7 @@ import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 
+@SuppressLint("MissingPermission")
 @Composable
 actual fun MapViewComposable(
     modifier: Modifier,
@@ -28,6 +31,7 @@ actual fun MapViewComposable(
     zoom: Double,
     markers: List<MapMarker>,
     routeGeometry: List<LatLng>?,
+    showDriverLocation: Boolean,
     onMapClick: ((Double, Double) -> Unit)?
 ) {
     val cameraPositionState = rememberCameraPositionState()
@@ -63,10 +67,15 @@ actual fun MapViewComposable(
         )
     }
 
+    val mapProperties = remember(showDriverLocation) {
+        MapProperties(isMyLocationEnabled = showDriverLocation)
+    }
+
     GoogleMap(
         modifier = modifier,
         cameraPositionState = cameraPositionState,
         uiSettings = uiSettings,
+        properties = mapProperties,
         onMapClick = { latLng ->
             onMapClick?.invoke(latLng.latitude, latLng.longitude)
         }

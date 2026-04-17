@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.network.SupabaseConfig
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.getPlatform
@@ -67,13 +68,19 @@ private fun mapAuthErrorMessage(error: Throwable): String {
  */
 @Composable
 fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
+    val strings = LocalStrings.current
     var email           by remember { mutableStateOf("") }
     var isLoading       by remember { mutableStateOf(false) }
     var errorMessage    by remember { mutableStateOf<String?>(null) }
+    var awaitingGoogleAuth by remember { mutableStateOf(false) }
     val coroutineScope  = rememberCoroutineScope()
 
     val otpSendState by authViewModel.otpSendState.collectAsState()
     val otpVerifyState by authViewModel.otpVerifyState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        authViewModel.resetOtpState()
+    }
 
     // Navigate after Google sign-in completes (skips OTP screen)
     LaunchedEffect(otpVerifyState) {
@@ -95,7 +102,8 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     // Listen for session changes (handles iOS OAuth callback)
     LaunchedEffect(Unit) {
         SupabaseConfig.client.auth.sessionStatus.collect { status ->
-            if (status is io.github.jan.supabase.auth.status.SessionStatus.Authenticated) {
+            if (awaitingGoogleAuth && status is io.github.jan.supabase.auth.status.SessionStatus.Authenticated) {
+                awaitingGoogleAuth = false
                 val session = SupabaseConfig.client.auth.currentSessionOrNull()
                 if (session != null && !isLoading) {
                     authViewModel.authFlowType = AuthFlowType.LOGIN
@@ -111,6 +119,7 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         onResult = { result ->
             when (result) {
                 is NativeSignInResult.Success -> {
+                    awaitingGoogleAuth = false
                     coroutineScope.launch {
                         val session = SupabaseConfig.client.auth.currentSessionOrNull()
                         if (session != null) {
@@ -121,11 +130,13 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                     }
                 }
                 is NativeSignInResult.Error -> {
+                    awaitingGoogleAuth = false
                     errorMessage = result.message
                 }
-                is NativeSignInResult.ClosedByUser -> { /* user cancelled */ }
+                is NativeSignInResult.ClosedByUser -> { awaitingGoogleAuth = false }
                 is NativeSignInResult.NetworkError -> {
-                    errorMessage = "Network error. Please check your connection."
+                    awaitingGoogleAuth = false
+                    errorMessage = strings.networkError
                 }
             }
         }
@@ -159,10 +170,10 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         Text(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = DesignBlack, fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
-                    append("Welcome to ")
+                    append(strings.welcomeTo)
                 }
                 withStyle(SpanStyle(color = DesignBlue, fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
-                    append("Carry On")
+                    append(strings.appName)
                 }
                 withStyle(SpanStyle(color = Color(0xFF333333), fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
                     append("!")
@@ -173,7 +184,7 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text     = "Hello there, Sign in to Continue",
+            text     = strings.signInToContinue,
             fontSize = 16.sp,
             color    = DesignBlack.copy(alpha = 0.8f)
         )
@@ -182,17 +193,17 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
 
         // ── Email address field ────────────────────────────────
         CarryInputField(
-            label         = "Email Address",
+            label         = strings.emailAddress,
             value         = email,
             onValueChange = { email = it },
-            placeholder   = "Enter your email",
+            placeholder   = strings.enterYourEmail,
             keyboardType  = KeyboardType.Email
         )
 
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "We'll send a verification code to your email",
+            text = strings.otpHint,
             fontSize = 13.sp,
             color = DesignGray
         )
@@ -248,7 +259,7 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                 )
             } else {
                 Text(
-                    text       = "Send Verification Code",
+                    text       = strings.sendVerificationCode,
                     fontWeight = FontWeight.SemiBold,
                     fontSize   = 18.sp,
                     color      = Color.White
@@ -265,7 +276,7 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         ) {
             HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
             Text(
-                text     = "Or",
+                text     = strings.or,
                 modifier = Modifier.padding(horizontal = 9.dp),
                 color    = DesignGray,
                 fontSize = 16.sp
@@ -285,13 +296,16 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             Spacer(Modifier.width(10.dp))
             SocialLoginButton(Res.drawable.ic_google) {
                 if (getPlatform().name.startsWith("Android")) {
+                    awaitingGoogleAuth = true
                     googleSignInAction.startFlow()
                 } else {
                     // iOS: use OAuth web flow
                     coroutineScope.launch {
                         try {
+                            awaitingGoogleAuth = true
                             SupabaseConfig.client.auth.signInWith(Google)
                         } catch (e: Exception) {
+                            awaitingGoogleAuth = false
                             errorMessage = e.message ?: "Google sign-in failed"
                         }
                     }
@@ -309,13 +323,13 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text     = "Don't have an Account ?",
+                text     = strings.dontHaveAccount,
                 fontSize = 12.sp,
                 color    = DesignBlack
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text       = "Sign up",
+                text       = strings.signUpLink,
                 fontSize   = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color      = DesignBlue,
