@@ -181,7 +181,7 @@ private fun OrderSummaryCard(job: DeliveryJob) {
         ) {
             Column {
                 Text("ORDER ID", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                Text("#${job.id}", color = TextDark, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold)
+                Text("#${job.id}", color = TextDark, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("POTENTIAL EARNINGS", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)

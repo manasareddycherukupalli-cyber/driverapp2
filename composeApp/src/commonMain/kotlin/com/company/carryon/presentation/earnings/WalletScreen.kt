@@ -188,6 +188,41 @@ private fun WalletStatsRow(wallet: WalletInfo) {
 }
 
 @Composable
+private fun TransactionItem(transaction: Transaction) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = transaction.description.ifBlank { transaction.type.displayName },
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = transaction.timestamp?.take(10) ?: "-",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = "RM${kotlin.math.abs(transaction.amount).toInt()}",
+                fontWeight = FontWeight.Bold,
+                color = if (transaction.amount >= 0) Green500 else MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+@Composable
 private fun WithdrawDialog(
     onDismiss: () -> Unit,
     onConfirm: (Double) -> Unit,

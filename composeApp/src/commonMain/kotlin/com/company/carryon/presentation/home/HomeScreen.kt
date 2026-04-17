@@ -184,6 +184,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
                 startedOnlineFlow = false
             }
         },
+        onEarningsClick = { navigator.switchTab(Screen.Earnings) },
         onLiveNavigationClick = { showLiveQueue = true },
         onViewAll = { navigator.switchToJobsTab(2) }
     )
@@ -199,6 +200,7 @@ private fun FinalHomeDashboard(
     onMenuClick: () -> Unit,
     onProfileClick: () -> Unit,
     onToggleOnline: () -> Unit,
+    onEarningsClick: () -> Unit,
     onLiveNavigationClick: () -> Unit,
     onViewAll: () -> Unit
 ) {
@@ -261,7 +263,9 @@ private fun FinalHomeDashboard(
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
             Card(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onEarningsClick() },
                 shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = HomeBlue)
             ) {

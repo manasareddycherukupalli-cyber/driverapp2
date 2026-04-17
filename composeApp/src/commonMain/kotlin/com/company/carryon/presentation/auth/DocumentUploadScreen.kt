@@ -190,7 +190,7 @@ fun DocumentUploadScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
         }
 
         Spacer(Modifier.height(18.dp))
-        androidx.compose.material3.Text("Verification Checklist", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        androidx.compose.material3.Text("Verification Checklist", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
         Spacer(Modifier.height(10.dp))
         ChecklistRow(
             title = "No Flash/Glare",
