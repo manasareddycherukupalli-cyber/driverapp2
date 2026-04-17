@@ -25,6 +25,10 @@ import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.theme.*
 
+private val WalletBlue = Color(0xFF2F80ED)
+private val WalletBlueDark = Color(0xFF1A6ED4)
+private val WalletBg = Color(0xFFF9F9FF)
+
 /**
  * WalletScreen — Wallet balance, withdrawal, and full transaction history.
  */
@@ -41,7 +45,7 @@ fun WalletScreen(navigator: AppNavigator) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(WalletBg)
     ) {
         DriveAppTopBar(
             title = strings.wallet,
@@ -122,7 +126,7 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
                 .fillMaxWidth()
                 .background(
                     brush = Brush.horizontalGradient(
-                        colors = listOf(Green500, Color(0xFF2E7D32))
+                        colors = listOf(WalletBlue, WalletBlueDark)
                     ),
                     shape = RoundedCornerShape(20.dp)
                 )
@@ -147,7 +151,7 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = onWithdraw,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Green500),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = WalletBlue),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Filled.AccountBalance, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -178,14 +182,14 @@ private fun WalletStatsRow(wallet: WalletInfo) {
             title = strings.lifetimeLabel,
             value = "RM ${(wallet.lifetimeEarnings / 1000).toInt()}K",
             icon = Icons.Filled.TrendingUp,
-            iconTint = Green500,
+            iconTint = WalletBlue,
             modifier = Modifier.weight(1f)
         )
         StatCard(
             title = strings.lastPayout,
             value = "RM ${(wallet.lastPayout ?: 0.0).toInt()}",
             icon = Icons.Filled.Payment,
-            iconTint = Blue500,
+            iconTint = WalletBlueDark,
             modifier = Modifier.weight(1f)
         )
     }
@@ -220,7 +224,7 @@ private fun TransactionItem(transaction: Transaction) {
             Text(
                 text = "RM${kotlin.math.abs(transaction.amount).toInt()}",
                 fontWeight = FontWeight.Bold,
-                color = if (transaction.amount >= 0) Green500 else MaterialTheme.colorScheme.error
+                color = if (transaction.amount >= 0) WalletBlue else MaterialTheme.colorScheme.error
             )
         }
     }
@@ -262,7 +266,7 @@ private fun WithdrawDialog(
             Button(
                 onClick = { amount.toDoubleOrNull()?.let { onConfirm(it) } },
                 enabled = (amount.toDoubleOrNull() ?: 0.0) > 0 && (amount.toDoubleOrNull() ?: 0.0) <= maxAmount,
-                colors = ButtonDefaults.buttonColors(containerColor = Green500)
+                colors = ButtonDefaults.buttonColors(containerColor = WalletBlue)
             ) {
                 Text(strings.withdraw)
             }

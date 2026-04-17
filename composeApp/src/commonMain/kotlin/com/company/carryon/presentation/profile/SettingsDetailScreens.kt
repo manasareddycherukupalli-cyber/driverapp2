@@ -28,7 +28,9 @@ import com.company.carryon.data.network.saveLanguage
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.i18n.getLanguageDisplayName
 import com.company.carryon.presentation.navigation.AppNavigator
+import com.company.carryon.presentation.navigation.DriveAppBottomBar
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.navigation.rememberDriveBottomNavItems
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.notify_app_promotions
 import drive_app.composeapp.generated.resources.notify_earnings_reports
@@ -157,7 +159,7 @@ fun NotificationPreferencesScreen(navigator: AppNavigator) {
             Spacer(Modifier.height(24.dp))
         }
 
-        NotificationBottomBar()
+        DriveAppBottomBar(navigator = navigator, items = rememberDriveBottomNavItems())
     }
 }
 
@@ -210,35 +212,6 @@ private fun NotificationCard(
                 )
             )
         }
-    }
-}
-
-@Composable
-private fun NotificationBottomBar() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xF2FFFFFF), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BottomTab("ROUTE", Icons.Filled.Map, false)
-        BottomTab("HISTORY", Icons.Filled.History, false)
-        BottomTab("VEHICLE", Icons.Filled.LocalShipping, false)
-        BottomTab("SETTINGS", Icons.Filled.Settings, true)
-    }
-}
-
-@Composable
-private fun BottomTab(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, selected: Boolean) {
-    Column(
-        modifier = if (selected) Modifier.background(Color(0xFF0058BC), RoundedCornerShape(12.dp)).padding(horizontal = 16.dp, vertical = 4.dp) else Modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Icon(icon, contentDescription = label, tint = if (selected) Color.White else Color(0xFF181C23).copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
-        Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = if (selected) Color.White else Color(0xFF181C23).copy(alpha = 0.6f))
     }
 }
 
@@ -322,7 +295,7 @@ fun LanguageScreen(
             }
             Spacer(Modifier.height(14.dp))
         }
-        NotificationBottomBar()
+        DriveAppBottomBar(navigator = navigator, items = rememberDriveBottomNavItems())
     }
 }
 
@@ -508,7 +481,7 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
             ) { Text("View Vehicle Manifest", fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(14.dp))
         }
-        VehicleBottomBar()
+        DriveAppBottomBar(navigator = navigator, items = rememberDriveBottomNavItems())
     }
 }
 
@@ -520,23 +493,6 @@ private fun VehicleSpecCard(label: String, value: String, iconRes: DrawableResou
             Text(label, color = Color(0xFF78839A), fontSize = 9.sp, letterSpacing = 0.8.sp, fontWeight = FontWeight.SemiBold)
             Text(value, color = Color(0xFF242C3E), fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
         }
-    }
-}
-
-@Composable
-private fun VehicleBottomBar() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xF2FFFFFF), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BottomTab("Explore", Icons.Filled.Explore, false)
-        BottomTab("Deliveries", Icons.Filled.LocalShipping, false)
-        BottomTab("Activity", Icons.Filled.History, false)
-        BottomTab("Account", Icons.Filled.Person, true)
     }
 }
 
@@ -561,7 +517,12 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F7FB))) {
         SettingsTopBar("Documents") { navigator.goBack() }
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp)
+        ) {
             Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp)) {
                     Text("Compliance Status", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, lineHeight = 34.sp, color = Color(0xFF242C3E))
@@ -621,6 +582,7 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
             }
             Spacer(Modifier.height(16.dp))
         }
+        DriveAppBottomBar(navigator = navigator, items = rememberDriveBottomNavItems())
     }
 }
 

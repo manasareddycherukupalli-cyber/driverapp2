@@ -152,6 +152,18 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(strings.personalIdentity, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = Color(0xFF1E1F25))
+            Text(
+                text = "Sign out",
+                color = Blue,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable {
+                    val wentBack = navigator.goBack()
+                    if (!wentBack) {
+                        navigator.navigateAndClearStack(Screen.Onboarding)
+                    }
+                }
+            )
         }
 
         Spacer(Modifier.height(8.dp))

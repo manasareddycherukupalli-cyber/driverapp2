@@ -21,14 +21,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
+import com.company.carryon.presentation.navigation.DriveAppBottomBar
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.navigation.rememberDriveBottomNavItems
 import com.company.carryon.presentation.theme.*
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.truck_illustration
-import drive_app.composeapp.generated.resources.ic_nav_home
-import drive_app.composeapp.generated.resources.ic_nav_message
-import drive_app.composeapp.generated.resources.ic_nav_person
-import drive_app.composeapp.generated.resources.ic_nav_search
 import org.jetbrains.compose.resources.painterResource
 
 /**
@@ -139,75 +137,6 @@ fun OnboardingScreen(navigator: AppNavigator) {
         }
 
         // ---- Bottom Navigation Bar ----
-        OnboardingBottomBar()
-    }
-}
-
-/**
- * OnboardingBottomBar — Static bottom navigation bar for onboarding/auth screens
- */
-@Composable
-fun OnboardingBottomBar() {
-    NavigationBar(
-        containerColor = Color.White,
-        contentColor = Color.Gray,
-        modifier = Modifier.height(64.dp)
-    ) {
-        NavigationBarItem(
-            selected = false,
-            onClick = { },
-            icon = {
-                Image(
-                    painter = painterResource(Res.drawable.ic_nav_search),
-                    contentDescription = "Search",
-                    modifier = Modifier.size(24.dp)
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                indicatorColor = Color.Transparent
-            )
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { },
-            icon = {
-                Image(
-                    painter = painterResource(Res.drawable.ic_nav_message),
-                    contentDescription = "Chat",
-                    modifier = Modifier.size(24.dp)
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                indicatorColor = Color.Transparent
-            )
-        )
-        NavigationBarItem(
-            selected = true,
-            onClick = { },
-            icon = {
-                Image(
-                    painter = painterResource(Res.drawable.ic_nav_home),
-                    contentDescription = "Home",
-                    modifier = Modifier.size(28.dp)
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                indicatorColor = Color.Transparent
-            )
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { },
-            icon = {
-                Image(
-                    painter = painterResource(Res.drawable.ic_nav_person),
-                    contentDescription = "Profile",
-                    modifier = Modifier.size(24.dp)
-                )
-            },
-            colors = NavigationBarItemDefaults.colors(
-                indicatorColor = Color.Transparent
-            )
-        )
+        DriveAppBottomBar(navigator = navigator, items = rememberDriveBottomNavItems())
     }
 }

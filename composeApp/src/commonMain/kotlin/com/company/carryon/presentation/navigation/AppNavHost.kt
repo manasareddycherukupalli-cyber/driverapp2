@@ -40,17 +40,10 @@ fun AppNavHost(
     currentLanguage: String = "en",
     onLanguageChanged: (String) -> Unit = {}
 ) {
-    val strings = LocalStrings.current
     val currentScreen = navigator.currentScreen
     val showBottomBar = currentScreen in mainTabScreens
     val authViewModel = remember { AuthViewModel() }
-
-    val bottomNavItems = listOf(
-        BottomNavItem(Screen.Home, strings.navHome, Icons.Filled.Home, Icons.Filled.Home),
-        BottomNavItem(Screen.Jobs, strings.navJobs, Icons.Filled.LocalShipping, Icons.Filled.LocalShipping),
-        BottomNavItem(Screen.Earnings, strings.navEarnings, Icons.Filled.AccountBalanceWallet, Icons.Filled.AccountBalanceWallet),
-        BottomNavItem(Screen.Profile, strings.navProfile, Icons.Filled.Person, Icons.Filled.Person),
-    )
+    val bottomNavItems = rememberDriveBottomNavItems()
 
     Scaffold(
         bottomBar = {
@@ -80,6 +73,7 @@ fun AppNavHost(
                     Screen.PersonalIdentity -> PersonalIdentityScreen(navigator, authViewModel)
                     Screen.DocumentUpload -> DocumentUploadScreen(navigator, authViewModel)
                     Screen.VehicleDetailsInput -> VehicleDetailsScreen(navigator, authViewModel)
+                    Screen.ReadyToDrive -> ReadyToDriveScreen(navigator)
                     Screen.VerificationStatus -> VerificationStatusScreen(navigator, authViewModel)
                     Screen.LocationPermission -> LocationPermissionScreen(navigator, authViewModel)
 
@@ -115,6 +109,88 @@ fun AppNavHost(
                     Screen.TermsOfService -> TermsOfServiceScreen(navigator)
                     Screen.PrivacyPolicy -> PrivacyPolicyScreen(navigator)
                     Screen.HelpCenter -> HelpCenterScreen(navigator)
+                    Screen.HelpGettingStarted -> HelpTopicScreen(
+                        navigator = navigator,
+                        title = "Getting Started",
+                        summary = "Account setup and first steps for new drivers.",
+                        tips = listOf(
+                            "Complete profile, vehicle, and document verification.",
+                            "Enable location permission for live dispatch updates.",
+                            "Keep banking details updated for payout processing."
+                        )
+                    )
+                    Screen.HelpPayments -> HelpTopicScreen(
+                        navigator = navigator,
+                        title = "Payments",
+                        summary = "Direct deposit, earnings, and tax reimbursement.",
+                        tips = listOf(
+                            "Weekly earnings are visible in the Earnings tab.",
+                            "Use Wallet to request withdrawals to linked bank.",
+                            "Download payout records for monthly reconciliation."
+                        )
+                    )
+                    Screen.HelpSafety -> HelpTopicScreen(
+                        navigator = navigator,
+                        title = "Safety",
+                        summary = "Incident reporting and safety guidelines.",
+                        tips = listOf(
+                            "Use SOS for emergency escalation.",
+                            "Report incidents with clear notes and timestamps.",
+                            "Follow route and delivery verification protocols."
+                        )
+                    )
+                    Screen.HelpAppIssues -> HelpTopicScreen(
+                        navigator = navigator,
+                        title = "App Issues",
+                        summary = "Technical glitches and app navigation help.",
+                        tips = listOf(
+                            "Check connection and restart the app if stuck.",
+                            "Update to the latest app version.",
+                            "Raise a support ticket if issue persists."
+                        )
+                    )
+                    Screen.HelpContactSupport -> ContactSupportScreen(navigator)
+                    Screen.HelpDriverHandbook -> DriverHandbookScreen(navigator)
+                    Screen.HelpHandbookAccountCompliance -> HandbookDetailScreen(
+                        navigator = navigator,
+                        title = "Account & Compliance",
+                        points = listOf(
+                            "Complete profile, identity, and vehicle details accurately.",
+                            "Keep license and insurance documents up to date.",
+                            "Rejected documents must be re-uploaded with clear images.",
+                            "Non-compliance can pause dispatch eligibility."
+                        )
+                    )
+                    Screen.HelpHandbookDeliveryWorkflow -> HandbookDetailScreen(
+                        navigator = navigator,
+                        title = "Delivery Workflow",
+                        points = listOf(
+                            "Accept assigned job and confirm pickup instructions.",
+                            "Mark status updates at each milestone (pickup, in-transit, drop).",
+                            "Capture proof-of-delivery before completing the order.",
+                            "Use in-app support for customer/location exceptions."
+                        )
+                    )
+                    Screen.HelpHandbookEarningsPayouts -> HandbookDetailScreen(
+                        navigator = navigator,
+                        title = "Earnings & Payouts",
+                        points = listOf(
+                            "Earnings include base trip amount and eligible bonuses.",
+                            "Completed deliveries are reflected in Earnings and Wallet.",
+                            "Withdrawals are available to linked bank accounts.",
+                            "Review transaction history for payout reconciliation."
+                        )
+                    )
+                    Screen.HelpHandbookSafetyIncident -> HandbookDetailScreen(
+                        navigator = navigator,
+                        title = "Safety & Incident Response",
+                        points = listOf(
+                            "Prioritize personal safety and follow road regulations.",
+                            "Use SOS immediately for emergency situations.",
+                            "Report incidents with time, location, and summary details.",
+                            "Follow support guidance for escalation and resolution."
+                        )
+                    )
                     Screen.RaiseTicket -> RaiseTicketScreen(navigator)
                     Screen.SupportChat -> SupportChatScreen(navigator)
                     Screen.Sos -> SosScreen(navigator)
@@ -125,12 +201,25 @@ fun AppNavHost(
     }
 }
 
+@Composable
+fun rememberDriveBottomNavItems(): List<BottomNavItem> {
+    val strings = LocalStrings.current
+    return remember(strings) {
+        listOf(
+            BottomNavItem(Screen.Home, strings.navHome, Icons.Filled.Home, Icons.Filled.Home),
+            BottomNavItem(Screen.Jobs, strings.navJobs, Icons.Filled.LocalShipping, Icons.Filled.LocalShipping),
+            BottomNavItem(Screen.Earnings, strings.navEarnings, Icons.Filled.AccountBalanceWallet, Icons.Filled.AccountBalanceWallet),
+            BottomNavItem(Screen.Profile, strings.navProfile, Icons.Filled.Person, Icons.Filled.Person),
+        )
+    }
+}
+
 // ============================================================
 // BOTTOM NAVIGATION BAR
 // ============================================================
 
 @Composable
-private fun DriveAppBottomBar(navigator: AppNavigator, items: List<BottomNavItem>) {
+fun DriveAppBottomBar(navigator: AppNavigator, items: List<BottomNavItem>) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface

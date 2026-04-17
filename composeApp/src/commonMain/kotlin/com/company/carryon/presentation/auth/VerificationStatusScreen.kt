@@ -64,7 +64,9 @@ import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.VerificationStatus
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
+import com.company.carryon.presentation.navigation.DriveAppBottomBar
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.navigation.rememberDriveBottomNavItems
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -258,69 +260,7 @@ private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
                 Spacer(Modifier.height(8.dp))
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-            ) {
-                NavigationBar(
-                    containerColor = Color.White,
-                    contentColor = PureBlack
-                ) {
-                    NavigationBarItem(
-                        selected = true,
-                        onClick = {},
-                        icon = { Icon(Icons.Filled.Home, contentDescription = strings.navHome) },
-                        label = { Text(strings.navHome) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = VerifyBlue,
-                            selectedTextColor = VerifyBlue,
-                            unselectedIconColor = PureBlack.copy(alpha = 0.45f),
-                            unselectedTextColor = PureBlack.copy(alpha = 0.45f),
-                            indicatorColor = Color(0x33A6D2F3)
-                        )
-                    )
-                    NavigationBarItem(
-                        selected = false,
-                        onClick = {},
-                        icon = { Icon(Icons.Filled.LocalShipping, contentDescription = strings.navJobs) },
-                        label = { Text(strings.navJobs) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = VerifyBlue,
-                            selectedTextColor = VerifyBlue,
-                            unselectedIconColor = PureBlack.copy(alpha = 0.45f),
-                            unselectedTextColor = PureBlack.copy(alpha = 0.45f),
-                            indicatorColor = Color(0x33A6D2F3)
-                        )
-                    )
-                    NavigationBarItem(
-                        selected = false,
-                        onClick = {},
-                        icon = { Icon(Icons.Filled.AccountBalanceWallet, contentDescription = strings.navEarnings) },
-                        label = { Text(strings.navEarnings) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = VerifyBlue,
-                            selectedTextColor = VerifyBlue,
-                            unselectedIconColor = PureBlack.copy(alpha = 0.45f),
-                            unselectedTextColor = PureBlack.copy(alpha = 0.45f),
-                            indicatorColor = Color(0x33A6D2F3)
-                        )
-                    )
-                    NavigationBarItem(
-                        selected = false,
-                        onClick = {},
-                        icon = { Icon(Icons.Filled.Person, contentDescription = strings.navProfile) },
-                        label = { Text(strings.navProfile) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = VerifyBlue,
-                            selectedTextColor = VerifyBlue,
-                            unselectedIconColor = PureBlack.copy(alpha = 0.45f),
-                            unselectedTextColor = PureBlack.copy(alpha = 0.45f),
-                            indicatorColor = Color(0x33A6D2F3)
-                        )
-                    )
-                }
-            }
+            DriveAppBottomBar(navigator = navigator, items = rememberDriveBottomNavItems())
         }
     }
 }

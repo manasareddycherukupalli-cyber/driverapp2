@@ -23,6 +23,7 @@ sealed interface Screen {
     data object PersonalIdentity : Screen
     data object DocumentUpload : Screen
     data object VehicleDetailsInput : Screen
+    data object ReadyToDrive : Screen
     data object VerificationStatus : Screen
     data object LocationPermission : Screen
 
@@ -55,6 +56,16 @@ sealed interface Screen {
     data object TermsOfService : Screen
     data object PrivacyPolicy : Screen
     data object HelpCenter : Screen
+    data object HelpGettingStarted : Screen
+    data object HelpPayments : Screen
+    data object HelpSafety : Screen
+    data object HelpAppIssues : Screen
+    data object HelpContactSupport : Screen
+    data object HelpDriverHandbook : Screen
+    data object HelpHandbookAccountCompliance : Screen
+    data object HelpHandbookDeliveryWorkflow : Screen
+    data object HelpHandbookEarningsPayouts : Screen
+    data object HelpHandbookSafetyIncident : Screen
     data object RaiseTicket : Screen
     data object SupportChat : Screen
     data object Sos : Screen
