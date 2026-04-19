@@ -66,8 +66,10 @@ private val MutedBlue = Color(0xFFBFD5F6)
 fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
     val strings = LocalStrings.current
     val vehicleState by viewModel.vehicleState.collectAsState()
+    val authResponse by viewModel.latestAuthResponse.collectAsState()
+    val existingVehicle = authResponse?.driver?.vehicleDetails
 
-    var selectedType by remember { mutableStateOf(VehicleType.VAN) }
+    var selectedType by remember { mutableStateOf(existingVehicle?.type ?: VehicleType.VAN_7FT) }
     var make by remember { mutableStateOf("") }
     var model by remember { mutableStateOf("") }
     var year by remember { mutableStateOf("2024") }
@@ -79,6 +81,16 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
         if (vehicleState is UiState.Success) {
             val next = viewModel.determinePostLocationScreen()
             navigator.navigateAndClearStack(next)
+        }
+    }
+
+    LaunchedEffect(existingVehicle?.id) {
+        if (existingVehicle != null) {
+            selectedType = existingVehicle.type
+            make = existingVehicle.make
+            model = existingVehicle.model
+            year = existingVehicle.year.takeIf { it > 0 }?.toString() ?: year
+            licensePlate = existingVehicle.licensePlate
         }
     }
 
@@ -108,6 +120,25 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
             Text(strings.step2Of3, color = VerifyBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             Box(modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(999.dp)).background(MutedBlue)) {
                 Box(modifier = Modifier.fillMaxWidth(0.66f).height(4.dp).clip(RoundedCornerShape(999.dp)).background(VerifyBlue))
+            }
+
+            Text("Vehicle type", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF414755))
+            VehicleType.entries.chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    row.forEach { type ->
+                        VehicleTypeCard(
+                            type = type,
+                            selected = selectedType == type,
+                            modifier = Modifier.weight(1f)
+                        ) { selectedType = type }
+                    }
+                    if (row.size == 1) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
             }
 
             VerifyInput(strings.vehicleModel, model, { model = it }, "e.g. Ford Transit")
@@ -163,6 +194,37 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
             }
 
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun VehicleTypeCard(
+    type: VehicleType,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(78.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = if (selected) VerifyBlue else Color.White),
+        border = BorderStroke(1.dp, if (selected) VerifyBlue else Color(0x33C1C6D7))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                type.displayName,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 12.sp,
+                color = if (selected) Color.White else Color(0xFF242833)
+            )
         }
     }
 }

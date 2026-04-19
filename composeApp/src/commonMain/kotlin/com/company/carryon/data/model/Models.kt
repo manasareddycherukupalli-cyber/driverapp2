@@ -79,8 +79,12 @@ data class VehicleDetails(
 enum class VehicleType(val displayName: String) {
     BIKE("Motorcycle"),
     CAR("Car"),
-    VAN("Van"),
-    TRUCK("Truck")
+    PICKUP("Pickup"),
+    VAN_7FT("Van 7ft"),
+    VAN_9FT("Van 9ft"),
+    LORRY_10FT("Lorry 10ft"),
+    LORRY_14FT("Lorry 14ft"),
+    LORRY_17FT("Lorry 17ft")
 }
 
 // ============================================================
