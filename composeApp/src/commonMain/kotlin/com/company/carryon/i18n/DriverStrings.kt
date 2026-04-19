@@ -143,7 +143,7 @@ interface DriverStrings {
     val step1Of3: String get() = "STEP 1 OF 3: PERSONAL IDENTITY"
     val step2Of3: String get() = "STEP 2 OF 3: VEHICLE DETAILS"
     val step3Of3: String get() = "STEP 3 OF 3: IDENTITY VERIFICATION"
-    val profilePhoto: String get() = "Profile Photo"
+    val profilePhoto: String get() = "Profile Photo (Optional)"
     val uploadPhotoInstruction: String get() = "Upload a clear front-facing\nphoto of yourself for\nverification."
     val photoVerified: String get() = "Photo Verified"
     val photoUnderReview: String get() = "Photo submitted: Under Review"

@@ -346,10 +346,9 @@ private fun resolvePersonalIdentityStep(driver: Driver): VerificationStepUi {
     if (profilePhoto == null) {
         return VerificationStepUi(
             pill = "Submitted",
-            description = "Profile data saved. Upload profile photo to continue.",
-            progress = 0.5f,
-            pillIcon = Res.drawable.verify_badge_under_review,
-            primaryAction = "Upload Photo"
+            description = "Profile data saved. Profile photo is optional and can be added later.",
+            progress = 1f,
+            pillIcon = Res.drawable.verify_badge_verified
         )
     }
     return when (profilePhoto.status) {
@@ -366,11 +365,10 @@ private fun resolvePersonalIdentityStep(driver: Driver): VerificationStepUi {
             pillIcon = Res.drawable.verify_badge_under_review
         )
         DocumentStatus.REJECTED -> VerificationStepUi(
-            pill = "Rejected",
-            description = profilePhoto.rejectionReason?.let { "Photo rejected: $it" }
-                ?: "Profile photo rejected. Upload a clearer image.",
-            progress = 0.4f,
-            primaryAction = "Re-upload Photo"
+            pill = "Submitted",
+            description = "Profile data is complete. Profile photo is optional and can be re-uploaded anytime.",
+            progress = 1f,
+            pillIcon = Res.drawable.verify_badge_verified
         )
     }
 }
@@ -380,8 +378,7 @@ private fun isPersonalIdentityComplete(driver: Driver): Boolean {
         driver.email.isNotBlank() &&
         driver.phone.isNotBlank() &&
         driver.driversLicenseNumber.isNotBlank()
-    val profilePhoto = driver.documents.firstOrNull { it.type == DocumentType.PROFILE_PHOTO }
-    return hasCoreProfile && profilePhoto != null && profilePhoto.status != DocumentStatus.REJECTED
+    return hasCoreProfile
 }
 
 private fun resolveVehicleDetailsStep(

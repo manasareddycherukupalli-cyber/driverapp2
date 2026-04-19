@@ -70,7 +70,7 @@ data class VehicleDetails(
     val type: VehicleType = VehicleType.BIKE,
     val make: String = "",
     val model: String = "",
-    val year: Int = 2024,
+    val year: Int = 0,
     val licensePlate: String = "",
     val color: String = ""
 )
@@ -351,6 +351,18 @@ data class ChatMessage(
     val message: String = "",
     @SerialName("createdAt") val timestamp: String? = null,
     @SerialName("isStaff") val isFromDriver: Boolean = false
+)
+
+@Serializable
+data class BookingChatMessage(
+    val id: String = "",
+    val bookingId: String = "",
+    val senderId: String = "",
+    val senderType: String = "DRIVER",
+    val message: String = "",
+    val imageUrl: String? = null,
+    val isRead: Boolean = false,
+    val createdAt: String = ""
 )
 
 @Serializable

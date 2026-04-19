@@ -93,8 +93,6 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
         uploadedDocuments.forEach { merged[it.type] = it }
         merged[DocumentType.PROFILE_PHOTO]
     }
-    val hasValidProfilePhoto = profilePhotoDoc != null && profilePhotoDoc.status != DocumentStatus.REJECTED
-
     val picker = rememberImagePickerLauncher { bytes ->
         localProfilePhotoBytes = bytes
         authViewModel.uploadDocument(DocumentType.PROFILE_PHOTO, bytes)
@@ -267,10 +265,6 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
                     profileError = strings.driverLicenseRequired
                     return@Button
                 }
-                if (!hasValidProfilePhoto) {
-                    profileError = strings.photoRequired
-                    return@Button
-                }
                 authViewModel.updateProfile(
                     name = name,
                     phone = phone,
@@ -284,7 +278,6 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
             enabled = name.isNotBlank() &&
                 phone.isNotBlank() &&
                 dl.isNotBlank() &&
-                hasValidProfilePhoto &&
                 profileUpdateState !is UiState.Loading
         ) {
             Text(strings.saveAndContinue, fontWeight = FontWeight.Bold)

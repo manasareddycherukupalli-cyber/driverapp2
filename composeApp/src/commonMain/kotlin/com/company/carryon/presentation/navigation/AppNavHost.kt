@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.auth.*
+import com.company.carryon.presentation.chat.*
 import com.company.carryon.presentation.delivery.*
 import com.company.carryon.presentation.earnings.*
 import com.company.carryon.presentation.home.*
@@ -193,6 +194,7 @@ fun AppNavHost(
                     )
                     Screen.RaiseTicket -> RaiseTicketScreen(navigator)
                     Screen.SupportChat -> SupportChatScreen(navigator)
+                    Screen.CustomerChat -> CustomerChatScreen(navigator)
                     Screen.Sos -> SosScreen(navigator)
                     Screen.Notifications -> NotificationsScreen(navigator)
                 }

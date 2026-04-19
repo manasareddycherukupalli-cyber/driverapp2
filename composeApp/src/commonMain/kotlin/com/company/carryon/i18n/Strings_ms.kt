@@ -143,7 +143,7 @@ object MsDriverStrings : DriverStrings {
     override val step1Of3 = "LANGKAH 1 DARIPADA 3: IDENTITI PERIBADI"
     override val step2Of3 = "LANGKAH 2 DARIPADA 3: BUTIRAN KENDERAAN"
     override val step3Of3 = "LANGKAH 3 DARIPADA 3: PENGESAHAN IDENTITI"
-    override val profilePhoto = "Gambar Profil"
+    override val profilePhoto = "Gambar Profil (Pilihan)"
     override val uploadPhotoInstruction = "Muat naik gambar depan anda yang jelas\nuntuk pengesahan."
     override val photoVerified = "Gambar Disahkan"
     override val photoUnderReview = "Gambar dihantar: Sedang Disemak"

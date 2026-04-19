@@ -37,7 +37,6 @@ import drive_app.composeapp.generated.resources.notify_earnings_reports
 import drive_app.composeapp.generated.resources.notify_order_updates
 import drive_app.composeapp.generated.resources.notify_push_notifications
 import drive_app.composeapp.generated.resources.ic_nearby
-import drive_app.composeapp.generated.resources.vehicle_ford_transit_cargo_xl
 import drive_app.composeapp.generated.resources.vehicle_spec_cargo_volume
 import drive_app.composeapp.generated.resources.vehicle_spec_fuel_type
 import drive_app.composeapp.generated.resources.vehicle_spec_max_payload
@@ -316,6 +315,11 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
     val year = vehicle?.year?.takeIf { it > 0 }?.toString() ?: "Unknown"
     val docsApproved = driver?.documents.orEmpty().count { it.status == DocumentStatus.APPROVED }
     val docsPending = driver?.documents.orEmpty().count { it.status == DocumentStatus.PENDING }
+    val vehicleSummary = listOfNotNull(
+        vehicle?.type?.displayName?.takeIf { it.isNotBlank() },
+        year.takeIf { it != "Unknown" },
+        vehicle?.color?.takeIf { it.isNotBlank() }
+    ).joinToString(" • ")
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF9F9FF))) {
         SettingsTopBar("Vehicle Details") { navigator.goBack() }
@@ -330,26 +334,40 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .height(158.dp)
                         .fillMaxWidth()
-                        .background(Color(0xFFE8EDF7)),
-                    contentAlignment = Alignment.Center
+                        .background(Color(0xFFE8EDF7))
+                        .padding(horizontal = 14.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = painterResource(Res.drawable.vehicle_ford_transit_cargo_xl),
-                        contentDescription = "Ford Transit Cargo XL",
-                        modifier = Modifier.fillMaxSize()
-                    )
                     Box(
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp)
-                            .background(Color(0xFF4B79E6), RoundedCornerShape(999.dp))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                            .size(46.dp)
+                            .background(Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text("EN ROUTE", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Icon(
+                            imageVector = Icons.Filled.LocalShipping,
+                            contentDescription = null,
+                            tint = Color(0xFF4B79E6),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            "Vehicle Data",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            color = Color(0xFF262E3F)
+                        )
+                        Text(
+                            vehicleSummary.ifBlank { "No live vehicle media or status available" },
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            color = Color(0xFF5B6680)
+                        )
                     }
                 }
             }

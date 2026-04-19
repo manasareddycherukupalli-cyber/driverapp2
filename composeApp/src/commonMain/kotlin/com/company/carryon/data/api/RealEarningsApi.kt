@@ -14,21 +14,21 @@ class RealEarningsApi : EarningsApi {
         val response: ApiResponse<EarningsSummary> = client.get("/api/driver/earnings/summary") {
             withAuth()
         }.body()
-        response.data ?: EarningsSummary()
+        response.data ?: throw Exception(response.message ?: "Failed to load earnings summary")
     }
 
     override suspend fun getTransactionHistory(driverId: String): Result<List<Transaction>> = runCatching {
         val response: ApiResponse<List<Transaction>> = client.get("/api/driver/earnings/transactions") {
             withAuth()
         }.body()
-        response.data ?: emptyList()
+        response.data ?: throw Exception(response.message ?: "Failed to load transactions")
     }
 
     override suspend fun getWalletInfo(driverId: String): Result<WalletInfo> = runCatching {
         val response: ApiResponse<WalletInfo> = client.get("/api/driver/earnings/wallet") {
             withAuth()
         }.body()
-        response.data ?: WalletInfo()
+        response.data ?: throw Exception(response.message ?: "Failed to load wallet")
     }
 
     override suspend fun requestWithdrawal(driverId: String, amount: Double): Result<Transaction> = runCatching {

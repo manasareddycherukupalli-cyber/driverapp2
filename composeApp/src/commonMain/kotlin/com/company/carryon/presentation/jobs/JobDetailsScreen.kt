@@ -3,6 +3,7 @@ package com.company.carryon.presentation.jobs
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -182,7 +183,10 @@ private fun JobDetailsContent(
             )
             OrderSummaryCard(job)
             RouteCard(job)
-            CustomerCard(job)
+            CustomerCard(
+                job = job,
+                onChatClick = { navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" }) }
+            )
             PackageCard(job)
             StartDeliveryButton(job, navigator, onUpdateStatus)
             ReportIssueButton()
@@ -395,7 +399,10 @@ private fun RouteStop(
 }
 
 @Composable
-private fun CustomerCard(job: DeliveryJob) {
+private fun CustomerCard(
+    job: DeliveryJob,
+    onChatClick: () -> Unit
+) {
     val strings = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -422,19 +429,23 @@ private fun CustomerCard(job: DeliveryJob) {
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 CircleActionIcon(Icons.Filled.Phone)
-                CircleActionIcon(Icons.Filled.ChatBubbleOutline)
+                CircleActionIcon(Icons.Filled.ChatBubbleOutline, onClick = onChatClick)
             }
         }
     }
 }
 
 @Composable
-private fun CircleActionIcon(icon: androidx.compose.ui.graphics.vector.ImageVector) {
+private fun CircleActionIcon(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: (() -> Unit)? = null
+) {
     Box(
         modifier = Modifier
             .size(36.dp)
             .clip(CircleShape)
-            .background(Color(0xFFD5E5FF)),
+            .background(Color(0xFFD5E5FF))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, contentDescription = null, tint = DispatchBlue, modifier = Modifier.size(18.dp))

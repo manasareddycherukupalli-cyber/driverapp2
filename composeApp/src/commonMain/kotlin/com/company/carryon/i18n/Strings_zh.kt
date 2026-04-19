@@ -143,7 +143,7 @@ object ZhDriverStrings : DriverStrings {
     override val step1Of3 = "第 1 步（共 3 步）：个人身份"
     override val step2Of3 = "第 2 步（共 3 步）：车辆详情"
     override val step3Of3 = "第 3 步（共 3 步）：身份验证"
-    override val profilePhoto = "头像照片"
+    override val profilePhoto = "头像照片（可选）"
     override val uploadPhotoInstruction = "请上传您清晰的正面照片\n用于身份验证。"
     override val photoVerified = "照片已验证"
     override val photoUnderReview = "照片已提交：审核中"

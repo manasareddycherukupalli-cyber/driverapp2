@@ -143,7 +143,7 @@ object TaDriverStrings : DriverStrings {
     override val step1Of3 = "படி 1 / 3: தனிப்பட்ட அடையாளம்"
     override val step2Of3 = "படி 2 / 3: வாகன விவரங்கள்"
     override val step3Of3 = "படி 3 / 3: அடையாள சரிபார்ப்பு"
-    override val profilePhoto = "சுயவிவர புகைப்படம்"
+    override val profilePhoto = "சுயவிவர புகைப்படம் (விருப்பத்தேர்வு)"
     override val uploadPhotoInstruction = "சரிபார்ப்புக்காக உங்கள் தெளிவான\nமுன் பக்க புகைப்படத்தை பதிவேற்றவும்."
     override val photoVerified = "புகைப்படம் சரிபார்க்கப்பட்டது"
     override val photoUnderReview = "புகைப்படம் சமர்ப்பிக்கப்பட்டது: மதிப்பாய்வில்"

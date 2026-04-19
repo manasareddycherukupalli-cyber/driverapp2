@@ -412,10 +412,7 @@ class AuthViewModel : ViewModel() {
             driver.email.isNotBlank() &&
             driver.phone.isNotBlank() &&
             driver.driversLicenseNumber.isNotBlank()
-        if (!hasCoreProfile) return false
-
-        val profilePhoto = driver.documents.firstOrNull { it.type == DocumentType.PROFILE_PHOTO } ?: return false
-        return profilePhoto.status != DocumentStatus.REJECTED
+        return hasCoreProfile
     }
 
     private fun isIdentityVerificationSubmitted(driver: Driver): Boolean {

@@ -68,6 +68,7 @@ sealed interface Screen {
     data object HelpHandbookSafetyIncident : Screen
     data object RaiseTicket : Screen
     data object SupportChat : Screen
+    data object CustomerChat : Screen
     data object Sos : Screen
     data object Notifications : Screen
 }
@@ -109,6 +110,8 @@ class AppNavigator {
             syncDeliveryResumeState()
         }
     var selectedTicketId by mutableStateOf<String?>(null)
+    var selectedChatBookingId by mutableStateOf<String?>(null)
+    var selectedChatCustomerName by mutableStateOf("")
     var phoneNumber by mutableStateOf("")
     var countryCode by mutableStateOf("+60")
     var initialJobsTabIndex by mutableIntStateOf(0)
@@ -168,6 +171,12 @@ class AppNavigator {
             currentScreen = Screen.Jobs
             syncDeliveryResumeState()
         }
+    }
+
+    fun openCustomerChat(bookingId: String, customerName: String) {
+        selectedChatBookingId = bookingId
+        selectedChatCustomerName = customerName
+        navigateTo(Screen.CustomerChat)
     }
 
     fun restorePersistedDeliveryState(): Boolean {

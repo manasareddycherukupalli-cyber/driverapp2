@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Route
@@ -254,12 +255,15 @@ private fun ActiveDeliveryContent(
                         Box(
                             modifier = Modifier
                                 .background(ArriveWhite, RoundedCornerShape(999.dp))
+                                .clickable {
+                                    navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
+                                }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.Route, contentDescription = null, tint = ArriveBlue, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Filled.ChatBubbleOutline, contentDescription = null, tint = ArriveBlue, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Contact", color = ArriveBlue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                Text("Chat", color = ArriveBlue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                             }
                         }
                     }
