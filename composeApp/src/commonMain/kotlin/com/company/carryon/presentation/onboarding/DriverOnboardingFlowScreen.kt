@@ -55,6 +55,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,12 +89,11 @@ import com.company.carryon.presentation.theme.Gray700
 import com.company.carryon.presentation.theme.Gray900
 import com.company.carryon.presentation.theme.Orange100
 import com.company.carryon.presentation.theme.Orange500
-import com.company.carryon.presentation.theme.Red500
-import com.company.carryon.presentation.theme.Yellow500
 import com.company.carryon.presentation.util.rememberImagePickerLauncher
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.coroutines.launch
 
 private val Bg = Gray50
 private val Blue = Orange500
@@ -101,8 +101,10 @@ private val BlueTint = Orange100
 private val TextPrimary = Gray900
 private val TextMuted = Gray700
 private val Success = Orange500
-private val WarningColor = Yellow500
-private val Danger = Red500
+private val WarningColor = Color(0xFF2F80ED)
+private val Danger = Color(0xFF2F80ED)
+private val FieldBlue = Color(0xFF2F80ED)
+private val FieldTextBlack = Color(0xFF000000)
 
 private val stepTitles = listOf(
     "Phone",
@@ -149,12 +151,6 @@ fun DriverOnboardingFlowScreen(
         viewModel.initialize()
     }
 
-    LaunchedEffect(submitState) {
-        if (submitState is UiState.Success) {
-            navigator.navigateAndClearStack(Screen.VerificationStatus)
-        }
-    }
-
     when (initialLoadState) {
         UiState.Loading, UiState.Idle -> Box(
             modifier = Modifier.fillMaxSize().background(Bg),
@@ -174,6 +170,16 @@ fun DriverOnboardingFlowScreen(
             val messages = remember(draft) { viewModel.validationMessagesForCurrentStep() }
             val blockingErrors = messages.filterNot { it.isWarning }
             val currentStep = draft.currentStep
+            val contentScrollState = rememberScrollState()
+            val scope = rememberCoroutineScope()
+
+            LaunchedEffect(submitState) {
+                when (submitState) {
+                    is UiState.Success -> navigator.navigateAndClearStack(Screen.VerificationStatus)
+                    is UiState.Error -> scope.launch { contentScrollState.animateScrollTo(0) }
+                    else -> Unit
+                }
+            }
 
             Scaffold(
                 containerColor = Bg,
@@ -191,6 +197,7 @@ fun DriverOnboardingFlowScreen(
                         canGoBack = currentStep > 1,
                         isLoading = submitState is UiState.Loading,
                         hasBlockingErrors = blockingErrors.isNotEmpty(),
+                        submitError = (submitState as? UiState.Error)?.message,
                         onBack = viewModel::goBack,
                         onNext = {
                             if (currentStep == DriverOnboardingViewModel.TOTAL_STEPS) {
@@ -206,7 +213,7 @@ fun DriverOnboardingFlowScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(contentScrollState)
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -456,34 +463,45 @@ private fun FooterActions(
     canGoBack: Boolean,
     isLoading: Boolean,
     hasBlockingErrors: Boolean,
+    submitError: String?,
     onBack: () -> Unit,
     onNext: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth().background(Color.White).padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        OutlinedButton(
-            onClick = onBack,
-            modifier = Modifier.weight(1f),
-            enabled = canGoBack && !isLoading
-        ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Back")
+        submitError?.let { message ->
+            Text(message, color = FieldBlue, fontSize = 12.sp)
         }
-        Button(
-            onClick = onNext,
-            modifier = Modifier.weight(1f),
-            enabled = !hasBlockingErrors && !isLoading,
-            colors = ButtonDefaults.buttonColors(containerColor = Blue)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
-            } else {
-                Text(if (step == DriverOnboardingViewModel.TOTAL_STEPS) "Submit" else "Save & continue")
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.weight(1f),
+                enabled = canGoBack && !isLoading,
+                border = BorderStroke(1.dp, FieldBlue),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = FieldBlue)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                Text("Back")
+            }
+            Button(
+                onClick = onNext,
+                modifier = Modifier.weight(1f),
+                enabled = !hasBlockingErrors && !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = Blue)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Text(if (step == DriverOnboardingViewModel.TOTAL_STEPS) "Submit" else "Save & continue")
+                    Spacer(Modifier.width(8.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                }
             }
         }
     }
@@ -508,7 +526,7 @@ private fun PhoneStep(
             error = errorFor(messages, "phone"),
             labelColor = Color(0xFF000000),
             borderColor = Blue,
-            valueColor = Blue
+            valueColor = FieldTextBlack
         )
     }
 }
@@ -695,30 +713,106 @@ private fun PersonalStep(
     onEmergencyPhoneChanged: (String) -> Unit
 ) {
     SectionCard(title = "Personal details", description = "Collect legal name, DOB, address, and emergency contact.") {
-        TextFieldBlock("Full name as per IC", draft.fullName, onNameChanged, placeholder = "Full legal name", error = errorFor(messages, "fullName"))
-        DateFieldBlock("Date of birth", draft.dateOfBirth, onDobChanged, error = errorFor(messages, "dateOfBirth"))
+        TextFieldBlock(
+            "Full name as per IC",
+            draft.fullName,
+            onNameChanged,
+            placeholder = "Full legal name",
+            error = errorFor(messages, "fullName"),
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
+        )
+        DateFieldBlock(
+            "Date of birth",
+            draft.dateOfBirth,
+            onDobChanged,
+            error = errorFor(messages, "dateOfBirth"),
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
+        )
         DropdownBlock(
             label = "Gender",
             value = draft.gender,
             options = DriverOnboardingViewModel.genders,
             onSelected = onGenderChanged,
-            error = errorFor(messages, "gender")
+            error = errorFor(messages, "gender"),
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
         )
-        TextFieldBlock("Address line 1", draft.addressLine1, onAddressLine1Changed, placeholder = "Street address", error = errorFor(messages, "addressLine1"))
-        TextFieldBlock("Address line 2", draft.addressLine2, onAddressLine2Changed, placeholder = "Apartment, unit, etc. (optional)")
-        TextFieldBlock("City", draft.city, onCityChanged, placeholder = "City", error = errorFor(messages, "city"))
-        TextFieldBlock("Postcode", draft.postcode, onPostcodeChanged, placeholder = "5-digit postcode", keyboardType = KeyboardType.Number, error = errorFor(messages, "postcode"))
+        TextFieldBlock(
+            "Address line 1",
+            draft.addressLine1,
+            onAddressLine1Changed,
+            placeholder = "Street address",
+            error = errorFor(messages, "addressLine1"),
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
+        )
+        TextFieldBlock(
+            "Address line 2",
+            draft.addressLine2,
+            onAddressLine2Changed,
+            placeholder = "Apartment, unit, etc. (optional)",
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
+        )
+        TextFieldBlock(
+            "City",
+            draft.city,
+            onCityChanged,
+            placeholder = "City",
+            error = errorFor(messages, "city"),
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
+        )
+        TextFieldBlock(
+            "Postcode",
+            draft.postcode,
+            onPostcodeChanged,
+            placeholder = "5-digit postcode",
+            keyboardType = KeyboardType.Number,
+            error = errorFor(messages, "postcode"),
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
+        )
         EnumDropdownBlock(
             label = "State",
             value = draft.state,
             options = DriverOnboardingViewModel.states,
             toLabel = ::enumLabel,
             onSelected = onStateChanged,
-            error = errorFor(messages, "state")
+            error = errorFor(messages, "state"),
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
         )
-        TextFieldBlock("Emergency contact name", draft.emergencyContactName, onEmergencyNameChanged, placeholder = "Emergency contact", error = errorFor(messages, "emergencyContactName"))
-        TextFieldBlock("Emergency contact relation", draft.emergencyContactRelation, onEmergencyRelationChanged, placeholder = "Spouse, parent, sibling", error = errorFor(messages, "emergencyContactRelation"))
-        TextFieldBlock("Emergency contact phone", draft.emergencyContactPhone, onEmergencyPhoneChanged, placeholder = "+60 12-345 6789", keyboardType = KeyboardType.Phone, error = errorFor(messages, "emergencyContactPhone"))
+        TextFieldBlock(
+            "Emergency contact name",
+            draft.emergencyContactName,
+            onEmergencyNameChanged,
+            placeholder = "Emergency contact",
+            error = errorFor(messages, "emergencyContactName"),
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
+        )
+        TextFieldBlock(
+            "Emergency contact relation",
+            draft.emergencyContactRelation,
+            onEmergencyRelationChanged,
+            placeholder = "Spouse, parent, sibling",
+            error = errorFor(messages, "emergencyContactRelation"),
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
+        )
+        TextFieldBlock(
+            "Emergency contact phone",
+            draft.emergencyContactPhone,
+            onEmergencyPhoneChanged,
+            placeholder = "+60 12-345 6789",
+            keyboardType = KeyboardType.Phone,
+            error = errorFor(messages, "emergencyContactPhone"),
+            borderColor = FieldBlue,
+            valueColor = FieldTextBlack
+        )
     }
 }
 
@@ -743,7 +837,14 @@ private fun LicenseStep(
             onSelected = onClassChanged,
             error = errorFor(messages, "licenseClass")
         )
-        TextFieldBlock("License number", draft.driversLicenseNumber, onNumberChanged, placeholder = "License number", error = errorFor(messages, "driversLicenseNumber"))
+        TextFieldBlock(
+            "License number",
+            draft.driversLicenseNumber,
+            onNumberChanged,
+            placeholder = "License number",
+            error = errorFor(messages, "driversLicenseNumber"),
+            borderColor = FieldBlue
+        )
         DateFieldBlock("License expiry", draft.licenseExpiry, onExpiryChanged, error = errorFor(messages, "licenseExpiry"), warning = warningFor(messages, "licenseExpiry"))
         UploadField(
             label = "License front",
@@ -751,6 +852,7 @@ private fun LicenseStep(
             localUrl = draft.driversLicenseFrontUrl,
             serverDocument = serverDocuments[DocumentType.DRIVERS_LICENSE],
             error = errorFor(messages, "driversLicenseFront"),
+            containerColor = Color(0x33A6D2F3),
             onUpload = { launchUpload(DocumentType.DRIVERS_LICENSE, draft.licenseExpiry.takeIf { it.isNotBlank() }) }
         )
         UploadField(
@@ -759,6 +861,7 @@ private fun LicenseStep(
             localUrl = draft.driversLicenseBackUrl,
             serverDocument = serverDocuments[DocumentType.DRIVERS_LICENSE_BACK],
             error = errorFor(messages, "driversLicenseBack"),
+            containerColor = Color(0x33A6D2F3),
             onUpload = { launchUpload(DocumentType.DRIVERS_LICENSE_BACK, draft.licenseExpiry.takeIf { it.isNotBlank() }) }
         )
         CheckboxRow(
@@ -775,6 +878,7 @@ private fun LicenseStep(
                 localUrl = draft.gdlUrl,
                 serverDocument = serverDocuments[DocumentType.GDL],
                 error = errorFor(messages, "gdlUrl"),
+                containerColor = Color(0x33A6D2F3),
                 onUpload = { launchUpload(DocumentType.GDL, draft.gdlExpiry.takeIf { it.isNotBlank() }) }
             )
         }
@@ -1133,7 +1237,7 @@ private fun TextFieldBlock(
     error: String? = null,
     warning: String? = null,
     labelColor: Color = TextPrimary,
-    borderColor: Color? = null,
+    borderColor: Color = FieldBlue,
     valueColor: Color? = null,
     errorColor: Color = Danger
 ) {
@@ -1147,8 +1251,8 @@ private fun TextFieldBlock(
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant) },
             colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = borderColor ?: MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = borderColor ?: MaterialTheme.colorScheme.outline,
+                focusedBorderColor = borderColor,
+                unfocusedBorderColor = borderColor,
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedTextColor = valueColor ?: MaterialTheme.colorScheme.onSurface,
@@ -1168,6 +1272,8 @@ private fun DateFieldBlock(
     onValueSelected: (String) -> Unit,
     error: String? = null,
     warning: String? = null,
+    borderColor: Color = FieldBlue,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
     errorColor: Color = Danger
 ) {
     var open by remember { mutableStateOf(false) }
@@ -1176,22 +1282,25 @@ private fun DateFieldBlock(
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = TextPrimary, fontWeight = FontWeight.Medium)
         OutlinedTextField(
-            value = if (value.isBlank()) "" else value,
-            onValueChange = {},
-            readOnly = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { open = true },
+            value = value,
+            onValueChange = onValueSelected,
+            modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
             placeholder = { Text("YYYY-MM-DD", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            trailingIcon = {
+                TextButton(onClick = { open = true }) {
+                    Text("Pick", color = valueColor)
+                }
+            },
             colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedBorderColor = borderColor,
+                unfocusedBorderColor = borderColor,
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                cursorColor = MaterialTheme.colorScheme.primary
+                focusedTextColor = valueColor,
+                unfocusedTextColor = valueColor,
+                cursorColor = borderColor
             )
         )
         ValidationText(error = error, warning = warning, errorColor = errorColor)
@@ -1225,7 +1334,9 @@ private fun DropdownBlock(
     value: String,
     options: List<String>,
     onSelected: (String) -> Unit,
-    error: String? = null
+    error: String? = null,
+    borderColor: Color = FieldBlue,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1242,7 +1353,15 @@ private fun DropdownBlock(
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor(),
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = borderColor,
+                    unfocusedBorderColor = borderColor,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedTextColor = valueColor,
+                    unfocusedTextColor = valueColor
+                )
             )
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
@@ -1268,7 +1387,9 @@ private fun <T> EnumDropdownBlock(
     options: List<T>,
     toLabel: (T) -> String,
     onSelected: (T) -> Unit,
-    error: String? = null
+    error: String? = null,
+    borderColor: Color = FieldBlue,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1285,7 +1406,15 @@ private fun <T> EnumDropdownBlock(
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor(),
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = borderColor,
+                    unfocusedBorderColor = borderColor,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedTextColor = valueColor,
+                    unfocusedTextColor = valueColor
+                )
             )
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
@@ -1310,7 +1439,7 @@ private fun UploadField(
     localUrl: String,
     serverDocument: Document?,
     error: String?,
-    containerColor: Color = Gray50,
+    containerColor: Color = Color(0x33A6D2F3),
     errorColor: Color = Danger,
     onUpload: () -> Unit
 ) {

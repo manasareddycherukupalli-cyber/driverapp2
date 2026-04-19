@@ -103,7 +103,7 @@ fun VerificationStatusScreen(navigator: AppNavigator, viewModel: AuthViewModel) 
         }
         is UiState.Error -> {
             Box(modifier = Modifier.fillMaxSize().background(VerifyBg), contentAlignment = Alignment.Center) {
-                Text(state.message, color = MaterialTheme.colorScheme.error)
+                Text(state.message, color = VerifyBlue)
             }
         }
         is UiState.Success -> {

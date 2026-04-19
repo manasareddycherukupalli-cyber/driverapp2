@@ -23,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.company.carryon.data.model.DocumentStatus
@@ -30,6 +31,8 @@ import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.VerificationStatus
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+
+private val VerifyBlue = Color(0xFF2F80ED)
 
 @Composable
 fun DriverVerificationStatusScreen(
@@ -55,7 +58,7 @@ fun DriverVerificationStatusScreen(
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
         ) {
-            Text(state.message, color = MaterialTheme.colorScheme.error)
+            Text(state.message, color = VerifyBlue)
         }
 
         is UiState.Success -> {
@@ -102,12 +105,12 @@ fun DriverVerificationStatusScreen(
                             Text(document.type.name, fontWeight = FontWeight.SemiBold)
                             Text("Status: ${document.status.name}", color = when (document.status) {
                                 DocumentStatus.APPROVED -> MaterialTheme.colorScheme.tertiary
-                                DocumentStatus.REJECTED -> MaterialTheme.colorScheme.error
+                                DocumentStatus.REJECTED -> VerifyBlue
                                 DocumentStatus.PENDING -> MaterialTheme.colorScheme.primary
                             })
                             document.expiryDate?.let { Text("Expiry: $it", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             if (!document.rejectionReason.isNullOrBlank()) {
-                                Text("Reason: ${document.rejectionReason}", color = MaterialTheme.colorScheme.error)
+                                Text("Reason: ${document.rejectionReason}", color = VerifyBlue)
                             }
                         }
                     }

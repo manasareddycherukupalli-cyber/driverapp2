@@ -174,7 +174,7 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
             Text(
                 text = errorMessage ?: "",
                 fontSize = 13.sp,
-                color = Color(0xFFE53935),
+                color = otpBlue,
                 modifier = Modifier.padding(horizontal = 28.dp)
             )
             Spacer(Modifier.height(8.dp))
