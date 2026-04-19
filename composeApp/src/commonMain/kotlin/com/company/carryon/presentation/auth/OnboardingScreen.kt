@@ -21,9 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
-import com.company.carryon.presentation.navigation.DriveAppBottomBar
 import com.company.carryon.presentation.navigation.Screen
-import com.company.carryon.presentation.navigation.rememberDriveBottomNavItems
 import com.company.carryon.presentation.theme.*
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.truck_illustration
@@ -135,8 +133,5 @@ fun OnboardingScreen(navigator: AppNavigator) {
                 Text(strings.logIn, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = onboardingButtonBlue)
             }
         }
-
-        // ---- Bottom Navigation Bar ----
-        DriveAppBottomBar(navigator = navigator, items = rememberDriveBottomNavItems())
     }
 }

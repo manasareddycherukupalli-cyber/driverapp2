@@ -57,13 +57,15 @@ import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.theme.Gray50
+import com.company.carryon.presentation.theme.Orange500
 import com.company.carryon.presentation.util.rememberImagePickerLauncher
 import com.company.carryon.presentation.util.toImageBitmap
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 
-private val Blue = Color(0xFF2F80ED)
-private val Bg = Color(0xFFF7F8FC)
+private val Blue = Orange500
+private val Bg = Gray50
 
 @Composable
 fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
@@ -134,6 +136,12 @@ fun PersonalIdentityScreen(navigator: AppNavigator, authViewModel: AuthViewModel
     ) {
         DriveAppTopBar(
             title = strings.personalIdentity,
+            onBackClick = {
+                val wentBack = navigator.goBack()
+                if (!wentBack) {
+                    navigator.navigateAndClearStack(Screen.VerificationStatus)
+                }
+            },
             onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
             showTitle = false
         )

@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.first
 @Composable
 fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     val strings = LocalStrings.current
+    val otpBlue = Color(0xFF2F80ED)
     val otpLength = 6
     var otpValues by remember { mutableStateOf(List(otpLength) { "" }) }
     var resendTimer by remember { mutableStateOf(30) }
@@ -115,7 +116,7 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                         .clip(RoundedCornerShape(8.dp))
                         .border(
                             width = 1.5.dp,
-                            color = if (otpValues[index].isNotEmpty()) CarryBlue else Color(0xFFE0E0E0),
+                            color = if (otpValues[index].isNotEmpty()) otpBlue else Color(0xFFE0E0E0),
                             shape = RoundedCornerShape(8.dp)
                         )
                         .background(Color.White),
@@ -144,7 +145,7 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                     text = strings.resendAgain,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = CarryBlue,
+                    color = otpBlue,
                     modifier = Modifier.clickable {
                         canResend = false
                         resendTimer = 30
@@ -231,7 +232,7 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                 .height(52.dp)
                 .padding(horizontal = 28.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = CarryBlue),
+            colors = ButtonDefaults.buttonColors(containerColor = otpBlue),
             enabled = otpValues.all { it.isNotEmpty() } && !isVerifying
         ) {
             if (isVerifying) {

@@ -23,7 +23,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.company.carryon.data.model.DocumentStatus
@@ -46,14 +45,14 @@ fun DriverVerificationStatusScreen(
 
     when (val state = verificationState) {
         UiState.Idle, UiState.Loading -> Box(
-            modifier = Modifier.fillMaxSize().background(Color(0xFFF7F8FC)),
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(color = Color(0xFF2F80ED))
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
 
         is UiState.Error -> Box(
-            modifier = Modifier.fillMaxSize().background(Color(0xFFF7F8FC)),
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
         ) {
             Text(state.message, color = MaterialTheme.colorScheme.error)
@@ -77,38 +76,38 @@ fun DriverVerificationStatusScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFFF7F8FC))
+                    .background(MaterialTheme.colorScheme.background)
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
-                        Text(description, color = Color(0xFF667085))
+                        Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("Status: ${payload.verificationStatus.name}", fontWeight = FontWeight.SemiBold)
                         Text("Verified: ${if (payload.isVerified) "Yes" else "No"}")
                     }
                 }
 
                 payload.documents.forEach { document ->
-                    Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                         Column(
                             modifier = Modifier.fillMaxWidth().padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(document.type.name, fontWeight = FontWeight.SemiBold)
                             Text("Status: ${document.status.name}", color = when (document.status) {
-                                DocumentStatus.APPROVED -> Color(0xFF2E7D32)
-                                DocumentStatus.REJECTED -> Color(0xFFD32F2F)
-                                DocumentStatus.PENDING -> Color(0xFF2F80ED)
+                                DocumentStatus.APPROVED -> MaterialTheme.colorScheme.tertiary
+                                DocumentStatus.REJECTED -> MaterialTheme.colorScheme.error
+                                DocumentStatus.PENDING -> MaterialTheme.colorScheme.primary
                             })
-                            document.expiryDate?.let { Text("Expiry: $it", color = Color(0xFF667085)) }
+                            document.expiryDate?.let { Text("Expiry: $it", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             if (!document.rejectionReason.isNullOrBlank()) {
-                                Text("Reason: ${document.rejectionReason}", color = Color(0xFFD32F2F))
+                                Text("Reason: ${document.rejectionReason}", color = MaterialTheme.colorScheme.error)
                             }
                         }
                     }
@@ -119,6 +118,16 @@ fun DriverVerificationStatusScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Refresh status")
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        viewModel.logout()
+                        navigator.navigateAndClearStack(Screen.Onboarding)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Log Out")
                 }
 
                 if (payload.verificationStatus == VerificationStatus.REJECTED) {

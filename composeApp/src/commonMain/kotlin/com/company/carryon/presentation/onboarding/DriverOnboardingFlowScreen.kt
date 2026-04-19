@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -40,6 +42,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -71,21 +77,32 @@ import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.ValidationMessage
 import com.company.carryon.data.model.VehicleOwnership
 import com.company.carryon.data.model.VehicleType
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.theme.Gray100
+import com.company.carryon.presentation.theme.Gray200
+import com.company.carryon.presentation.theme.Gray300
+import com.company.carryon.presentation.theme.Gray50
+import com.company.carryon.presentation.theme.Gray700
+import com.company.carryon.presentation.theme.Gray900
+import com.company.carryon.presentation.theme.Orange100
+import com.company.carryon.presentation.theme.Orange500
+import com.company.carryon.presentation.theme.Red500
+import com.company.carryon.presentation.theme.Yellow500
 import com.company.carryon.presentation.util.rememberImagePickerLauncher
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-private val Bg = Color(0xFFF7F8FC)
-private val Blue = Color(0xFF2F80ED)
-private val BlueTint = Color(0xFFEAF2FE)
-private val TextPrimary = Color(0xFF1E2430)
-private val TextMuted = Color(0xFF667085)
-private val Success = Color(0xFF2E7D32)
-private val Warning = Color(0xFFE18A00)
-private val Danger = Color(0xFFD32F2F)
+private val Bg = Gray50
+private val Blue = Orange500
+private val BlueTint = Orange100
+private val TextPrimary = Gray900
+private val TextMuted = Gray700
+private val Success = Orange500
+private val WarningColor = Yellow500
+private val Danger = Red500
 
 private val stepTitles = listOf(
     "Phone",
@@ -161,17 +178,11 @@ fun DriverOnboardingFlowScreen(
             Scaffold(
                 containerColor = Bg,
                 topBar = {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Text("Driver verification", fontWeight = FontWeight.Bold)
-                                Text(
-                                    "Step $currentStep of ${DriverOnboardingViewModel.TOTAL_STEPS}",
-                                    color = TextMuted,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
+                    DriveAppTopBar(
+                        title = "Driver verification",
+                        onBackClick = { navigator.goBack() },
+                        onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+                        showTitle = false
                     )
                 },
                 bottomBar = {
@@ -199,6 +210,18 @@ fun DriverOnboardingFlowScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    Text(
+                        text = "Driver verification",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 32.sp,
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = "Step $currentStep of ${DriverOnboardingViewModel.TOTAL_STEPS}",
+                        color = TextMuted,
+                        fontSize = 12.sp
+                    )
+
                     StepRail(
                         currentStep = currentStep,
                         completedSteps = draft.completedSteps,
@@ -223,7 +246,11 @@ fun DriverOnboardingFlowScreen(
                             draft = draft,
                             messages = messages,
                             serverDocuments = serverDocuments,
-                            onMyKadChanged = { value -> viewModel.updateDraft { it.copy(mykadNumber = value) } },
+                            onMyKadChanged = { value ->
+                                viewModel.updateDraft {
+                                    it.copy(mykadNumber = value.filter(Char::isDigit).take(12))
+                                }
+                            },
                             onPassportChanged = { value -> viewModel.updateDraft { it.copy(passportNumber = value) } },
                             onPassportExpiryChanged = { value -> viewModel.updateDraft { it.copy(passportExpiry = value) } },
                             onPlksChanged = { value -> viewModel.updateDraft { it.copy(plksNumber = value) } },
@@ -385,7 +412,7 @@ private fun StepRail(
                     .clickable(enabled = enabled) { onStepSelected(step) }
                     .border(
                         width = 1.dp,
-                        color = if (selected) Blue else Color(0xFFD8DEE8),
+                        color = if (selected) Blue else Gray300,
                         shape = RoundedCornerShape(14.dp)
                     ),
                 colors = CardDefaults.cardColors(
@@ -405,7 +432,7 @@ private fun StepRail(
                         modifier = Modifier
                             .size(22.dp)
                             .background(
-                                color = if (completed) Success else if (selected) Blue else Color(0xFFE5E7EB),
+                                color = if (completed) Success else if (selected) Blue else Gray200,
                                 shape = RoundedCornerShape(11.dp)
                             ),
                         contentAlignment = Alignment.Center
@@ -478,7 +505,10 @@ private fun PhoneStep(
             onValueChange = onPhoneChanged,
             keyboardType = KeyboardType.Phone,
             placeholder = "+60 12-345 6789",
-            error = errorFor(messages, "phone")
+            error = errorFor(messages, "phone"),
+            labelColor = Color(0xFF000000),
+            borderColor = Blue,
+            valueColor = Blue
         )
     }
 }
@@ -493,16 +523,23 @@ private fun NationalityStep(
         title = "Nationality",
         description = "Choose the path that determines the identity documents required next."
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier.height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             SelectionCard(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
                 title = "Malaysian",
                 subtitle = "MyKad front, back, and selfie",
                 selected = draft.nationality == DriverNationality.MALAYSIAN,
                 onClick = { onSelected(DriverNationality.MALAYSIAN) }
             )
             SelectionCard(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
                 title = "Foreigner",
                 subtitle = "Passport and PLKS",
                 selected = draft.nationality == DriverNationality.FOREIGNER,
@@ -541,7 +578,9 @@ private fun IdentityStep(
                     onValueChange = onMyKadChanged,
                     placeholder = "YYMMDDPB####",
                     keyboardType = KeyboardType.Number,
-                    error = errorFor(messages, "mykadNumber")
+                    error = errorFor(messages, "mykadNumber"),
+                    borderColor = Blue,
+                    valueColor = Blue
                 )
                 UploadField(
                     label = "MyKad front",
@@ -549,6 +588,7 @@ private fun IdentityStep(
                     localUrl = identityUrl(draft, DocumentType.MYKAD_FRONT),
                     serverDocument = serverDocuments[DocumentType.MYKAD_FRONT],
                     error = errorFor(messages, "mykadFront"),
+                    containerColor = Color(0x33A6D2F3),
                     onUpload = { launchUpload(DocumentType.MYKAD_FRONT, null) }
                 )
                 UploadField(
@@ -557,6 +597,7 @@ private fun IdentityStep(
                     localUrl = identityUrl(draft, DocumentType.MYKAD_BACK),
                     serverDocument = serverDocuments[DocumentType.MYKAD_BACK],
                     error = errorFor(messages, "mykadBack"),
+                    containerColor = Color(0x33A6D2F3),
                     onUpload = { launchUpload(DocumentType.MYKAD_BACK, null) }
                 )
                 UploadField(
@@ -565,6 +606,7 @@ private fun IdentityStep(
                     localUrl = identityUrl(draft, DocumentType.SELFIE),
                     serverDocument = serverDocuments[DocumentType.SELFIE],
                     error = errorFor(messages, "selfie"),
+                    containerColor = Color(0x33A6D2F3),
                     onUpload = { launchUpload(DocumentType.SELFIE, null) }
                 )
             }
@@ -573,15 +615,17 @@ private fun IdentityStep(
                     label = "Passport number",
                     value = draft.passportNumber,
                     onValueChange = onPassportChanged,
-                    placeholder = "Passport number",
-                    error = errorFor(messages, "passportNumber")
+                    placeholder = "e.g. A12345678",
+                    error = errorFor(messages, "passportNumber"),
+                    errorColor = Blue
                 )
                 DateFieldBlock(
                     label = "Passport expiry",
                     value = draft.passportExpiry,
                     onValueSelected = onPassportExpiryChanged,
                     error = errorFor(messages, "passportExpiry"),
-                    warning = warningFor(messages, "passportExpiry")
+                    warning = warningFor(messages, "passportExpiry"),
+                    errorColor = Blue
                 )
                 UploadField(
                     label = "Passport",
@@ -589,21 +633,25 @@ private fun IdentityStep(
                     localUrl = identityUrl(draft, DocumentType.PASSPORT),
                     serverDocument = serverDocuments[DocumentType.PASSPORT],
                     error = errorFor(messages, "passport"),
+                    containerColor = Color(0x33A6D2F3),
+                    errorColor = Blue,
                     onUpload = { launchUpload(DocumentType.PASSPORT, draft.passportExpiry.takeIf { it.isNotBlank() }) }
                 )
                 TextFieldBlock(
                     label = "PLKS number",
                     value = draft.plksNumber,
                     onValueChange = onPlksChanged,
-                    placeholder = "PLKS number",
-                    error = errorFor(messages, "plksNumber")
+                    placeholder = "e.g. PLKS-123456",
+                    error = errorFor(messages, "plksNumber"),
+                    errorColor = Blue
                 )
                 DateFieldBlock(
                     label = "PLKS expiry",
                     value = draft.plksExpiry,
                     onValueSelected = onPlksExpiryChanged,
                     error = errorFor(messages, "plksExpiry"),
-                    warning = warningFor(messages, "plksExpiry")
+                    warning = warningFor(messages, "plksExpiry"),
+                    errorColor = Blue
                 )
                 UploadField(
                     label = "PLKS / work permit",
@@ -611,6 +659,8 @@ private fun IdentityStep(
                     localUrl = identityUrl(draft, DocumentType.WORK_PERMIT_PLKS),
                     serverDocument = serverDocuments[DocumentType.WORK_PERMIT_PLKS],
                     error = errorFor(messages, "plks"),
+                    containerColor = Color(0x33A6D2F3),
+                    errorColor = Blue,
                     onUpload = { launchUpload(DocumentType.WORK_PERMIT_PLKS, draft.plksExpiry.takeIf { it.isNotBlank() }) }
                 )
                 UploadField(
@@ -619,6 +669,7 @@ private fun IdentityStep(
                     localUrl = identityUrl(draft, DocumentType.SELFIE),
                     serverDocument = serverDocuments[DocumentType.SELFIE],
                     error = null,
+                    containerColor = Color(0x33A6D2F3),
                     onUpload = { launchUpload(DocumentType.SELFIE, null) }
                 )
             }
@@ -1062,7 +1113,7 @@ private fun SelectionCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.clickable(onClick = onClick).border(1.dp, if (selected) Blue else Color(0xFFD8DEE8), RoundedCornerShape(16.dp)),
+        modifier = modifier.clickable(onClick = onClick).border(1.dp, if (selected) Blue else Gray300, RoundedCornerShape(16.dp)),
         colors = CardDefaults.cardColors(containerColor = if (selected) BlueTint else Color.White)
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1080,19 +1131,32 @@ private fun TextFieldBlock(
     placeholder: String,
     keyboardType: KeyboardType = KeyboardType.Text,
     error: String? = null,
-    warning: String? = null
+    warning: String? = null,
+    labelColor: Color = TextPrimary,
+    borderColor: Color? = null,
+    valueColor: Color? = null,
+    errorColor: Color = Danger
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, color = TextPrimary, fontWeight = FontWeight.Medium)
+        Text(label, color = labelColor, fontWeight = FontWeight.Medium)
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            placeholder = { Text(placeholder) }
+            placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = borderColor ?: MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = borderColor ?: MaterialTheme.colorScheme.outline,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedTextColor = valueColor ?: MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = valueColor ?: MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.primary
+            )
         )
-        ValidationText(error = error, warning = warning)
+        ValidationText(error = error, warning = warning, errorColor = errorColor)
     }
 }
 
@@ -1103,24 +1167,34 @@ private fun DateFieldBlock(
     value: String,
     onValueSelected: (String) -> Unit,
     error: String? = null,
-    warning: String? = null
+    warning: String? = null,
+    errorColor: Color = Danger
 ) {
     var open by remember { mutableStateOf(false) }
     val state = androidx.compose.material3.rememberDatePickerState()
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = TextPrimary, fontWeight = FontWeight.Medium)
-        OutlinedButton(
-            onClick = { open = true },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = if (value.isBlank()) "YYYY-MM-DD" else value,
-                modifier = Modifier.fillMaxWidth(),
-                color = if (value.isBlank()) TextMuted else TextPrimary
+        OutlinedTextField(
+            value = if (value.isBlank()) "" else value,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { open = true },
+            singleLine = true,
+            placeholder = { Text("YYYY-MM-DD", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.primary
             )
-        }
-        ValidationText(error = error, warning = warning)
+        )
+        ValidationText(error = error, warning = warning, errorColor = errorColor)
     }
 
     if (open) {
@@ -1144,6 +1218,7 @@ private fun DateFieldBlock(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DropdownBlock(
     label: String,
@@ -1155,14 +1230,19 @@ private fun DropdownBlock(
     var expanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = TextPrimary, fontWeight = FontWeight.Medium)
-        Box {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
             OutlinedTextField(
                 value = value,
                 onValueChange = {},
                 readOnly = true,
+                singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = true }
+                    .menuAnchor(),
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
             )
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
@@ -1175,11 +1255,12 @@ private fun DropdownBlock(
                     )
                 }
             }
-        }
+        }        
         ValidationText(error = error, warning = null)
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun <T> EnumDropdownBlock(
     label: String,
@@ -1192,14 +1273,19 @@ private fun <T> EnumDropdownBlock(
     var expanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = TextPrimary, fontWeight = FontWeight.Medium)
-        Box {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
             OutlinedTextField(
                 value = value?.let(toLabel).orEmpty(),
                 onValueChange = {},
                 readOnly = true,
+                singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = true }
+                    .menuAnchor(),
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
             )
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
@@ -1212,7 +1298,7 @@ private fun <T> EnumDropdownBlock(
                     )
                 }
             }
-        }
+        }        
         ValidationText(error = error, warning = null)
     }
 }
@@ -1224,23 +1310,36 @@ private fun UploadField(
     localUrl: String,
     serverDocument: Document?,
     error: String?,
+    containerColor: Color = Gray50,
+    errorColor: Color = Danger,
     onUpload: () -> Unit
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB))) {
+    Card(colors = CardDefaults.cardColors(containerColor = containerColor)) {
         Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(label, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                 StatusChip(localUrl = localUrl, serverDocument = serverDocument)
             }
-            OutlinedButton(onClick = onUpload) {
-                Icon(Icons.Filled.CloudUpload, contentDescription = null)
+            OutlinedButton(
+                onClick = onUpload,
+                border = BorderStroke(1.dp, Blue),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Blue)
+            ) {
+                Icon(
+                    Icons.Filled.CloudUpload,
+                    contentDescription = null,
+                    tint = Blue
+                )
                 Spacer(Modifier.width(8.dp))
-                Text(if (localUrl.isBlank()) "Choose image" else "Replace image")
+                Text(
+                    if (localUrl.isBlank()) "Choose image" else "Replace image",
+                    color = Blue
+                )
             }
             serverDocument?.takeIf { it.status == DocumentStatus.REJECTED && !it.rejectionReason.isNullOrBlank() }?.let {
                 Text("Rejected: ${it.rejectionReason}", color = Danger, fontSize = 12.sp)
             }
-            ValidationText(error = error, warning = null)
+            ValidationText(error = error, warning = null, errorColor = errorColor)
         }
     }
 }
@@ -1251,10 +1350,13 @@ private fun StatusChip(localUrl: String, serverDocument: Document?) {
         serverDocument?.status == DocumentStatus.APPROVED -> "Approved" to Success
         serverDocument?.status == DocumentStatus.REJECTED -> "Rejected" to Danger
         localUrl.isNotBlank() || serverDocument != null -> "Uploaded" to Blue
-        else -> "Required" to TextMuted
+        else -> "Required" to Blue
     }
     Box(
-        modifier = Modifier.background(color.copy(alpha = 0.12f), RoundedCornerShape(999.dp)).padding(horizontal = 10.dp, vertical = 4.dp)
+        modifier = Modifier.background(
+            if (label == "Uploaded" || label == "Required") Color.White else color.copy(alpha = 0.12f),
+            RoundedCornerShape(999.dp)
+        ).padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
         Text(label, color = color, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
@@ -1279,15 +1381,15 @@ private fun CheckboxRow(
 }
 
 @Composable
-private fun ValidationText(error: String?, warning: String?) {
+private fun ValidationText(error: String?, warning: String?, errorColor: Color = Danger) {
     when {
         error != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Filled.Warning, contentDescription = null, tint = Danger, modifier = Modifier.size(14.dp))
-            Text(error, color = Danger, fontSize = 12.sp)
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = errorColor, modifier = Modifier.size(14.dp))
+            Text(error, color = errorColor, fontSize = 12.sp)
         }
         warning != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Filled.Warning, contentDescription = null, tint = Warning, modifier = Modifier.size(14.dp))
-            Text(warning, color = Warning, fontSize = 12.sp)
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = WarningColor, modifier = Modifier.size(14.dp))
+            Text(warning, color = WarningColor, fontSize = 12.sp)
         }
     }
 }

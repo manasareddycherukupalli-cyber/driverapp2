@@ -52,16 +52,20 @@ import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.theme.Gray50
+import com.company.carryon.presentation.theme.Gray700
+import com.company.carryon.presentation.theme.Gray900
+import com.company.carryon.presentation.theme.Orange500
 import com.company.carryon.presentation.util.rememberImagePickerLauncher
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.checklist_full_corners
 import drive_app.composeapp.generated.resources.checklist_no_flash_glare
 import org.jetbrains.compose.resources.painterResource
 
-private val VerifyBlue = Color(0xFF4D7EE7)
-private val VerifyBg = Color(0xFFF6F7FB)
-private val TextPrimary = Color(0xFF21242B)
-private val TextMuted = Color(0xFF656E7E)
+private val VerifyBlue = Orange500
+private val VerifyBg = Gray50
+private val TextPrimary = Gray900
+private val TextMuted = Gray700
 
 @Composable
 fun DocumentUploadScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
@@ -117,6 +121,12 @@ fun DocumentUploadScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
     ) {
         DriveAppTopBar(
             title = strings.identityVerification,
+            onBackClick = {
+                val wentBack = navigator.goBack()
+                if (!wentBack) {
+                    navigator.navigateAndClearStack(Screen.VerificationStatus)
+                }
+            },
             onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
             showTitle = false
         )

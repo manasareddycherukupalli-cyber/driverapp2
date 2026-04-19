@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -26,7 +27,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Verified
@@ -67,14 +67,17 @@ import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.DriveAppBottomBar
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.navigation.rememberDriveBottomNavItems
+import com.company.carryon.presentation.theme.Gray50
+import com.company.carryon.presentation.theme.Orange100
+import com.company.carryon.presentation.theme.Orange500
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
-private val VerifyBlue = Color(0xFF2F80ED)
-private val VerifyBg = Color(0xFFF3F4F9)
-private val SoftBlue = Color(0xFFAECFF3)
-private val SoftBlue20 = Color(0x2EAECFF3)
-private val SoftBlue30 = Color(0x40AFC7E7)
+private val VerifyBlue = Orange500
+private val VerifyBg = Gray50
+private val SoftBlue = Orange100
+private val SoftBlue20 = Orange100.copy(alpha = 0.18f)
+private val SoftBlue30 = Orange100.copy(alpha = 0.25f)
 private val PureBlack = Color(0xFF000000)
 
 @Composable
@@ -131,7 +134,19 @@ private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = VerifyBlue, modifier = Modifier.size(17.dp))
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = VerifyBlue,
+                        modifier = Modifier
+                            .size(17.dp)
+                            .clickable {
+                                val wentBack = navigator.goBack()
+                                if (!wentBack) {
+                                    navigator.navigateAndClearStack(Screen.LocationPermission)
+                                }
+                            }
+                    )
                     Spacer(Modifier.width(12.dp))
                     Text("Precision Navigator", fontWeight = FontWeight.Bold, color = PureBlack, fontSize = 18.sp)
                 }

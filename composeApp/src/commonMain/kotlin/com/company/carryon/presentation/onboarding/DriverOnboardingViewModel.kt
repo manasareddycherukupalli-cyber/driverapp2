@@ -43,6 +43,7 @@ class DriverOnboardingViewModel(
 
     private val api = ServiceLocator.driverOnboardingApi
     private val storage = ServiceLocator.driverDocumentsStorage
+    private val authRepository = ServiceLocator.authRepository
     private val json = HttpClientFactory.json
 
     private val _initialLoadState = MutableStateFlow<UiState<Unit>>(UiState.Idle)
@@ -359,6 +360,13 @@ class DriverOnboardingViewModel(
                 .onFailure {
                     _verificationState.value = UiState.Error(it.message ?: "Failed to load verification status.")
                 }
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            currentDriverId()?.let { clearOnboardingDraft(it) }
+            authRepository.logout()
         }
     }
 

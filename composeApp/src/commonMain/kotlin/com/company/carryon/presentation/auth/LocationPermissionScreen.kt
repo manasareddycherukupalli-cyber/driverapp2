@@ -38,7 +38,8 @@ fun LocationPermissionScreen(navigator: AppNavigator, authViewModel: AuthViewMod
         }
         return
     }
-    val nextScreen = authViewModel.determinePostLocationScreen(latestAuthResponse)
+    val postLocationRoute = authViewModel.determinePostLocationScreen(latestAuthResponse)
+    val nextScreen = if (postLocationRoute == Screen.Home) Screen.Home else Screen.VerificationStatus
     val strings = LocalStrings.current
 
     Column(

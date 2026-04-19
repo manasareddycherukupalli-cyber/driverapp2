@@ -1,24 +1,28 @@
 package com.company.carryon.presentation.util
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
 
 actual class ImagePickerLauncher(
-    private val launcher: ActivityResultLauncher<Unit>
+    private val onLaunch: () -> Unit
 ) {
     actual fun launch() {
-        launcher.launch(Unit)
+        onLaunch()
     }
 }
 
@@ -57,7 +61,7 @@ actual fun rememberImagePickerLauncher(
     onImagePicked: (ByteArray) -> Unit
 ): ImagePickerLauncher {
     val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(
+    val captureLauncher = rememberLauncherForActivityResult(
         contract = CaptureFromCameraContract()
     ) { uri ->
         uri?.let {
@@ -66,5 +70,27 @@ actual fun rememberImagePickerLauncher(
             }
         }
     }
-    return remember { ImagePickerLauncher(launcher) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            captureLauncher.launch(Unit)
+        }
+    }
+
+    return remember(context, captureLauncher, permissionLauncher) {
+        ImagePickerLauncher {
+            val hasCameraPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (hasCameraPermission) {
+                captureLauncher.launch(Unit)
+            } else {
+                permissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        }
+    }
 }

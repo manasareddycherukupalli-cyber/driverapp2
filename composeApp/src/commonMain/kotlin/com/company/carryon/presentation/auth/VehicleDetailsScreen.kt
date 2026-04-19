@@ -55,12 +55,15 @@ import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.theme.Gray50
+import com.company.carryon.presentation.theme.Orange100
+import com.company.carryon.presentation.theme.Orange500
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
-private val VerifyBlue = Color(0xFF2F80ED)
-private val VerifyBg = Color(0xFFF6F7FB)
-private val MutedBlue = Color(0xFFBFD5F6)
+private val VerifyBlue = Orange500
+private val VerifyBg = Gray50
+private val MutedBlue = Orange100
 
 @Composable
 fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
@@ -101,6 +104,12 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
     ) {
         DriveAppTopBar(
             title = strings.vehicleDetailsTitle,
+            onBackClick = {
+                val wentBack = navigator.goBack()
+                if (!wentBack) {
+                    navigator.navigateAndClearStack(Screen.VerificationStatus)
+                }
+            },
             onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
             showTitle = false
         )
