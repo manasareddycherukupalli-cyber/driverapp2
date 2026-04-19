@@ -213,7 +213,12 @@ fun DriverOnboardingFlowScreen(
                         },
                         onNext = {
                             if (currentStep == DriverOnboardingViewModel.TOTAL_STEPS) {
-                                viewModel.submit()
+                                if (submitState is UiState.Error) {
+                                    // Testing shortcut: allow opening status screen even when submission is blocked by backend errors.
+                                    navigator.navigateAndClearStack(Screen.VerificationStatus)
+                                } else {
+                                    viewModel.submit()
+                                }
                             } else {
                                 viewModel.continueCurrentStep()
                             }

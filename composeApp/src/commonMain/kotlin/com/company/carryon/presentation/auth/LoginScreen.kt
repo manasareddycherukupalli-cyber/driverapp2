@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -164,7 +165,22 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 39.dp)
     ) {
-        Spacer(Modifier.height(100.dp))
+        Spacer(Modifier.height(20.dp))
+
+        IconButton(
+            onClick = {
+                val handled = navigator.goBack()
+                if (!handled) navigator.navigateAndClearStack(Screen.Onboarding)
+            }
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = DesignBlack
+            )
+        }
+
+        Spacer(Modifier.height(60.dp))
 
         // ── Heading ────────────────────────────────────────────
         Text(

@@ -337,7 +337,7 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFFE8EDF7))
+                        .background(Color(0x33A6D2F3))
                         .padding(horizontal = 14.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -402,7 +402,7 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF1FF))
+                colors = CardDefaults.cardColors(containerColor = Color(0x33A6D2F3))
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(14.dp),
@@ -419,7 +419,7 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                             Icon(
                                 Icons.Filled.Person,
                                 contentDescription = null,
-                                tint = Color(0xFF8EA5D4),
+                                tint = Color(0xFF2F80ED),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -438,10 +438,10 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.size(32.dp).background(Color.White, CircleShape), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Filled.Phone, contentDescription = null, tint = Color(0xFF8EA5D4), modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.Phone, contentDescription = null, tint = Color(0xFF2F80ED), modifier = Modifier.size(16.dp))
                         }
                         Box(Modifier.size(32.dp).background(Color.White, CircleShape), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Filled.Message, contentDescription = null, tint = Color(0xFF8EA5D4), modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.Message, contentDescription = null, tint = Color(0xFF2F80ED), modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -450,7 +450,7 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color(0x33A6D2F3))
             ) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Box(
@@ -518,6 +518,8 @@ private fun VehicleSpecCard(label: String, value: String, iconRes: DrawableResou
 fun DocumentsHubScreen(navigator: AppNavigator) {
     val viewModel = remember { ProfileViewModel() }
     val driver by viewModel.currentDriver.collectAsState()
+    val hubDocuments by viewModel.hubDocuments.collectAsState()
+    LaunchedEffect(Unit) { viewModel.refreshDocumentsForHub() }
     val requiredTypes = remember {
         listOf(
             DocumentType.DRIVERS_LICENSE,
@@ -526,7 +528,7 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
             DocumentType.ID_PROOF
         )
     }
-    val docsByType = remember(driver?.documents) { driver?.documents.orEmpty().associateBy { it.type } }
+    val docsByType = remember(hubDocuments) { hubDocuments.associateBy { it.type } }
     val approvedCount = requiredTypes.count { docsByType[it]?.status == DocumentStatus.APPROVED }
     val pendingCount = requiredTypes.count { docsByType[it]?.status == DocumentStatus.PENDING }
     val rejectedCount = requiredTypes.count { docsByType[it]?.status == DocumentStatus.REJECTED }
@@ -563,13 +565,43 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
             }
             Spacer(Modifier.height(10.dp))
             Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF4B79E6)), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.CloudUpload, contentDescription = null, tint = Color.White)
-                    Spacer(Modifier.height(6.dp))
-                    Text("Upload New", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                    Text("Required for new vehicle registration or license renewal.", color = Color(0xCCFFFFFF), textAlign = TextAlign.Center, fontSize = 11.sp)
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedButton(onClick = { navigator.navigateTo(Screen.DocumentUpload) }, colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Color(0xFF4B79E6))) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 22.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.CloudUpload,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        "Upload New",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        "Required for new vehicle registration or license renewal.",
+                        color = Color(0xCCFFFFFF),
+                        textAlign = TextAlign.Center,
+                        fontSize = 11.sp,
+                        modifier = Modifier.fillMaxWidth(0.92f)
+                    )
+                    OutlinedButton(
+                        onClick = { navigator.navigateTo(Screen.DocumentUpload) },
+                        shape = RoundedCornerShape(999.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF4B79E6)
+                        ),
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
+                    ) {
                         Text("Start Upload", fontWeight = FontWeight.SemiBold)
                     }
                 }
@@ -585,7 +617,7 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
                 Column(Modifier.padding(14.dp)) {
                     Text("History", fontWeight = FontWeight.SemiBold, color = Color(0xFF2C3852))
                     Text(
-                        "Total uploaded: ${driver?.documents.orEmpty().size}. Approved: ${driver?.documents.orEmpty().count { it.status == DocumentStatus.APPROVED }}.",
+                        "Total uploaded: ${hubDocuments.size}. Approved: ${hubDocuments.count { it.status == DocumentStatus.APPROVED }}.",
                         fontSize = 11.sp,
                         color = Color(0xFF7B88A2)
                     )

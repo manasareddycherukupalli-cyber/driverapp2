@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,12 +39,13 @@ fun DriveAppTopBar(
     onBackClick: (() -> Unit)? = null,
     leadingIcon: ImageVector = Icons.AutoMirrored.Filled.ArrowBack,
     onNotificationClick: (() -> Unit)? = null,
+    onProfileClick: (() -> Unit)? = null,
     showTitle: Boolean = true
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(Color.Transparent)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
@@ -52,38 +54,61 @@ fun DriveAppTopBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            if (onBackClick != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (onBackClick != null) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color(0xFF5E6470),
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clickable { onBackClick() }
+                    )
+                }
+                Text(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(color = Color(0xFF2F80ED), fontWeight = FontWeight.Bold)) { append("Carry") }
+                        append(" ")
+                        withStyle(SpanStyle(color = Color(0xFF034094), fontWeight = FontWeight.Bold)) { append("On") }
+                    },
+                    fontSize = 22.sp
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Icon(
-                    imageVector = leadingIcon,
-                    contentDescription = "Back",
+                    imageVector = Icons.Filled.NotificationsNone,
+                    contentDescription = "Notifications",
                     tint = Color(0xFF5E6470),
                     modifier = Modifier
                         .size(22.dp)
-                        .clickable { onBackClick() }
+                        .let { iconModifier ->
+                            if (onNotificationClick != null) iconModifier.clickable { onNotificationClick() } else iconModifier
+                        }
                 )
-            } else {
-                Spacer(modifier = Modifier.size(22.dp))
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(Color.White, CircleShape)
+                        .let { iconModifier ->
+                            if (onProfileClick != null) iconModifier.clickable { onProfileClick() } else iconModifier
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = "Profile",
+                        tint = Color(0xFF5E6470),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
-
-            Text(
-                buildAnnotatedString {
-                    withStyle(SpanStyle(color = Color(0xFF2F80ED), fontWeight = FontWeight.Bold)) { append("Carry") }
-                    append(" ")
-                    withStyle(SpanStyle(color = Color(0xFF034094), fontWeight = FontWeight.Bold)) { append("On") }
-                },
-                fontSize = 22.sp
-            )
-
-            Icon(
-                imageVector = Icons.Filled.NotificationsNone,
-                contentDescription = "Notifications",
-                tint = Color(0xFF5E6470),
-                modifier = Modifier
-                    .size(22.dp)
-                    .let { iconModifier ->
-                        if (onNotificationClick != null) iconModifier.clickable { onNotificationClick() } else iconModifier
-                    }
-            )
         }
 
         if (showTitle) {
