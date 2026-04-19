@@ -1,12 +1,16 @@
 package com.company.carryon.presentation.components
 
 import android.annotation.SuppressLint
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import com.company.carryon.data.model.LatLng
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -34,6 +38,19 @@ actual fun MapViewComposable(
     showDriverLocation: Boolean,
     onMapClick: ((Double, Double) -> Unit)?
 ) {
+    val context = LocalContext.current
+    val hasLocationPermission = remember(context) {
+        val fine = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        fine || coarse
+    }
+
     val cameraPositionState = rememberCameraPositionState()
 
     // Move camera when center/zoom changes
@@ -67,8 +84,8 @@ actual fun MapViewComposable(
         )
     }
 
-    val mapProperties = remember(showDriverLocation) {
-        MapProperties(isMyLocationEnabled = showDriverLocation)
+    val mapProperties = remember(showDriverLocation, hasLocationPermission) {
+        MapProperties(isMyLocationEnabled = showDriverLocation && hasLocationPermission)
     }
 
     GoogleMap(
