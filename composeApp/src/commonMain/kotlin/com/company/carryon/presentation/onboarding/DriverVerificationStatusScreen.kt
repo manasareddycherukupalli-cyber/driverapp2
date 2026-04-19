@@ -4,19 +4,37 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,14 +43,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.company.carryon.data.model.Document
 import com.company.carryon.data.model.DocumentStatus
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.VerificationStatus
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 
 private val VerifyBlue = Color(0xFF2F80ED)
+private val VerifyBg = Color(0xFFF7F9FF)
+private val VerifyText = Color(0xFF232323)
+private val VerifyMuted = Color(0xFF676A74)
+private val SoftBlue = Color(0x33A6D2F3)
+private val SoftBlueStrong = Color(0xFFBFD7FF)
 
 @Composable
 fun DriverVerificationStatusScreen(
@@ -48,109 +78,310 @@ fun DriverVerificationStatusScreen(
 
     when (val state = verificationState) {
         UiState.Idle, UiState.Loading -> Box(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            modifier = Modifier.fillMaxSize().background(VerifyBg),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            CircularProgressIndicator(color = VerifyBlue)
         }
 
         is UiState.Error -> Box(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            modifier = Modifier.fillMaxSize().background(VerifyBg).padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(state.message, color = VerifyBlue)
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(state.message, color = VerifyBlue, textAlign = TextAlign.Center)
+                OutlinedButton(onClick = { viewModel.refreshVerificationStatus() }) {
+                    Text("Refresh")
+                }
+            }
         }
 
         is UiState.Success -> {
             val payload = state.data
-            val title = when (payload.verificationStatus) {
-                VerificationStatus.APPROVED -> "Verification approved"
-                VerificationStatus.REJECTED -> "Verification rejected"
-                VerificationStatus.IN_REVIEW -> "Under review"
-                VerificationStatus.PENDING -> "Submitted"
-            }
-            val description = when (payload.verificationStatus) {
-                VerificationStatus.APPROVED -> "Your account is verified and ready for dispatch."
-                VerificationStatus.REJECTED -> "One or more documents need attention. Fix the rejected items and resubmit."
-                VerificationStatus.IN_REVIEW -> "CarryOn is reviewing your onboarding package."
-                VerificationStatus.PENDING -> "Your onboarding package has been submitted and is pending review."
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
-                        Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Status: ${payload.verificationStatus.name}", fontWeight = FontWeight.SemiBold)
-                        Text("Verified: ${if (payload.isVerified) "Yes" else "No"}")
-                    }
-                }
-
-                payload.documents.forEach { document ->
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(document.type.name, fontWeight = FontWeight.SemiBold)
-                            Text("Status: ${document.status.name}", color = when (document.status) {
-                                DocumentStatus.APPROVED -> MaterialTheme.colorScheme.tertiary
-                                DocumentStatus.REJECTED -> VerifyBlue
-                                DocumentStatus.PENDING -> MaterialTheme.colorScheme.primary
-                            })
-                            document.expiryDate?.let { Text("Expiry: $it", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                            if (!document.rejectionReason.isNullOrBlank()) {
-                                Text("Reason: ${document.rejectionReason}", color = VerifyBlue)
-                            }
-                        }
-                    }
-                }
-
-                Button(
-                    onClick = { viewModel.refreshVerificationStatus() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Refresh status")
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        viewModel.logout()
-                        navigator.navigateAndClearStack(Screen.Onboarding)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Log Out")
-                }
-
-                if (payload.verificationStatus == VerificationStatus.REJECTED) {
-                    OutlinedButton(
-                        onClick = { navigator.navigateAndClearStack(Screen.DriverOnboarding) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Review and resubmit")
-                    }
-                }
-
-                if (payload.verificationStatus == VerificationStatus.APPROVED) {
-                    Button(
-                        onClick = { navigator.navigateAndClearStack(Screen.Home) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Go to home")
-                    }
-                }
+            when (payload.verificationStatus) {
+                VerificationStatus.APPROVED -> ApprovedVerificationScreen(navigator)
+                VerificationStatus.REJECTED -> FailedVerificationScreen(
+                    navigator = navigator,
+                    documents = payload.documents
+                )
+                VerificationStatus.PENDING,
+                VerificationStatus.IN_REVIEW -> PendingVerificationScreen(
+                    navigator = navigator,
+                    onRefresh = { viewModel.refreshVerificationStatus() }
+                )
             }
         }
     }
+}
+
+@Composable
+private fun ApprovedVerificationScreen(navigator: AppNavigator) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(VerifyBg)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        VerificationHeader()
+
+        Spacer(Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .size(92.dp)
+                .background(Color.White, CircleShape)
+                .padding(10.dp)
+                .align(Alignment.CenterHorizontally),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(VerifyBlue, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(34.dp))
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .background(SoftBlueStrong, RoundedCornerShape(999.dp))
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Text("APPLICATION APPROVED", color = VerifyBlue, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Text(
+            "verification Status",
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            color = VerifyText,
+            fontWeight = FontWeight.Bold,
+            fontSize = 35.sp / 2
+        )
+        Text(
+            "Congratulations! Your account is now active and you can start accepting jobs.",
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            color = VerifyMuted,
+            textAlign = TextAlign.Center,
+            lineHeight = 24.sp / 1.3f
+        )
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = SoftBlue),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("NEXT STEP", color = VerifyBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Complete Your First Delivery", color = VerifyText, fontWeight = FontWeight.Bold, fontSize = 30.sp / 2)
+                Text(
+                    "Access your navigation dashboard to view available routes in your current zone.",
+                    color = VerifyMuted,
+                    lineHeight = 20.sp / 1.3f
+                )
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            InfoStatCard(
+                modifier = Modifier.weight(1f),
+                icon = { Icon(Icons.Filled.Shield, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(18.dp)) },
+                subtitle = "Profile Level",
+                title = "Certified\nPartner"
+            )
+            InfoStatCard(
+                modifier = Modifier.weight(1f),
+                icon = { Icon(Icons.Filled.Place, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(18.dp)) },
+                subtitle = "Active Zone",
+                title = "Global Reach"
+            )
+        }
+
+        Spacer(Modifier.height(6.dp))
+        Button(
+            onClick = { navigator.navigateAndClearStack(Screen.Home) },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue)
+        ) {
+            Text("Go to Dashboard", fontWeight = FontWeight.Bold)
+            Spacer(Modifier.width(8.dp))
+            Icon(Icons.Filled.ArrowForward, contentDescription = null)
+        }
+    }
+}
+
+@Composable
+private fun FailedVerificationScreen(
+    navigator: AppNavigator,
+    documents: List<Document>
+) {
+    val problemDocs = documents
+        .filter { it.status == DocumentStatus.REJECTED || isExpired(it.expiryDate) }
+        .ifEmpty { documents.filter { it.status != DocumentStatus.APPROVED } }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(VerifyBg)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        VerificationHeader()
+
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .background(Color.White, CircleShape)
+                .align(Alignment.CenterHorizontally),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Filled.ErrorOutline, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(34.dp))
+        }
+
+        Text(
+            "Verification Failed",
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            color = VerifyText,
+            fontWeight = FontWeight.Bold,
+            fontSize = 32.sp / 2
+        )
+        Text(
+            "We encountered some issues while reviewing your application. Don't worry, you can update your documents to continue the onboarding process.",
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            color = VerifyMuted,
+            textAlign = TextAlign.Center,
+            lineHeight = 21.sp / 1.3f
+        )
+
+        problemDocs.take(2).forEach { doc ->
+            val expired = isExpired(doc.expiryDate)
+            val chip = if (expired) "EXPIRED" else "ACTION REQUIRED"
+            val action = if (expired) "Update File" else "Re-upload"
+            val reason = when {
+                expired -> "The registration document provided expired on ${doc.expiryDate}."
+                !doc.rejectionReason.isNullOrBlank() -> doc.rejectionReason
+                else -> "The uploaded image was unclear and needs a better copy."
+            }
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Assignment, contentDescription = null, tint = VerifyBlue)
+                        Box(
+                            modifier = Modifier.background(SoftBlueStrong, RoundedCornerShape(999.dp)).padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(chip, color = VerifyBlue, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Text(doc.type.displayName, fontWeight = FontWeight.Bold, color = VerifyText, fontSize = 16.sp)
+                    Text(reason ?: "Document needs an updated upload.", color = VerifyMuted, lineHeight = 20.sp / 1.3f)
+                    Text("$action ->", color = VerifyBlue, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                }
+            }
+        }
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = SoftBlue),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Need help with documents?", color = VerifyText, fontWeight = FontWeight.Bold)
+                Text("Our support team is available 24/7 to guide you through the verification process.", color = VerifyMuted)
+                Text("Chat with Support ->", color = VerifyBlue, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        Button(
+            onClick = { navigator.navigateAndClearStack(Screen.DriverOnboarding) },
+            modifier = Modifier.fillMaxWidth().height(54.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue)
+        ) {
+            Text("Re-upload Documents", fontWeight = FontWeight.Bold)
+        }
+
+        OutlinedButton(
+            onClick = { navigator.navigateTo(Screen.HelpContactSupport) },
+            modifier = Modifier.fillMaxWidth().height(54.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = VerifyText)
+        ) {
+            Text("Contact Support", fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun PendingVerificationScreen(
+    navigator: AppNavigator,
+    onRefresh: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(VerifyBg)
+            .padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)
+    ) {
+        Icon(Icons.Filled.Description, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(48.dp))
+        Text("Verification In Progress", color = VerifyText, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+        Text(
+            "Your documents are submitted and currently under review.",
+            color = VerifyMuted,
+            textAlign = TextAlign.Center
+        )
+        Button(onClick = onRefresh, colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue)) {
+            Text("Refresh status")
+        }
+        OutlinedButton(onClick = { navigator.navigateAndClearStack(Screen.Home) }) {
+            Text("Go to dashboard")
+        }
+    }
+}
+
+@Composable
+private fun VerificationHeader() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Filled.Menu, contentDescription = null, tint = VerifyMuted)
+        Text("Carry On", color = VerifyBlue, fontWeight = FontWeight.Bold, fontSize = 36.sp / 2)
+        Icon(Icons.Filled.NotificationsNone, contentDescription = null, tint = VerifyMuted)
+    }
+}
+
+@Composable
+private fun InfoStatCard(
+    modifier: Modifier = Modifier,
+    icon: @Composable () -> Unit,
+    subtitle: String,
+    title: String
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            icon()
+            Text(subtitle, color = VerifyMuted, fontSize = 12.sp)
+            Text(title, color = VerifyText, fontWeight = FontWeight.Bold, lineHeight = 18.sp)
+        }
+    }
+}
+
+private fun isExpired(date: String?): Boolean {
+    if (date.isNullOrBlank()) return false
+    val parsed = runCatching { LocalDate.parse(date) }.getOrNull() ?: return false
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    return parsed < today
 }

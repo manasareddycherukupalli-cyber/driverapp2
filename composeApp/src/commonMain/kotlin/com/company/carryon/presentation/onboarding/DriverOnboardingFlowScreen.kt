@@ -186,7 +186,13 @@ fun DriverOnboardingFlowScreen(
                 topBar = {
                     DriveAppTopBar(
                         title = "Driver verification",
-                        onBackClick = { navigator.goBack() },
+                        onBackClick = {
+                            if (currentStep == 1) {
+                                navigator.navigateAndClearStack(Screen.Login)
+                            } else {
+                                viewModel.goBack()
+                            }
+                        },
                         onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
                         showTitle = false
                     )
@@ -194,11 +200,17 @@ fun DriverOnboardingFlowScreen(
                 bottomBar = {
                     FooterActions(
                         step = currentStep,
-                        canGoBack = currentStep > 1,
+                        canGoBack = true,
                         isLoading = submitState is UiState.Loading,
                         hasBlockingErrors = blockingErrors.isNotEmpty(),
                         submitError = (submitState as? UiState.Error)?.message,
-                        onBack = viewModel::goBack,
+                        onBack = {
+                            if (currentStep == 1) {
+                                navigator.navigateAndClearStack(Screen.Login)
+                            } else {
+                                viewModel.goBack()
+                            }
+                        },
                         onNext = {
                             if (currentStep == DriverOnboardingViewModel.TOTAL_STEPS) {
                                 viewModel.submit()
