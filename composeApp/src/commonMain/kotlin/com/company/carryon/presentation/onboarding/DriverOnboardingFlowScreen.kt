@@ -35,11 +35,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -1110,15 +1110,16 @@ private fun DateFieldBlock(
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = TextPrimary, fontWeight = FontWeight.Medium)
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            modifier = Modifier.fillMaxWidth().clickable { open = true },
-            readOnly = true,
-            enabled = true,
-            singleLine = true,
-            placeholder = { Text("YYYY-MM-DD") }
-        )
+        OutlinedButton(
+            onClick = { open = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = if (value.isBlank()) "YYYY-MM-DD" else value,
+                modifier = Modifier.fillMaxWidth(),
+                color = if (value.isBlank()) TextMuted else TextPrimary
+            )
+        }
         ValidationText(error = error, warning = warning)
     }
 
@@ -1143,7 +1144,6 @@ private fun DateFieldBlock(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DropdownBlock(
     label: String,
@@ -1155,17 +1155,18 @@ private fun DropdownBlock(
     var expanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = TextPrimary, fontWeight = FontWeight.Medium)
-        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        Box {
             OutlinedTextField(
                 value = value,
                 onValueChange = {},
                 readOnly = true,
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = true }
             )
-            androidx.compose.material3.DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
-                    androidx.compose.material3.DropdownMenuItem(
+                    DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
                             onSelected(option)
@@ -1179,7 +1180,6 @@ private fun DropdownBlock(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun <T> EnumDropdownBlock(
     label: String,
@@ -1192,17 +1192,18 @@ private fun <T> EnumDropdownBlock(
     var expanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = TextPrimary, fontWeight = FontWeight.Medium)
-        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        Box {
             OutlinedTextField(
                 value = value?.let(toLabel).orEmpty(),
                 onValueChange = {},
                 readOnly = true,
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = true }
             )
-            androidx.compose.material3.DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
-                    androidx.compose.material3.DropdownMenuItem(
+                    DropdownMenuItem(
                         text = { Text(toLabel(option)) },
                         onClick = {
                             onSelected(option)
