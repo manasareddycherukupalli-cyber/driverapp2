@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -53,17 +52,18 @@ fun DriveAppTopBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            val iconVector = if (onBackClick == null) Icons.Filled.Menu else leadingIcon
-            Icon(
-                imageVector = iconVector,
-                contentDescription = "Navigation",
-                tint = Color(0xFF5E6470),
-                modifier = Modifier
-                    .size(22.dp)
-                    .let { iconModifier ->
-                        if (onBackClick != null) iconModifier.clickable { onBackClick() } else iconModifier
-                    }
-            )
+            if (onBackClick != null) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = "Back",
+                    tint = Color(0xFF5E6470),
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clickable { onBackClick() }
+                )
+            } else {
+                Spacer(modifier = Modifier.size(22.dp))
+            }
 
             Text(
                 buildAnnotatedString {

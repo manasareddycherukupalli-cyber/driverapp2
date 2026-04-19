@@ -56,3 +56,15 @@ actual fun clearDeliveryResumeState() {
         .remove(KEY_DELIVERY_RESUME_JOB_ID)
         .apply()
 }
+
+actual fun saveOnboardingDraft(key: String, payload: String) {
+    prefs.edit().putString("onboarding_$key", payload).apply()
+}
+
+actual fun getOnboardingDraft(key: String): String? {
+    return prefs.getString("onboarding_$key", null)
+}
+
+actual fun clearOnboardingDraft(key: String) {
+    prefs.edit().remove("onboarding_$key").apply()
+}

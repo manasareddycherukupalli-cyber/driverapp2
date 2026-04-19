@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.LatLng
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.displayDurationMinutes
+import com.company.carryon.data.model.isSettlementEligible
 import com.company.carryon.data.network.LocationApi
 import com.company.carryon.presentation.components.ErrorState
 import com.company.carryon.presentation.components.LoadingScreen
@@ -209,7 +210,12 @@ fun JobReceiptScreen(navigator: AppNavigator) {
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text("SUMMARY", color = ReceiptMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    ReceiptDetailRow("Earnings", "RM ${job.estimatedEarnings.toInt()}", valueColor = ReceiptBlue, valueBold = true)
+                    ReceiptDetailRow(
+                        "Earnings",
+                        if (job.isSettlementEligible) "RM ${job.estimatedEarnings.toInt()}" else "Pending handover",
+                        valueColor = ReceiptBlue,
+                        valueBold = true
+                    )
                     HorizontalDivider(color = ReceiptDivider)
                     ReceiptDetailRow("Distance", "${job.distance.toInt()} km")
                     ReceiptDetailRow("Duration", "${job.displayDurationMinutes} min")

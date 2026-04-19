@@ -16,6 +16,7 @@ import com.company.carryon.presentation.earnings.*
 import com.company.carryon.presentation.home.*
 import com.company.carryon.presentation.jobs.*
 import com.company.carryon.presentation.map.*
+import com.company.carryon.presentation.onboarding.*
 import com.company.carryon.presentation.profile.*
 import com.company.carryon.presentation.ratings.*
 import com.company.carryon.presentation.support.*
@@ -44,6 +45,7 @@ fun AppNavHost(
     val currentScreen = navigator.currentScreen
     val showBottomBar = currentScreen in mainTabScreens
     val authViewModel = remember { AuthViewModel() }
+    val onboardingViewModel = remember(authViewModel) { DriverOnboardingViewModel(authViewModel) }
     val bottomNavItems = rememberDriveBottomNavItems()
 
     Scaffold(
@@ -71,11 +73,12 @@ fun AppNavHost(
                     Screen.Login -> LoginScreen(navigator, authViewModel)
                     Screen.OtpVerification -> OtpVerificationScreen(navigator, authViewModel)
                     Screen.Registration -> RegistrationScreen(navigator, authViewModel)
-                    Screen.PersonalIdentity -> PersonalIdentityScreen(navigator, authViewModel)
-                    Screen.DocumentUpload -> DocumentUploadScreen(navigator, authViewModel)
-                    Screen.VehicleDetailsInput -> VehicleDetailsScreen(navigator, authViewModel)
+                    Screen.DriverOnboarding -> DriverOnboardingFlowScreen(navigator, onboardingViewModel)
+                    Screen.PersonalIdentity -> DriverOnboardingFlowScreen(navigator, onboardingViewModel)
+                    Screen.DocumentUpload -> DriverOnboardingFlowScreen(navigator, onboardingViewModel)
+                    Screen.VehicleDetailsInput -> DriverOnboardingFlowScreen(navigator, onboardingViewModel)
                     Screen.ReadyToDrive -> ReadyToDriveScreen(navigator)
-                    Screen.VerificationStatus -> VerificationStatusScreen(navigator, authViewModel)
+                    Screen.VerificationStatus -> DriverVerificationStatusScreen(navigator, onboardingViewModel)
                     Screen.LocationPermission -> LocationPermissionScreen(navigator, authViewModel)
 
                     // ---- Main Tabs ----

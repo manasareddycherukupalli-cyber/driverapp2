@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DeliveryJob
 import com.company.carryon.data.model.LatLng
 import com.company.carryon.data.model.UiState
+import com.company.carryon.data.model.isSettlementEligible
 import com.company.carryon.data.network.LocationApi
 import com.company.carryon.presentation.components.ErrorState
 import com.company.carryon.presentation.components.LoadingScreen
@@ -199,7 +200,7 @@ private fun PastJobCard(job: DeliveryJob, onClick: () -> Unit) {
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
                         )
-                        if (!job.completedAt.isNullOrBlank() || !job.deliveredAt.isNullOrBlank()) {
+                        if (job.isSettlementEligible) {
                             val date = job.completedAt ?: job.deliveredAt ?: ""
                             Text(date, color = JobsMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }

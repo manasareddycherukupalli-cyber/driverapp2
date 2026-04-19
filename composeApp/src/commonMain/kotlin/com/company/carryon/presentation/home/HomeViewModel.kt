@@ -461,7 +461,8 @@ class HomeViewModel : ViewModel() {
                 .onSuccess { jobs ->
                     val todayPrefix = Clock.System.now().toString().take(10) // "YYYY-MM-DD"
                     val todayJobs = jobs.filter { job ->
-                        (job.deliveredAt ?: job.completedAt ?: job.createdAt)
+                        job.isSettlementEligible &&
+                            (job.deliveredAt ?: job.completedAt ?: job.createdAt)
                             ?.startsWith(todayPrefix) == true
                     }
                     _todayCompletedJobs.value = UiState.Success(todayJobs)

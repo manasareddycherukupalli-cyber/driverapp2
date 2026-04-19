@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.displayDurationMinutes
+import com.company.carryon.data.model.isSettlementEligible
 import com.company.carryon.presentation.components.ErrorState
 import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.navigation.AppNavigator
@@ -132,7 +133,12 @@ fun DeliveryCompleteScreen(navigator: AppNavigator) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                     Column {
                         Text("EARNINGS", color = DoneBlue.copy(alpha = 0.8f), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
-                        Text("RM ${job.estimatedEarnings.toInt()}", color = DoneBlue, fontWeight = FontWeight.ExtraBold, fontSize = 38.sp)
+                        Text(
+                            if (job.isSettlementEligible) "RM ${job.estimatedEarnings.toInt()}" else "Pending",
+                            color = DoneBlue,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 38.sp
+                        )
                     }
                     Box(
                         modifier = Modifier

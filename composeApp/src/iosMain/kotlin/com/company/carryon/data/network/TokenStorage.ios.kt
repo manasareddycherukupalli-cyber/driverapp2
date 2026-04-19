@@ -44,3 +44,15 @@ actual fun clearDeliveryResumeState() {
     NSUserDefaults.standardUserDefaults.removeObjectForKey(KEY_DELIVERY_RESUME_SCREEN)
     NSUserDefaults.standardUserDefaults.removeObjectForKey(KEY_DELIVERY_RESUME_JOB_ID)
 }
+
+actual fun saveOnboardingDraft(key: String, payload: String) {
+    NSUserDefaults.standardUserDefaults.setObject(payload, forKey = "onboarding_$key")
+}
+
+actual fun getOnboardingDraft(key: String): String? {
+    return NSUserDefaults.standardUserDefaults.stringForKey("onboarding_$key")
+}
+
+actual fun clearOnboardingDraft(key: String) {
+    NSUserDefaults.standardUserDefaults.removeObjectForKey("onboarding_$key")
+}

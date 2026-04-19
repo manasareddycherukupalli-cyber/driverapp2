@@ -66,7 +66,11 @@ class JobsViewModel : ViewModel() {
         viewModelScope.launch {
             _completedJobs.value = UiState.Loading
             repository.getCompletedJobs()
-                .onSuccess { _completedJobs.value = UiState.Success(it) }
+                .onSuccess { jobs ->
+                    _completedJobs.value = UiState.Success(
+                        jobs.filter { it.isSettlementEligible }
+                    )
+                }
                 .onFailure { _completedJobs.value = UiState.Error(it.message ?: "Failed to load") }
         }
     }

@@ -1,7 +1,6 @@
 package com.company.carryon.presentation.earnings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,26 +33,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.company.carryon.data.model.EarningsSummary
-import com.company.carryon.data.model.Transaction
-import com.company.carryon.data.model.UiState
-import com.company.carryon.data.model.WalletInfo
 import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
-import kotlin.math.abs
 import kotlin.math.round
 
 private val BrandBlue = Color(0xFF2F80ED)
@@ -61,39 +53,10 @@ private val LightBlue = Color(0xFFA6D2F3)
 private val TextPrimary = Color(0xFF181C23)
 private val TextMuted = Color(0xFF414755)
 
-private data class TripUi(
-    val title: String,
-    val date: String,
-    val miles: String,
-    val amount: Double,
-    val iconType: String
-)
-
 @Composable
 fun EarningsDashboardScreen(navigator: AppNavigator) {
     val viewModel = remember { EarningsViewModel() }
-    val earningsState by viewModel.earningsSummary.collectAsState()
-    val transactionsState by viewModel.transactions.collectAsState()
-    val walletState by viewModel.walletInfo.collectAsState()
-
-    var weeklySelected by remember { mutableStateOf(true) }
-
-    val summary = (earningsState as? UiState.Success<EarningsSummary>)?.data ?: EarningsSummary(
-        todayEarnings = 420.0,
-        weeklyEarnings = 842.2,
-        totalDeliveries = 114,
-        onlineHours = 38.5
-    )
-    val wallet = (walletState as? UiState.Success<WalletInfo>)?.data ?: WalletInfo(balance = 2485.5)
-
-    val netProfit = if (summary.weeklyEarnings > 0.0) summary.weeklyEarnings else 842.2
-    val displayBalance = if (weeklySelected) {
-        if (wallet.balance > 0.0) wallet.balance else netProfit
-    } else {
-        if (summary.todayEarnings > 0.0) summary.todayEarnings else 248.55
-    }
-
-    val trips = buildTrips((transactionsState as? UiState.Success<List<Transaction>>)?.data)
+    val dashboardUi by viewModel.dashboardUi.collectAsState()
 
     Column(
         modifier = Modifier
@@ -111,28 +74,32 @@ fun EarningsDashboardScreen(navigator: AppNavigator) {
         )
 
         TabSelector(
-            weeklySelected = weeklySelected,
-            onTodayClick = { weeklySelected = false },
-            onWeeklyClick = { weeklySelected = true }
+            selectedPeriod = dashboardUi.selectedPeriod,
+            onTodayClick = { viewModel.setSelectedPeriod(EarningsPeriod.TODAY) },
+            onWeeklyClick = { viewModel.setSelectedPeriod(EarningsPeriod.THIS_WEEK) }
         )
 
         BalanceCard(
-            balance = displayBalance,
+            balance = dashboardUi.displayBalance,
             onWithdraw = { navigator.navigateTo(Screen.Wallet) }
         )
 
-        WeeklySection(netProfit = netProfit)
+        WeeklySection(
+            weekRangeLabel = dashboardUi.weekRangeLabel,
+            netProfit = dashboardUi.weeklyAmount,
+            chart = dashboardUi.chart
+        )
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             StatChip(
                 label = "Deliveries",
-                value = (if (summary.totalDeliveries > 0) summary.totalDeliveries else 114).toString(),
+                value = dashboardUi.deliveriesCount?.toString() ?: "--",
                 icon = { Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(16.dp)) },
                 modifier = Modifier.weight(1f)
             )
             StatChip(
                 label = "Active Hours",
-                value = "${formatSingleDecimal(if (summary.onlineHours > 0.0) summary.onlineHours else 38.5)}h",
+                value = dashboardUi.activeHours?.let { "${formatSingleDecimal(it)}h" } ?: "--",
                 icon = { Icon(Icons.Filled.Schedule, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(16.dp)) },
                 modifier = Modifier.weight(1f)
             )
@@ -153,11 +120,24 @@ fun EarningsDashboardScreen(navigator: AppNavigator) {
             )
         }
 
-        trips.forEach { trip ->
-            TripCard(trip = trip)
+        when {
+            dashboardUi.trips.isNotEmpty() -> dashboardUi.trips.forEach { trip ->
+                TripCard(trip = trip)
+            }
+
+            dashboardUi.isLoading -> LoadingCard("Loading recent trips...")
+            else -> EmptyCard("No completed trips yet")
         }
 
-        if (earningsState is UiState.Loading || walletState is UiState.Loading) {
+        dashboardUi.errorMessage?.let { message ->
+            MessageCard(
+                message = message,
+                actionLabel = "Retry",
+                onAction = { viewModel.loadAll() }
+            )
+        }
+
+        if (dashboardUi.isLoading) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = BrandBlue, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             }
@@ -168,7 +148,12 @@ fun EarningsDashboardScreen(navigator: AppNavigator) {
 }
 
 @Composable
-private fun TabSelector(weeklySelected: Boolean, onTodayClick: () -> Unit, onWeeklyClick: () -> Unit) {
+private fun TabSelector(
+    selectedPeriod: EarningsPeriod,
+    onTodayClick: () -> Unit,
+    onWeeklyClick: () -> Unit
+) {
+    val weeklySelected = selectedPeriod != EarningsPeriod.TODAY
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -180,9 +165,7 @@ private fun TabSelector(weeklySelected: Boolean, onTodayClick: () -> Unit, onWee
                     .weight(1f)
                     .clickable { onTodayClick() }
                     .padding(vertical = 8.dp),
-                textAlign = TextAlign.Center,
-                minLines = 1,
-                maxLines = 1
+                textAlign = TextAlign.Center
             )
             Text(
                 "WEEKLY",
@@ -193,9 +176,7 @@ private fun TabSelector(weeklySelected: Boolean, onTodayClick: () -> Unit, onWee
                     .weight(1f)
                     .clickable { onWeeklyClick() }
                     .padding(vertical = 8.dp),
-                textAlign = TextAlign.Center,
-                minLines = 1,
-                maxLines = 1
+                textAlign = TextAlign.Center
             )
         }
         Box(
@@ -216,7 +197,7 @@ private fun TabSelector(weeklySelected: Boolean, onTodayClick: () -> Unit, onWee
 }
 
 @Composable
-private fun BalanceCard(balance: Double, onWithdraw: () -> Unit) {
+private fun BalanceCard(balance: Double?, onWithdraw: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -226,16 +207,17 @@ private fun BalanceCard(balance: Double, onWithdraw: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(BrandBlue, BrandBlue)
-                    )
-                )
+                .background(Brush.linearGradient(colors = listOf(BrandBlue, BrandBlue)))
                 .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("AVAILABLE BALANCE", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                Text("$${formatMoney(balance)}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 33.sp / 1.5f)
+                Text(
+                    balance?.let { "$${formatMoney(it)}" } ?: "--",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 33.sp / 1.5f
+                )
                 Spacer(Modifier.height(4.dp))
                 Button(
                     onClick = onWithdraw,
@@ -250,7 +232,11 @@ private fun BalanceCard(balance: Double, onWithdraw: () -> Unit) {
 }
 
 @Composable
-private fun WeeklySection(netProfit: Double) {
+private fun WeeklySection(
+    weekRangeLabel: String,
+    netProfit: Double?,
+    chart: List<EarningsChartPoint>
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -259,10 +245,15 @@ private fun WeeklySection(netProfit: Double) {
         ) {
             Column {
                 Text("Weekly Earnings", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 24.sp / 1.15f)
-                Text("Oct 21 - Oct 27, 2023", color = TextMuted, fontSize = 14.sp / 1.05f)
+                Text(weekRangeLabel, color = TextMuted, fontSize = 14.sp / 1.05f)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("+$${formatMoney(netProfit)}", color = BrandBlue, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text(
+                    netProfit?.let { "+$${formatMoney(it)}" } ?: "--",
+                    color = BrandBlue,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
                 Text("NET PROFIT", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }
         }
@@ -273,29 +264,22 @@ private fun WeeklySection(netProfit: Double) {
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            WeeklyBarChart(modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp))
+            WeeklyBarChart(chart = chart, modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp))
         }
     }
 }
 
 @Composable
-private fun WeeklyBarChart(modifier: Modifier = Modifier) {
-    val bars = listOf(128, 160, 96, 192, 144, 64, 80)
-    val days = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+private fun WeeklyBarChart(chart: List<EarningsChartPoint>, modifier: Modifier = Modifier) {
     val maxHeight = 150.dp
+    val maxAmount = chart.maxOfOrNull { it.amount }?.takeIf { it > 0.0 } ?: 1.0
 
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.Bottom
     ) {
-        bars.forEachIndexed { index, heightValue ->
-            val alpha = when (index) {
-                3 -> 1f
-                1, 4 -> 0.45f
-                5, 6 -> 0.2f
-                else -> 0.25f
-            }
+        chart.forEach { point ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -304,19 +288,19 @@ private fun WeeklyBarChart(modifier: Modifier = Modifier) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(maxHeight * (heightValue / 192f))
+                        .height(
+                            if (point.amount > 0.0) {
+                                maxHeight * (point.amount / maxAmount).toFloat()
+                            } else {
+                                0.dp
+                            }
+                        )
                         .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                        .background(BrandBlue.copy(alpha = 0.12f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(if (index == 3) BrandBlue else BrandBlue.copy(alpha = alpha))
-                    )
-                }
+                        .background(if (point.isHighlighted) BrandBlue else BrandBlue.copy(alpha = 0.28f))
+                )
                 Text(
-                    days[index],
-                    color = if (index == 3) BrandBlue else Color(0xFF94A3B8),
+                    point.dayLabel,
+                    color = if (point.isHighlighted) BrandBlue else Color(0xFF94A3B8),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -347,7 +331,7 @@ private fun StatChip(label: String, value: String, icon: @Composable () -> Unit,
 }
 
 @Composable
-private fun TripCard(trip: TripUi) {
+private fun TripCard(trip: EarningsTripUi) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -385,7 +369,6 @@ private fun TripCard(trip: TripUi) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         Icon(Icons.Filled.CalendarToday, contentDescription = null, tint = TextMuted, modifier = Modifier.size(10.dp))
                         Text(trip.date, color = TextMuted, fontSize = 12.sp, lineHeight = 14.sp)
-                        Box(modifier = Modifier.size(3.dp).clip(CircleShape).background(Color(0xFFC1C6D7)))
                         Text("${trip.miles} mi", color = TextMuted, fontSize = 12.sp)
                     }
                 }
@@ -397,7 +380,6 @@ private fun TripCard(trip: TripUi) {
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
                         .background(LightBlue)
-                        .border(0.dp, Color.Transparent)
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text("COMPLETED", color = BrandBlue, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
@@ -407,76 +389,73 @@ private fun TripCard(trip: TripUi) {
     }
 }
 
-private fun buildTrips(transactions: List<Transaction>?): List<TripUi> {
-    if (transactions.isNullOrEmpty()) {
-        return listOf(
-            TripUi("Regional Hub\nDelivery", "Oct 24,\n2023", "142", 312.40, "truck"),
-            TripUi("Last Mile Express", "Oct 24,\n2023", "18", 45.00, "store"),
-            TripUi("Warehouse Return", "Oct 23,\n2023", "32", 88.15, "warehouse")
+@Composable
+private fun EmptyCard(message: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFD)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Text(
+            message,
+            color = TextMuted,
+            fontSize = 14.sp,
+            modifier = Modifier.padding(16.dp)
         )
     }
+}
 
-    return transactions.take(3).mapIndexed { index, t ->
-        val fallbackTitle = when (index) {
-            0 -> "Regional Hub\nDelivery"
-            1 -> "Last Mile Express"
-            else -> "Warehouse Return"
+@Composable
+private fun LoadingCard(message: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFD)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CircularProgressIndicator(color = BrandBlue, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            Text(message, color = TextMuted, fontSize = 14.sp)
         }
-        val fallbackMiles = when (index) {
-            0 -> "142"
-            1 -> "18"
-            else -> "32"
-        }
-        val icon = when (index) {
-            1 -> "store"
-            2 -> "warehouse"
-            else -> "truck"
-        }
+    }
+}
 
-        TripUi(
-            title = t.description.ifBlank { fallbackTitle },
-            date = formatTripDate(t.timestamp),
-            miles = fallbackMiles,
-            amount = abs(t.amount).takeIf { it > 0.0 } ?: listOf(312.40, 45.00, 88.15).getOrElse(index) { 42.0 },
-            iconType = icon
-        )
+@Composable
+private fun MessageCard(message: String, actionLabel: String, onAction: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFD)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(message, color = TextMuted, fontSize = 14.sp)
+            Text(
+                actionLabel,
+                color = BrandBlue,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(onClick = onAction)
+            )
+        }
     }
 }
 
 private fun formatMoney(value: Double): String {
     val cents = round(value * 100.0).toLong()
-    val absCents = abs(cents)
-    val whole = absCents / 100
-    val fraction = (absCents % 100).toString().padStart(2, '0')
+    val whole = cents / 100
+    val fraction = (cents % 100).toString().padStart(2, '0')
     return "$whole.$fraction"
 }
 
 private fun formatSingleDecimal(value: Double): String {
     val scaled = round(value * 10.0) / 10.0
     return if (scaled % 1.0 == 0.0) "${scaled.toInt()}.0" else scaled.toString()
-}
-
-private fun formatTripDate(timestamp: String?): String {
-    if (timestamp.isNullOrBlank()) return "Oct 24,\n2023"
-    val date = timestamp.take(10)
-    val parts = date.split("-")
-    if (parts.size != 3) return "Oct 24,\n2023"
-
-    val month = when (parts[1]) {
-        "01" -> "Jan"
-        "02" -> "Feb"
-        "03" -> "Mar"
-        "04" -> "Apr"
-        "05" -> "May"
-        "06" -> "Jun"
-        "07" -> "Jul"
-        "08" -> "Aug"
-        "09" -> "Sep"
-        "10" -> "Oct"
-        "11" -> "Nov"
-        "12" -> "Dec"
-        else -> "Oct"
-    }
-
-    return "$month ${parts[2]},\n${parts[0]}"
 }

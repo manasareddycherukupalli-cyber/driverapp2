@@ -18,6 +18,38 @@ data class Driver(
     val email: String = "",
     val driversLicenseNumber: String = "",
     val dateOfBirth: String = "",
+    val gender: String = "",
+    val preferredLanguage: String = "",
+    val nationality: DriverNationality? = null,
+    val mykadNumber: String = "",
+    val passportNumber: String = "",
+    val passportExpiry: String? = null,
+    val plksNumber: String = "",
+    val plksExpiry: String? = null,
+    val licenseClass: LicenseClass? = null,
+    val licenseExpiry: String? = null,
+    val hasGDL: Boolean = false,
+    val gdlExpiry: String? = null,
+    val addressLine1: String = "",
+    val addressLine2: String = "",
+    val city: String = "",
+    val postcode: String = "",
+    val state: MalaysianState? = null,
+    val workingStates: List<MalaysianState> = emptyList(),
+    val emergencyContactName: String = "",
+    val emergencyContactRelation: String = "",
+    val emergencyContactPhone: String = "",
+    val bankName: String = "",
+    val bankAccountNumber: String = "",
+    val bankAccountHolder: String = "",
+    val duitNowId: String = "",
+    val tngEwalletId: String = "",
+    val lhdnTaxNumber: String = "",
+    val sstNumber: String = "",
+    val pdpaConsent: Boolean = false,
+    val backgroundCheckConsent: Boolean = false,
+    val agreementVersion: String = "",
+    val noOffencesDeclared: Boolean = false,
     @SerialName("photo") val profileImageUrl: String? = null,
     val rating: Double = 0.0,
     @SerialName("totalTrips") val totalDeliveries: Int = 0,
@@ -72,7 +104,20 @@ data class VehicleDetails(
     val model: String = "",
     val year: Int = 0,
     val licensePlate: String = "",
-    val color: String = ""
+    val color: String = "",
+    val chassisNumber: String = "",
+    val engineNumber: String = "",
+    val ownership: VehicleOwnership? = null,
+    val ownerName: String = "",
+    val roadTaxExpiry: String? = null,
+    val puspakomExpiry: String? = null,
+    val apadPermitNumber: String = "",
+    val apadPermitExpiry: String? = null,
+    val insurerName: String = "",
+    val insurancePolicyNumber: String = "",
+    val insuranceCoverageType: InsuranceCoverageType? = null,
+    val insuranceExpiry: String? = null,
+    val hasCommercialCover: Boolean = false
 )
 
 @Serializable
@@ -80,11 +125,13 @@ enum class VehicleType(val displayName: String) {
     BIKE("Motorcycle"),
     CAR("Car"),
     PICKUP("Pickup"),
+    VAN("Van"),
     VAN_7FT("Van 7ft"),
     VAN_9FT("Van 9ft"),
     LORRY_10FT("Lorry 10ft"),
     LORRY_14FT("Lorry 14ft"),
-    LORRY_17FT("Lorry 17ft")
+    LORRY_17FT("Lorry 17ft"),
+    TRUCK("Truck")
 }
 
 // ============================================================
@@ -96,6 +143,7 @@ data class Document(
     val id: String = "",
     val type: DocumentType = DocumentType.DRIVERS_LICENSE,
     val imageUrl: String = "",
+    val expiryDate: String? = null,
     val status: DocumentStatus = DocumentStatus.PENDING,
     val uploadedAt: String? = null,
     val rejectionReason: String? = null
@@ -104,10 +152,28 @@ data class Document(
 @Serializable
 enum class DocumentType(val displayName: String) {
     DRIVERS_LICENSE("Driver's License"),
+    DRIVERS_LICENSE_BACK("Driver's License (Back)"),
+    GDL("GDL"),
     VEHICLE_REGISTRATION("Vehicle Registration"),
     INSURANCE("Insurance Certificate"),
     PROFILE_PHOTO("Profile Photo"),
-    ID_PROOF("Government ID")
+    ID_PROOF("Government ID"),
+    MYKAD_FRONT("MyKad Front"),
+    MYKAD_BACK("MyKad Back"),
+    SELFIE("Selfie"),
+    PASSPORT("Passport"),
+    WORK_PERMIT_PLKS("Work Permit / PLKS"),
+    ROAD_TAX("Road Tax"),
+    PUSPAKOM("PUSPAKOM"),
+    APAD_PERMIT("APAD / LPKP Permit"),
+    VEHICLE_PHOTO_FRONT("Vehicle Front Photo"),
+    VEHICLE_PHOTO_BACK("Vehicle Back Photo"),
+    VEHICLE_PHOTO_LEFT("Vehicle Left Photo"),
+    VEHICLE_PHOTO_RIGHT("Vehicle Right Photo"),
+    VEHICLE_PHOTO_INTERIOR("Vehicle Interior Photo"),
+    BANK_STATEMENT("Bank Statement"),
+    PROOF_OF_ADDRESS("Proof of Address"),
+    POLICE_CLEARANCE("Police Clearance")
 }
 
 @Serializable
@@ -115,6 +181,51 @@ enum class DocumentStatus { PENDING, APPROVED, REJECTED }
 
 @Serializable
 enum class VerificationStatus { PENDING, IN_REVIEW, APPROVED, REJECTED }
+
+@Serializable
+enum class DriverNationality {
+    MALAYSIAN,
+    FOREIGNER
+}
+
+@Serializable
+enum class LicenseClass {
+    B, B1, B2, D, DA, E, E1, E2, GDL
+}
+
+@Serializable
+enum class MalaysianState {
+    JOHOR,
+    KEDAH,
+    KELANTAN,
+    MELAKA,
+    NEGERI_SEMBILAN,
+    PAHANG,
+    PENANG,
+    PERAK,
+    PERLIS,
+    SABAH,
+    SARAWAK,
+    SELANGOR,
+    TERENGGANU,
+    KUALA_LUMPUR,
+    LABUAN,
+    PUTRAJAYA
+}
+
+@Serializable
+enum class VehicleOwnership {
+    OWNED,
+    LEASED,
+    COMPANY_PROVIDED
+}
+
+@Serializable
+enum class InsuranceCoverageType {
+    COMPREHENSIVE,
+    THIRD_PARTY,
+    THIRD_PARTY_FIRE_THEFT
+}
 
 // ============================================================
 // DELIVERY JOB MODELS
@@ -210,6 +321,18 @@ data class ProofOfDelivery(
     val deliveredAt: String? = null,
     val recipientName: String? = null
 )
+
+val ProofOfDelivery.hasConfirmation: Boolean
+    get() = !photoUrl.isNullOrBlank() ||
+        !signatureUrl.isNullOrBlank() ||
+        !otpCode.isNullOrBlank() ||
+        !deliveredAt.isNullOrBlank() ||
+        !recipientName.isNullOrBlank()
+
+val DeliveryJob.isSettlementEligible: Boolean
+    get() = status == JobStatus.DELIVERED &&
+        (!deliveredAt.isNullOrBlank() || !completedAt.isNullOrBlank()) &&
+        (proofOfDelivery?.hasConfirmation == true)
 
 @Serializable
 data class DeliveryOtpInfo(

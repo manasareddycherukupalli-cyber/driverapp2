@@ -376,7 +376,7 @@ class AuthViewModel : ViewModel() {
     }
 
     private fun determineNextRequiredScreen(response: AuthResponse): Screen {
-        val rawDriver = response.driver ?: return Screen.PersonalIdentity
+        val rawDriver = response.driver ?: return Screen.DriverOnboarding
         val mergedByType = linkedMapOf<DocumentType, Document>()
         rawDriver.documents.forEach { mergedByType[it.type] = it }
         _uploadedDocuments.value.forEach { mergedByType[it.type] = it }
@@ -391,20 +391,16 @@ class AuthViewModel : ViewModel() {
             return Screen.Home
         }
 
-        if (!isPersonalIdentitySubmitted(driver)) {
-            return Screen.PersonalIdentity
+        val hasSubmittedOnboardingPackage =
+            driver.vehicleDetails != null &&
+                driver.driversLicenseNumber.isNotBlank() &&
+                driver.documents.size >= 5
+
+        if (hasSubmittedOnboardingPackage) {
+            return Screen.VerificationStatus
         }
 
-        if (driver.vehicleDetails == null) {
-            return Screen.VehicleDetailsInput
-        }
-
-        if (!isIdentityVerificationSubmitted(driver)) {
-            return Screen.DocumentUpload
-        }
-
-        // Submitted but pending admin approval.
-        return Screen.VerificationStatus
+        return Screen.DriverOnboarding
     }
 
     private fun isPersonalIdentitySubmitted(driver: Driver): Boolean {

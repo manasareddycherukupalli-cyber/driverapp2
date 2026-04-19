@@ -20,6 +20,7 @@ sealed interface Screen {
     data object Login : Screen
     data object OtpVerification : Screen
     data object Registration : Screen
+    data object DriverOnboarding : Screen
     data object PersonalIdentity : Screen
     data object DocumentUpload : Screen
     data object VehicleDetailsInput : Screen

@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.NotificationsNone
@@ -249,8 +248,6 @@ private fun FinalHomeDashboard(
     ) {
         DriveAppTopBar(
             title = strings.dispatch,
-            onBackClick = onMenuClick,
-            leadingIcon = Icons.Filled.Menu,
             onNotificationClick = onProfileClick,
             showTitle = false
         )
@@ -468,8 +465,6 @@ private fun HomeTopBar(
 ) {
     DriveAppTopBar(
         title = "Home",
-        onBackClick = onMenuClick,
-        leadingIcon = Icons.Filled.Menu,
         onNotificationClick = onNotificationsClick
     )
 }

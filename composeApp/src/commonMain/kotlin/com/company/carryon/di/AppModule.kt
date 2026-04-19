@@ -1,6 +1,7 @@
 package com.company.carryon.di
 
 import com.company.carryon.data.api.*
+import com.company.carryon.data.network.DriverDocumentsStorage
 import com.company.carryon.data.repository.*
 
 object ServiceLocator {
@@ -12,6 +13,8 @@ object ServiceLocator {
     private val ratingsApi: RatingsApi by lazy { RealRatingsApi() }
     private val supportApi: SupportApi by lazy { RealSupportApi() }
     private val notificationsApi: NotificationsApi by lazy { RealNotificationsApi() }
+    val driverOnboardingApi: DriverOnboardingApi by lazy { DriverOnboardingApi() }
+    val driverDocumentsStorage: DriverDocumentsStorage by lazy { DriverDocumentsStorage() }
 
     // ---- Repositories ----
     val authRepository: AuthRepository by lazy { AuthRepositoryImpl(authApi) }
