@@ -22,9 +22,18 @@ import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
 
+    private val permissionPrefs by lazy {
+        getSharedPreferences("carryon_permissions", MODE_PRIVATE)
+    }
+
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             Log.d("MainActivity", "POST_NOTIFICATIONS permission granted: $granted")
+        }
+
+    private val requestStartupPermissions =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
+            Log.d("MainActivity", "Startup permissions result: $granted")
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,12 +42,45 @@ class MainActivity : ComponentActivity() {
         initTokenStorage(applicationContext)
         initLocationProvider(applicationContext)
         createNotificationChannel()
-        requestNotificationPermissionIfNeeded()
+        window.decorView.post {
+            requestInitialPermissionsIfNeeded()
+        }
         retrieveFcmToken()
 
         setContent {
             App()
         }
+    }
+
+    private fun requestInitialPermissionsIfNeeded() {
+        if (permissionPrefs.getBoolean(KEY_INITIAL_PERMISSIONS_REQUESTED, false)) return
+
+        requestNotificationPermissionIfNeeded()
+
+        val permissionsToRequest = buildList {
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+            add(Manifest.permission.CAMERA)
+            add(Manifest.permission.READ_CONTACTS)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.READ_MEDIA_IMAGES)
+            } else {
+                add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+        }
+
+        val missingPermissions = permissionsToRequest.filter { permission ->
+            ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.isNotEmpty()) {
+            requestStartupPermissions.launch(missingPermissions.toTypedArray())
+        }
+
+        permissionPrefs.edit()
+            .putBoolean(KEY_INITIAL_PERMISSIONS_REQUESTED, true)
+            .apply()
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -95,6 +137,10 @@ class MainActivity : ComponentActivity() {
                 Log.w("MainActivity", "Failed to get FCM token", task.exception)
             }
         }
+    }
+
+    private companion object {
+        const val KEY_INITIAL_PERMISSIONS_REQUESTED = "initial_permissions_requested"
     }
 }
 
