@@ -2,6 +2,8 @@ package com.company.carryon.data.api
 
 import com.company.carryon.data.model.*
 import com.company.carryon.data.network.HttpClientFactory
+import com.company.carryon.data.network.currentPushPlatform
+import com.company.carryon.data.network.getOrCreateDeviceId
 import com.company.carryon.data.network.withAuth
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -93,10 +95,25 @@ class RealAuthApi : AuthApi {
     }
 
     override suspend fun updateFcmToken(driverId: String, fcmToken: String): Result<Boolean> = runCatching {
-        client.put("/api/driver/profile/fcm-token") {
+        client.put("/api/driver/profile/push-token") {
             withAuth()
             contentType(ContentType.Application.Json)
-            setBody(mapOf("fcmToken" to fcmToken))
+            setBody(
+                mapOf(
+                    "token" to fcmToken,
+                    "platform" to currentPushPlatform(),
+                    "deviceId" to getOrCreateDeviceId()
+                )
+            )
+        }
+        true
+    }
+
+    override suspend fun deletePushToken(driverId: String): Result<Boolean> = runCatching {
+        client.delete("/api/driver/profile/push-token") {
+            withAuth()
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("deviceId" to getOrCreateDeviceId()))
         }
         true
     }

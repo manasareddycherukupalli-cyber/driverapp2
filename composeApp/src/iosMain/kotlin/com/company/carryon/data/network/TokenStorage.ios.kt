@@ -6,6 +6,9 @@ private const val KEY_TOKEN = "jwt_token"
 private const val KEY_LANGUAGE = "user_language"
 private const val KEY_DELIVERY_RESUME_SCREEN = "delivery_resume_screen"
 private const val KEY_DELIVERY_RESUME_JOB_ID = "delivery_resume_job_id"
+private const val KEY_PUSH_TOKEN = "push_token"
+private const val KEY_PUSH_DEVICE_ID = "push_device_id"
+private const val KEY_PENDING_INCOMING_JOB = "pending_incoming_job"
 
 actual fun saveToken(token: String) {
     NSUserDefaults.standardUserDefaults.setObject(token, forKey = KEY_TOKEN)
@@ -55,4 +58,39 @@ actual fun getOnboardingDraft(key: String): String? {
 
 actual fun clearOnboardingDraft(key: String) {
     NSUserDefaults.standardUserDefaults.removeObjectForKey("onboarding_$key")
+}
+
+actual fun savePushToken(token: String) {
+    NSUserDefaults.standardUserDefaults.setObject(token, forKey = KEY_PUSH_TOKEN)
+}
+
+actual fun getPushToken(): String? {
+    return NSUserDefaults.standardUserDefaults.stringForKey(KEY_PUSH_TOKEN)
+}
+
+actual fun clearPushToken() {
+    NSUserDefaults.standardUserDefaults.removeObjectForKey(KEY_PUSH_TOKEN)
+}
+
+actual fun getOrCreateDeviceId(): String {
+    val defaults = NSUserDefaults.standardUserDefaults
+    val existing = defaults.stringForKey(KEY_PUSH_DEVICE_ID)
+    if (!existing.isNullOrBlank()) return existing
+
+    val created = platform.Foundation.NSUUID().UUIDString()
+    defaults.setObject(created, forKey = KEY_PUSH_DEVICE_ID)
+    return created
+}
+
+actual fun markPendingIncomingJob() {
+    NSUserDefaults.standardUserDefaults.setBool(true, forKey = KEY_PENDING_INCOMING_JOB)
+}
+
+actual fun consumePendingIncomingJob(): Boolean {
+    val defaults = NSUserDefaults.standardUserDefaults
+    val pending = defaults.boolForKey(KEY_PENDING_INCOMING_JOB)
+    if (pending) {
+        defaults.removeObjectForKey(KEY_PENDING_INCOMING_JOB)
+    }
+    return pending
 }

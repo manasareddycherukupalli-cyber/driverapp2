@@ -37,8 +37,8 @@ class FcmService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FcmService", "New FCM token: $token")
-        // Store token locally and attempt immediate backend sync.
-        FcmTokenHolder.token = token
+        initTokenStorage(applicationContext)
+        savePushToken(token)
         syncTokenToBackend(token)
     }
 
@@ -48,6 +48,8 @@ class FcmService : FirebaseMessagingService() {
 
         // Wake the in-app fetch path immediately when a ride request push arrives.
         if (message.data["type"] == "JOB_REQUEST") {
+            initTokenStorage(applicationContext)
+            markPendingIncomingJob()
             IncomingJobSignal.signalIncomingJob()
         }
 
@@ -93,10 +95,16 @@ class FcmService : FirebaseMessagingService() {
         initTokenStorage(applicationContext)
         serviceScope.launch {
             runCatching {
-                HttpClientFactory.client.put("/api/driver/profile/fcm-token") {
+                HttpClientFactory.client.put("/api/driver/profile/push-token") {
                     withAuth()
                     header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-                    setBody(mapOf("fcmToken" to token))
+                    setBody(
+                        mapOf(
+                            "token" to token,
+                            "platform" to currentPushPlatform(),
+                            "deviceId" to getOrCreateDeviceId()
+                        )
+                    )
                 }
             }.onSuccess {
                 Log.d("FcmService", "FCM token synced to backend")
@@ -105,12 +113,4 @@ class FcmService : FirebaseMessagingService() {
             }
         }
     }
-}
-
-/**
- * Holds the current FCM token in memory. The token is sent to the backend
- * when the driver goes online (via the toggle-online flow).
- */
-object FcmTokenHolder {
-    var token: String? = null
 }

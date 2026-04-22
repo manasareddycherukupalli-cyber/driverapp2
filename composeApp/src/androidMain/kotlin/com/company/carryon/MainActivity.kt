@@ -14,9 +14,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
-import com.company.carryon.data.network.FcmTokenHolder
 import com.company.carryon.data.network.initLocationProvider
 import com.company.carryon.data.network.initTokenStorage
+import com.company.carryon.data.network.savePushToken
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 
@@ -37,8 +37,8 @@ class MainActivity : ComponentActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         initTokenStorage(applicationContext)
         initLocationProvider(applicationContext)
         createNotificationChannel()
@@ -131,8 +131,10 @@ class MainActivity : ComponentActivity() {
 
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                FcmTokenHolder.token = task.result
-                Log.d("MainActivity", "FCM token retrieved: ${task.result}")
+                task.result?.takeIf { it.isNotBlank() }?.let { token ->
+                    savePushToken(token)
+                    Log.d("MainActivity", "FCM token retrieved")
+                }
             } else {
                 Log.w("MainActivity", "Failed to get FCM token", task.exception)
             }

@@ -115,7 +115,7 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun DriveAppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
