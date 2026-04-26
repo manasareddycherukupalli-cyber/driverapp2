@@ -36,7 +36,6 @@ fun SettingsScreen(
     val viewModel = remember { ProfileViewModel() }
     val driver by viewModel.currentDriver.collectAsState()
 
-    var darkMode by remember { mutableStateOf(false) }
     var useMiles by remember { mutableStateOf(true) }
 
     val sectionBg = Color(0x33A6D2F3)
@@ -128,7 +127,7 @@ fun SettingsScreen(
             colors = CardDefaults.cardColors(containerColor = sectionBg)
         ) {
             Column(Modifier.padding(8.dp)) {
-                PrefToggleRow(strings.darkMode, Icons.Filled.Brightness2, darkMode) { darkMode = it }
+                PrefComingSoonRow(strings.darkMode, Icons.Filled.Brightness2)
                 UnitToggleRow(
                     strings = strings,
                     useMiles = useMiles,
@@ -226,7 +225,7 @@ private fun SettingsNavRow(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x66FFFFFF)),
+                    modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFFFFFFF)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(icon, contentDescription = null, tint = Color(0xFF2F80ED), modifier = Modifier.size(18.dp))
@@ -255,11 +254,9 @@ private fun SettingsNavRow(
 }
 
 @Composable
-private fun PrefToggleRow(
+private fun PrefComingSoonRow(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    icon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
@@ -271,7 +268,19 @@ private fun PrefToggleRow(
             Spacer(Modifier.width(12.dp))
             Text(title, color = Color(0xFF181C23), fontWeight = FontWeight.SemiBold)
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(Color(0xFFE7EEF9))
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = "Coming Soon",
+                color = Color(0xFF5C6F8F),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
