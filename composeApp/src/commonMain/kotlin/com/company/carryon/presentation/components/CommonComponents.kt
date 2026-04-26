@@ -40,14 +40,16 @@ fun DriveAppTopBar(
     leadingIcon: ImageVector = Icons.AutoMirrored.Filled.ArrowBack,
     onNotificationClick: (() -> Unit)? = null,
     onProfileClick: (() -> Unit)? = null,
-    showTitle: Boolean = true
+    showTitle: Boolean = true,
+    containerPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+    containerSpacing: Dp = 6.dp
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Transparent)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .padding(containerPadding),
+        verticalArrangement = Arrangement.spacedBy(containerSpacing)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
