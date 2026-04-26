@@ -8,6 +8,9 @@ private const val KEY_TOKEN = "jwt_token"
 private const val KEY_LANGUAGE = "user_language"
 private const val KEY_DELIVERY_RESUME_SCREEN = "delivery_resume_screen"
 private const val KEY_DELIVERY_RESUME_JOB_ID = "delivery_resume_job_id"
+private const val KEY_PUSH_TOKEN = "push_token"
+private const val KEY_PUSH_DEVICE_ID = "push_device_id"
+private const val KEY_PENDING_INCOMING_JOB = "pending_incoming_job"
 
 private lateinit var prefs: SharedPreferences
 
@@ -67,4 +70,37 @@ actual fun getOnboardingDraft(key: String): String? {
 
 actual fun clearOnboardingDraft(key: String) {
     prefs.edit().remove("onboarding_$key").apply()
+}
+
+actual fun savePushToken(token: String) {
+    prefs.edit().putString(KEY_PUSH_TOKEN, token).apply()
+}
+
+actual fun getPushToken(): String? {
+    return prefs.getString(KEY_PUSH_TOKEN, null)
+}
+
+actual fun clearPushToken() {
+    prefs.edit().remove(KEY_PUSH_TOKEN).apply()
+}
+
+actual fun getOrCreateDeviceId(): String {
+    val existing = prefs.getString(KEY_PUSH_DEVICE_ID, null)
+    if (!existing.isNullOrBlank()) return existing
+
+    val created = java.util.UUID.randomUUID().toString()
+    prefs.edit().putString(KEY_PUSH_DEVICE_ID, created).apply()
+    return created
+}
+
+actual fun markPendingIncomingJob() {
+    prefs.edit().putBoolean(KEY_PENDING_INCOMING_JOB, true).apply()
+}
+
+actual fun consumePendingIncomingJob(): Boolean {
+    val pending = prefs.getBoolean(KEY_PENDING_INCOMING_JOB, false)
+    if (pending) {
+        prefs.edit().remove(KEY_PENDING_INCOMING_JOB).apply()
+    }
+    return pending
 }

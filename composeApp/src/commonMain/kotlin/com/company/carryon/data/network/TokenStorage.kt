@@ -12,3 +12,10 @@ expect fun clearDeliveryResumeState()
 expect fun saveOnboardingDraft(key: String, payload: String)
 expect fun getOnboardingDraft(key: String): String?
 expect fun clearOnboardingDraft(key: String)
+
+expect fun savePushToken(token: String)
+expect fun getPushToken(): String?
+expect fun clearPushToken()
+expect fun getOrCreateDeviceId(): String
+expect fun markPendingIncomingJob()
+expect fun consumePendingIncomingJob(): Boolean

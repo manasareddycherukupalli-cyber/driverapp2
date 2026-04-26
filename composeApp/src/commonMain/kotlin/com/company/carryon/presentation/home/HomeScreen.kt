@@ -42,6 +42,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -212,6 +213,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             }
         },
         onEarningsClick = { navigator.switchTab(Screen.Earnings) },
+        onRefreshLocation = { viewModel.refreshDriverLocation() },
         onLiveNavigationClick = { showLiveQueue = true },
         onViewAll = { navigator.switchToJobsTab(2) }
     )
@@ -230,6 +232,7 @@ private fun FinalHomeDashboard(
     onProfileClick: () -> Unit,
     onToggleOnline: () -> Unit,
     onEarningsClick: () -> Unit,
+    onRefreshLocation: () -> Unit,
     onLiveNavigationClick: () -> Unit,
     onViewAll: () -> Unit
 ) {
@@ -308,14 +311,35 @@ private fun FinalHomeDashboard(
 
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = White), modifier = Modifier.fillMaxWidth()) {
             Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
-                // Live Google Maps with driver's real GPS position
-                MapViewComposable(
-                    modifier = Modifier.fillMaxSize(),
-                    centerLat = driverLocation?.first ?: 3.1478,
-                    centerLng = driverLocation?.second ?: 101.7147,
-                    zoom = 14.0,
-                    showDriverLocation = true
-                )
+                if (driverLocation != null) {
+                    MapViewComposable(
+                        modifier = Modifier.fillMaxSize(),
+                        styleUrl = mapStyleUrl,
+                        centerLat = driverLocation.first,
+                        centerLng = driverLocation.second,
+                        zoom = 14.0,
+                        showDriverLocation = true
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFF5F7FA)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = HomeBlue)
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = "Getting your current location...",
+                                color = Black.copy(alpha = 0.7f),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
                 // Current location label (top-left) — resolved via reverse geocoding
                 if (currentLocationName != null) {
                     Box(
@@ -338,7 +362,8 @@ private fun FinalHomeDashboard(
                         .align(Alignment.BottomEnd)
                         .padding(12.dp)
                         .size(40.dp)
-                        .background(White, CircleShape),
+                        .background(White, CircleShape)
+                        .clickable { onRefreshLocation() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

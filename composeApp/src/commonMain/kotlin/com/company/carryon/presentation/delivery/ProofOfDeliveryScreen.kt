@@ -67,6 +67,7 @@ private val PODSoft = Color(0xFFD9E5F7)
 private val PODCard = Color(0xFFC9D3E0)
 private val PODWhite = Color(0xFFFFFFFF)
 private val PODBlack = Color(0xFF1E2530)
+private const val RECIPIENT_OTP_LENGTH = 6
 
 @Composable
 fun ProofOfDeliveryScreen(navigator: AppNavigator) {
@@ -81,7 +82,7 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator) {
     var photoBytes by remember { mutableStateOf<ByteArray?>(null) }
     var recipientPresent by remember { mutableStateOf(false) }
     var packageHandover by remember { mutableStateOf(false) }
-    val otpDigits = remember { mutableStateListOf("", "", "", "") }
+    val otpDigits = remember { mutableStateListOf(*Array(RECIPIENT_OTP_LENGTH) { "" }) }
     var resendInfo by remember { mutableStateOf<String?>(null) }
     var resendError by remember { mutableStateOf<String?>(null) }
     var sendingOtp by remember { mutableStateOf(false) }
@@ -274,7 +275,7 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator) {
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            repeat(4) { index ->
+            repeat(RECIPIENT_OTP_LENGTH) { index ->
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -310,7 +311,7 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator) {
         }
 
         Text(
-            "ASK CUSTOMER FOR THE 4-DIGIT CODE",
+            "ASK CUSTOMER FOR THE 6-DIGIT CODE",
             color = PODBlack.copy(alpha = 0.55f),
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,
@@ -392,7 +393,8 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator) {
             }
         }
 
-        val canSubmit = photoBytes != null && recipientPresent && packageHandover && otpCode.length == 4
+        val canSubmit =
+            photoBytes != null && recipientPresent && packageHandover && otpCode.length == RECIPIENT_OTP_LENGTH
 
         Button(
             onClick = {

@@ -2,6 +2,7 @@ package com.company.carryon.data.repository
 
 import com.company.carryon.data.api.*
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.clearPushToken
 import com.company.carryon.data.network.clearToken
 import com.company.carryon.data.network.getToken
 import com.company.carryon.data.network.saveToken
@@ -130,8 +131,9 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         val driverId = _currentDriver.value?.id
         if (driverId != null) {
             // Best-effort token de-registration before local auth state is cleared.
-            runCatching { api.updateFcmToken(driverId, "") }
+            runCatching { api.deletePushToken(driverId) }
         }
+        clearPushToken()
         clearToken()
         try {
             SupabaseConfig.client.auth.signOut()

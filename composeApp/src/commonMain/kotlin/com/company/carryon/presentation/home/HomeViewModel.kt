@@ -7,6 +7,7 @@ import com.company.carryon.data.network.AuthenticationException
 import com.company.carryon.data.network.IncomingJobSignal
 import com.company.carryon.data.network.LocationApi
 import com.company.carryon.data.network.RealtimeJobService
+import com.company.carryon.data.network.consumePendingIncomingJob
 import com.company.carryon.data.network.getLastKnownLocation
 import com.company.carryon.data.network.getFcmToken
 import com.company.carryon.data.network.initLocationProvider
@@ -131,6 +132,9 @@ class HomeViewModel : ViewModel() {
                         registerFcmToken()
                         startLocationTracking()
                         startJobPolling()
+                        if (consumePendingIncomingJob()) {
+                            checkForIncomingJobs()
+                        }
                     } else {
                         stopRealtimeSubscription()
                         stopLocationTracking()
@@ -163,6 +167,7 @@ class HomeViewModel : ViewModel() {
                         registerFcmToken()
                         startLocationTracking()
                         startJobPolling()
+                        consumePendingIncomingJob()
                     } else {
                         stopRealtimeSubscription()
                         stopLocationTracking()

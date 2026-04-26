@@ -340,8 +340,29 @@ class DriverOnboardingViewModel(
             _documentUploadState.value = UiState.Loading
             storage.uploadDocument(driverId, type, bytes)
                 .onSuccess { url ->
-                    updateDraft { applyUploadedDocument(it, type, url, expiryDate) }
-                    _documentUploadState.value = UiState.Success(type)
+                    val draftWithDocument = applyUploadedDocument(_draftState.value, type, url, expiryDate)
+                    val updatedDraft = draftWithDocument.copy(
+                        completedSteps = computeCompletedSteps(draftWithDocument)
+                    )
+                    _draftState.value = updatedDraft
+                    persistDraft(updatedDraft)
+
+                    api.submitDocument(
+                        DriverDocumentSubmissionRequest(
+                            imageUrl = url,
+                            type = type,
+                            expiryDate = expiryDate?.takeIf { it.isNotBlank() }
+                        )
+                    ).onSuccess { document ->
+                        _serverDocuments.value = _serverDocuments.value.toMutableMap().apply {
+                            put(document.type, document)
+                        }
+                        _documentUploadState.value = UiState.Success(type)
+                    }.onFailure {
+                        _documentUploadState.value = UiState.Error(
+                            it.message ?: "Uploaded ${type.displayName}, but failed to sync it to the admin panel."
+                        )
+                    }
                 }
                 .onFailure {
                     _documentUploadState.value = UiState.Error(it.message ?: "Failed to upload ${type.displayName}.")

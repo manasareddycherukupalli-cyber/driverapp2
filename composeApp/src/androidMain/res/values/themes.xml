@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CarryOn" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Block system force-dark so Compose handles all colors -->
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

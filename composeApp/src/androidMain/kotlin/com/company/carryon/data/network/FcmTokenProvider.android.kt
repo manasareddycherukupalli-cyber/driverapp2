@@ -1,3 +1,3 @@
 package com.company.carryon.data.network
 
-actual fun getFcmToken(): String? = FcmTokenHolder.token
+actual fun getFcmToken(): String? = getPushToken()
