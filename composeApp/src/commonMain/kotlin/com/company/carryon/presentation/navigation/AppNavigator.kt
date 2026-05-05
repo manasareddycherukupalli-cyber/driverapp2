@@ -49,6 +49,7 @@ sealed interface Screen {
     data object TransactionHistory : Screen
     data object Ratings : Screen
     data object EditProfile : Screen
+    data object ChangePassword : Screen
     data object Settings : Screen
     data object NotificationPreferences : Screen
     data object Language : Screen
@@ -77,7 +78,7 @@ sealed interface Screen {
 /** Screens that show the bottom navigation bar */
 val mainTabScreens = setOf(Screen.Home, Screen.Jobs, Screen.Earnings, Screen.Profile)
 
-private val resumableDeliveryScreens = setOf(
+val deliveryFlowScreens = setOf(
     Screen.JobDetails,
     Screen.MapNavigation,
     Screen.ActiveDelivery,
@@ -86,7 +87,8 @@ private val resumableDeliveryScreens = setOf(
     Screen.InTransitNavigation,
     Screen.ArrivedAtDrop,
     Screen.ProofOfDelivery,
-    Screen.DeliveryComplete
+    Screen.DeliveryComplete,
+    Screen.JobReceipt
 )
 
 // ============================================================
@@ -208,7 +210,7 @@ class AppNavigator {
 
     private fun syncDeliveryResumeState() {
         val jobId = selectedJobId?.takeIf { it.isNotBlank() }
-        if (currentScreen in resumableDeliveryScreens && jobId != null) {
+        if (currentScreen in deliveryFlowScreens && jobId != null) {
             saveDeliveryResumeState(currentScreen.toStorageKey(), jobId)
         }
     }
@@ -220,8 +222,10 @@ class AppNavigator {
 fun mapJobStatusToResumeScreen(status: JobStatus): Screen? = when (status) {
     JobStatus.ACCEPTED, JobStatus.HEADING_TO_PICKUP -> Screen.MapNavigation
     JobStatus.ARRIVED_AT_PICKUP -> Screen.ActiveDelivery
-    JobStatus.PICKED_UP, JobStatus.IN_TRANSIT -> Screen.InTransitNavigation
+    JobStatus.PICKED_UP -> Screen.StartDelivery
+    JobStatus.IN_TRANSIT -> Screen.InTransitNavigation
     JobStatus.ARRIVED_AT_DROP -> Screen.ArrivedAtDrop
+    JobStatus.DELIVERED -> Screen.DeliveryComplete
     else -> null
 }
 
@@ -245,6 +249,7 @@ private fun Screen.toStorageKey(): String = when (this) {
     Screen.ArrivedAtDrop -> "arrived_at_drop"
     Screen.ProofOfDelivery -> "proof_of_delivery"
     Screen.DeliveryComplete -> "delivery_complete"
+    Screen.JobReceipt -> "job_receipt"
     else -> ""
 }
 
@@ -258,5 +263,6 @@ private fun String.toScreenOrNull(): Screen? = when (this) {
     "arrived_at_drop" -> Screen.ArrivedAtDrop
     "proof_of_delivery" -> Screen.ProofOfDelivery
     "delivery_complete" -> Screen.DeliveryComplete
+    "job_receipt" -> Screen.JobReceipt
     else -> null
 }

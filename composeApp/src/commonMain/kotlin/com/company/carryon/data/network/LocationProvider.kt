@@ -9,3 +9,5 @@ expect fun initLocationProvider(context: Any? = null)
 expect fun getLastKnownLocation(): Pair<Double, Double>?
 expect fun getLastKnownHeading(): Float
 expect fun hasLocationPermission(): Boolean
+expect fun requestLocationPermission(onResult: (Boolean) -> Unit)
+expect fun openAppSettings()

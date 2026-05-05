@@ -80,6 +80,9 @@ import com.company.carryon.data.model.LatLng
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.displayDurationMinutes
 import com.company.carryon.data.model.remainingOfferMillis
+import com.company.carryon.data.network.hasLocationPermission
+import com.company.carryon.data.network.openAppSettings
+import com.company.carryon.data.network.requestLocationPermission
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.theme.*
 import com.company.carryon.presentation.components.DriveAppTopBar
@@ -121,10 +124,23 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
     val driverLocation by viewModel.driverLocation.collectAsState()
     val currentLocationName by viewModel.currentLocationName.collectAsState()
     val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
+    var hasLocationAccess by remember { mutableStateOf(hasLocationPermission()) }
+    var locationWaitTimedOut by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        hasLocationAccess = hasLocationPermission()
         viewModel.refreshDriverLocation()
         viewModel.loadDashboardData()
+    }
+
+    LaunchedEffect(driverLocation, hasLocationAccess) {
+        locationWaitTimedOut = false
+        if (driverLocation == null && hasLocationAccess) {
+            delay(10_000L)
+            if (driverLocation == null && hasLocationPermission()) {
+                locationWaitTimedOut = true
+            }
+        }
     }
 
     val activeJob = (activeJobsState as? UiState.Success<List<DeliveryJob>>)?.data?.firstOrNull()
@@ -201,6 +217,8 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
         driverLocation = driverLocation,
         currentLocationName = currentLocationName,
         mapStyleUrl = mapStyleUrl,
+        hasLocationAccess = hasLocationAccess,
+        locationWaitTimedOut = locationWaitTimedOut,
         onMenuClick = { navigator.switchTab(Screen.Profile) },
         onProfileClick = { navigator.switchTab(Screen.Profile) },
         onToggleOnline = {
@@ -213,7 +231,18 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             }
         },
         onEarningsClick = { navigator.switchTab(Screen.Earnings) },
-        onRefreshLocation = { viewModel.refreshDriverLocation() },
+        onRefreshLocation = {
+            hasLocationAccess = hasLocationPermission()
+            viewModel.refreshDriverLocation()
+        },
+        onRequestLocationPermission = {
+            requestLocationPermission { granted ->
+                hasLocationAccess = granted
+                locationWaitTimedOut = false
+                if (granted) viewModel.refreshDriverLocation()
+            }
+        },
+        onOpenAppSettings = { openAppSettings() },
         onLiveNavigationClick = { showLiveQueue = true },
         onViewAll = { navigator.switchToJobsTab(2) }
     )
@@ -228,11 +257,15 @@ private fun FinalHomeDashboard(
     driverLocation: Pair<Double, Double>?,
     currentLocationName: String?,
     mapStyleUrl: String,
+    hasLocationAccess: Boolean,
+    locationWaitTimedOut: Boolean,
     onMenuClick: () -> Unit,
     onProfileClick: () -> Unit,
     onToggleOnline: () -> Unit,
     onEarningsClick: () -> Unit,
     onRefreshLocation: () -> Unit,
+    onRequestLocationPermission: () -> Unit,
+    onOpenAppSettings: () -> Unit,
     onLiveNavigationClick: () -> Unit,
     onViewAll: () -> Unit
 ) {
@@ -321,23 +354,21 @@ private fun FinalHomeDashboard(
                         showDriverLocation = true
                     )
                 } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFFF5F7FA)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = HomeBlue)
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = "Getting your current location...",
-                                color = Black.copy(alpha = 0.7f),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
+                    MapViewComposable(
+                        modifier = Modifier.fillMaxSize(),
+                        styleUrl = mapStyleUrl,
+                        centerLat = DefaultCenter.lat,
+                        centerLng = DefaultCenter.lng,
+                        zoom = 11.0,
+                        showDriverLocation = false
+                    )
+                    LocationMapOverlay(
+                        hasLocationAccess = hasLocationAccess,
+                        timedOut = locationWaitTimedOut,
+                        onRequestLocationPermission = onRequestLocationPermission,
+                        onRefreshLocation = onRefreshLocation,
+                        onOpenAppSettings = onOpenAppSettings
+                    )
                 }
 
                 // Current location label (top-left) — resolved via reverse geocoding
@@ -405,6 +436,78 @@ private fun FinalHomeDashboard(
             }
         }
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun LocationMapOverlay(
+    hasLocationAccess: Boolean,
+    timedOut: Boolean,
+    onRequestLocationPermission: () -> Unit,
+    onRefreshLocation: () -> Unit,
+    onOpenAppSettings: () -> Unit
+) {
+    val title = when {
+        !hasLocationAccess -> "Enable location access"
+        timedOut -> "Location unavailable"
+        else -> "Getting your current location..."
+    }
+    val message = when {
+        !hasLocationAccess -> "Allow location to show your live driver position."
+        timedOut -> "Check that device location is on, then try again."
+        else -> "This usually takes a few seconds."
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(White.copy(alpha = 0.86f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (hasLocationAccess && !timedOut) {
+                CircularProgressIndicator(color = HomeBlue, modifier = Modifier.size(32.dp))
+            } else {
+                Icon(Icons.Filled.MyLocation, contentDescription = null, tint = HomeBlue, modifier = Modifier.size(34.dp))
+            }
+            Text(title, color = Black, fontSize = 16.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text(
+                message,
+                color = Black.copy(alpha = 0.68f),
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                textAlign = TextAlign.Center
+            )
+            if (!hasLocationAccess) {
+                Button(
+                    onClick = onRequestLocationPermission,
+                    colors = ButtonDefaults.buttonColors(containerColor = HomeBlue, contentColor = White)
+                ) {
+                    Text("Allow location", fontWeight = FontWeight.SemiBold)
+                }
+            } else if (timedOut) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = onRefreshLocation,
+                        colors = ButtonDefaults.buttonColors(containerColor = HomeBlue, contentColor = White)
+                    ) {
+                        Text("Retry", fontWeight = FontWeight.SemiBold)
+                    }
+                    Button(
+                        onClick = onOpenAppSettings,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE8F1FF), contentColor = HomeBlue)
+                    ) {
+                        Text("Settings", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
     }
 }
 

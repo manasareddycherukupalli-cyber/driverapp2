@@ -1,6 +1,7 @@
 package com.company.carryon.presentation.map
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,14 +25,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.JobStatus
 import com.company.carryon.data.model.LatLng
+import com.company.carryon.data.model.UiState
+import com.company.carryon.data.model.DeliveryLifecycleCommand
 import com.company.carryon.data.model.displayDurationMinutes
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.ErrorState
@@ -48,6 +56,7 @@ import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.components.MapMarker
 import com.company.carryon.presentation.components.MapViewComposable
 import com.company.carryon.presentation.components.MarkerColor
+import com.company.carryon.presentation.delivery.DeliveryViewModel
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import kotlin.math.abs
@@ -59,21 +68,27 @@ private val ITWhite = Color(0xFFFFFFFF)
 private val ITBlack = Color(0xFF000000)
 private val DefaultCenter = LatLng(12.9716, 77.5946)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InTransitScreen(navigator: AppNavigator) {
+fun InTransitScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
     val strings = LocalStrings.current
     val jobId = navigator.selectedJobId
     val viewModel = remember { MapViewModel() }
     val driverLocation by viewModel.driverLocation.collectAsState()
     val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
-    val currentJob by viewModel.currentJob.collectAsState()
+    val mapJob by viewModel.currentJob.collectAsState()
+    val deliveryJobState by deliveryViewModel.currentJob.collectAsState()
     val etaMinutes by viewModel.etaMinutes.collectAsState()
     val routeGeometry by viewModel.routeGeometry.collectAsState()
     val mapMarkers by viewModel.markers.collectAsState()
     val loadError by viewModel.error.collectAsState()
+    val arrivalState by viewModel.arrivalState.collectAsState()
 
     LaunchedEffect(jobId) {
-        jobId?.let { viewModel.loadJob(it) }
+        jobId?.let {
+            viewModel.loadJob(it)
+            deliveryViewModel.loadJob(it)
+        }
     }
 
     if (jobId == null) {
@@ -81,17 +96,25 @@ fun InTransitScreen(navigator: AppNavigator) {
         return
     }
 
-    if (currentJob == null && loadError == null) {
+    if (deliveryJobState is UiState.Loading || deliveryJobState is UiState.Idle || (mapJob == null && loadError == null)) {
         LoadingScreen("Loading delivery details...")
         return
     }
 
-    if (currentJob == null && loadError != null) {
+    if (deliveryJobState is UiState.Error) {
+        ErrorState((deliveryJobState as UiState.Error).message) { deliveryViewModel.loadJob(jobId) }
+        return
+    }
+
+    if (mapJob == null && loadError != null) {
         ErrorState(loadError ?: "Failed to load job") { viewModel.loadJob(jobId) }
         return
     }
 
-    val job = currentJob ?: return
+    val job = (deliveryJobState as? UiState.Success)?.data ?: return
+    LaunchedEffect(job.status) {
+        deliveryViewModel.redirectIfCurrentScreenInvalid(Screen.InTransitNavigation, job)
+    }
     val destination = job.dropoff
     val recipient = destination.contactName?.takeIf { it.isNotBlank() }
         ?: job.customerName.takeIf { it.isNotBlank() }
@@ -105,6 +128,9 @@ fun InTransitScreen(navigator: AppNavigator) {
         JobStatus.ARRIVED_AT_DROP -> 1f
         else -> 0.55f
     }
+
+    var activeSheet by remember { mutableStateOf<String?>(null) }
+    val uriHandler = LocalUriHandler.current
 
     Box(modifier = Modifier.fillMaxSize().background(ITWhite)) {
         MapViewComposable(
@@ -258,9 +284,11 @@ fun InTransitScreen(navigator: AppNavigator) {
                         onClick = {
                             job.id.let {
                                 navigator.selectedJobId = job.id
-                                navigator.navigateTo(Screen.ArrivedAtDrop)
+                                deliveryViewModel.updateStatus(job.id, JobStatus.ARRIVED_AT_DROP)
                             }
                         },
+                        enabled = deliveryViewModel.canRun(DeliveryLifecycleCommand.ARRIVE_DROP, job) &&
+                            arrivalState !is UiState.Loading,
                         modifier = Modifier.weight(1.9f).height(48.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = ITBlue)
@@ -286,15 +314,45 @@ fun InTransitScreen(navigator: AppNavigator) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(ITWhite, RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+                .background(ITWhite, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TransitTab("MAP", true)
-            TransitTab("TASKS", false)
-            TransitTab("EARNINGS", false)
-            TransitTab("PROFILE", false)
+            DeliveryBottomTab("ROUTE", true) { activeSheet = "ROUTE" }
+            DeliveryBottomTab("EARNINGS", false) { activeSheet = "EARNINGS" }
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(ITBlue, CircleShape)
+                    .clickable {
+                        uriHandler.openUri(
+                            "https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}&travelmode=driving"
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Navigation, contentDescription = "Navigate", tint = ITWhite)
+            }
+            DeliveryBottomTab("INBOX", false) {
+                navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
+            }
+            DeliveryBottomTab("ACCOUNT", false) { navigator.switchTab(Screen.Profile) }
+        }
+    }
+
+    if (activeSheet == "ROUTE") {
+        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
+            DeliveryRouteSheet(
+                pickupAddress = job.pickup.shortAddress.ifBlank { job.pickup.address },
+                dropoffAddress = job.dropoff.shortAddress.ifBlank { job.dropoff.address },
+                blue = ITBlue, black = ITBlack
+            )
+        }
+    }
+    if (activeSheet == "EARNINGS") {
+        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
+            DeliveryEarningsSheet(earnings = job.estimatedEarnings, orderId = job.id, blue = ITBlue, black = ITBlack)
         }
     }
 }
@@ -309,12 +367,51 @@ private fun formatOneDecimal(value: Double): String {
 }
 
 @Composable
-private fun TransitTab(label: String, selected: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(22.dp).background(if (selected) ITBlue else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Navigation, contentDescription = null, tint = if (selected) ITWhite else ITBlack.copy(alpha = 0.45f), modifier = Modifier.size(12.dp))
+private fun DeliveryBottomTab(label: String, selected: Boolean, onClick: () -> Unit = {}) {
+    Text(
+        text = label,
+        color = if (selected) ITBlue else ITBlack.copy(alpha = 0.55f),
+        fontSize = 10.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.clickable { onClick() }
+    )
+}
+
+@Composable
+private fun DeliveryRouteSheet(pickupAddress: String, dropoffAddress: String, blue: Color, black: Color) {
+    Column(
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text("Delivery Route", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(modifier = Modifier.size(10.dp).background(blue, CircleShape))
+            Column {
+                Text("PICKUP", fontSize = 10.sp, color = black.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
+                Text(pickupAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = black)
+            }
         }
-        Spacer(Modifier.width(4.dp))
-        Text(label, color = if (selected) ITBlue else ITBlack.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(modifier = Modifier.size(10.dp).background(Color(0xFFE53935), CircleShape))
+            Column {
+                Text("DROP-OFF", fontSize = 10.sp, color = black.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
+                Text(dropoffAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = black)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun DeliveryEarningsSheet(earnings: Double, orderId: String, blue: Color, black: Color) {
+    Column(
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Job Earnings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
+        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = blue)
+        Text("Order #${orderId.takeLast(8).uppercase()}", color = black.copy(alpha = 0.5f), fontSize = 13.sp)
+        Text("Final amount confirmed after delivery completion.", fontSize = 12.sp, color = black.copy(alpha = 0.4f))
+        Spacer(Modifier.height(16.dp))
     }
 }

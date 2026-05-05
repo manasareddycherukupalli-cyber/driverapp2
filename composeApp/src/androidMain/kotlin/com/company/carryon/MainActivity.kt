@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import com.company.carryon.data.network.initLocationProvider
+import com.company.carryon.data.network.handleLocationPermissionResult
 import com.company.carryon.data.network.initTokenStorage
 import com.company.carryon.data.network.savePushToken
 import com.google.firebase.FirebaseApp
@@ -34,13 +35,16 @@ class MainActivity : ComponentActivity() {
     private val requestStartupPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
             Log.d("MainActivity", "Startup permissions result: $granted")
+            val locationGranted = granted[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                granted[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+            if (locationGranted) initLocationProvider(this)
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         initTokenStorage(applicationContext)
-        initLocationProvider(applicationContext)
+        initLocationProvider(this)
         createNotificationChannel()
         window.decorView.post {
             requestInitialPermissionsIfNeeded()
@@ -50,6 +54,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             App()
         }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        handleLocationPermissionResult(requestCode, grantResults)
     }
 
     private fun requestInitialPermissionsIfNeeded() {

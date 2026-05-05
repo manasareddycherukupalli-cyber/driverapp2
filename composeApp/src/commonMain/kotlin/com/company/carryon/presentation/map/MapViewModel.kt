@@ -3,6 +3,9 @@ package com.company.carryon.presentation.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.DeliveryJob
+import com.company.carryon.data.model.DeliveryLifecycleCommand
+import com.company.carryon.data.model.DeliveryLifecycleCommandPayload
+import com.company.carryon.data.model.DeliveryLifecycleLocation
 import com.company.carryon.data.model.JobStatus
 import com.company.carryon.data.model.LatLng
 import com.company.carryon.data.model.UiState
@@ -88,12 +91,23 @@ class MapViewModel : ViewModel() {
     private val _routeError = MutableStateFlow<String?>(null)
     val routeError: StateFlow<String?> = _routeError.asStateFlow()
 
+    private val _arrivalState = MutableStateFlow<UiState<DeliveryJob>>(UiState.Idle)
+    val arrivalState: StateFlow<UiState<DeliveryJob>> = _arrivalState.asStateFlow()
+
     // Cached job for retrying route calc once GPS arrives
     private var pendingRouteJob: DeliveryJob? = null
+
+    private fun lifecyclePayload(): DeliveryLifecycleCommandPayload {
+        val location = getLastKnownLocation()?.let { (lat, lng) ->
+            DeliveryLifecycleLocation(latitude = lat, longitude = lng)
+        }
+        return DeliveryLifecycleCommandPayload(location = location)
+    }
 
     /** Load the job and calculate route from driver to the relevant destination */
     fun loadJob(jobId: String) {
         viewModelScope.launch {
+            _arrivalState.value = UiState.Idle
             jobRepository.getJobDetails(jobId)
                 .onSuccess { job ->
                     _error.value = null
@@ -107,6 +121,58 @@ class MapViewModel : ViewModel() {
                     startTracking()
                 }
                 .onFailure { _error.value = it.message ?: "Failed to load job" }
+        }
+    }
+
+    fun markArrivedAtPickup(jobId: String) {
+        val current = _currentJob.value
+        if (current?.status == JobStatus.ARRIVED_AT_PICKUP) {
+            _arrivalState.value = UiState.Success(current)
+            return
+        }
+
+        viewModelScope.launch {
+            _arrivalState.value = UiState.Loading
+            jobRepository.executeLifecycleCommand(
+                jobId,
+                DeliveryLifecycleCommand.ARRIVE_PICKUP,
+                lifecyclePayload()
+            )
+                .onSuccess { result ->
+                    val job = result.job
+                    _currentJob.value = job
+                    _arrivalState.value = UiState.Success(job)
+                    setupRouteForJob(job)
+                }
+                .onFailure { error ->
+                    _arrivalState.value = UiState.Error(error.message ?: "Failed to mark arrival")
+                }
+        }
+    }
+
+    fun markArrivedAtDrop(jobId: String) {
+        val current = _currentJob.value
+        if (current?.status == JobStatus.ARRIVED_AT_DROP) {
+            _arrivalState.value = UiState.Success(current)
+            return
+        }
+
+        viewModelScope.launch {
+            _arrivalState.value = UiState.Loading
+            jobRepository.executeLifecycleCommand(
+                jobId,
+                DeliveryLifecycleCommand.ARRIVE_DROP,
+                lifecyclePayload()
+            )
+                .onSuccess { result ->
+                    val job = result.job
+                    _currentJob.value = job
+                    _arrivalState.value = UiState.Success(job)
+                    setupRouteForJob(job)
+                }
+                .onFailure { error ->
+                    _arrivalState.value = UiState.Error(error.message ?: "Failed to mark drop-off arrival")
+                }
         }
     }
 

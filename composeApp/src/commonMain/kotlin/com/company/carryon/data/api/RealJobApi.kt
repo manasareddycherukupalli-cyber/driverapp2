@@ -6,6 +6,16 @@ import com.company.carryon.data.network.withAuth
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.serialization.Serializable
+
+@Serializable
+private data class LifecycleCommandRequest(
+    val command: String,
+    val otp: String? = null,
+    val forceResend: Boolean = false,
+    val proof: DeliveryLifecycleProof? = null,
+    val location: DeliveryLifecycleLocation? = null
+)
 
 class RealJobApi : JobApi {
     private val client = HttpClientFactory.client
@@ -105,13 +115,34 @@ class RealJobApi : JobApi {
         response.data ?: throw Exception("Failed to verify OTP")
     }
 
-    override suspend fun requestDeliveryOtp(jobId: String): Result<DeliveryOtpInfo> = runCatching {
+    override suspend fun requestDeliveryOtp(jobId: String, forceResend: Boolean): Result<DeliveryOtpInfo> = runCatching {
         val response: ApiResponse<DeliveryOtpInfo> = client.post("/api/driver/jobs/$jobId/request-delivery-otp") {
             withAuth()
             contentType(ContentType.Application.Json)
-            setBody(emptyMap<String, String>())
+            setBody(mapOf("forceResend" to forceResend))
         }.body()
         response.data ?: throw Exception(response.message ?: "Failed to request delivery OTP")
+    }
+
+    override suspend fun executeLifecycleCommand(
+        jobId: String,
+        command: DeliveryLifecycleCommand,
+        payload: DeliveryLifecycleCommandPayload
+    ): Result<DeliveryLifecycleResult> = runCatching {
+        val response: ApiResponse<DeliveryLifecycleResult> = client.post("/api/driver/jobs/$jobId/lifecycle-command") {
+            withAuth()
+            contentType(ContentType.Application.Json)
+            setBody(
+                LifecycleCommandRequest(
+                    command = command.name,
+                    otp = payload.otp,
+                    forceResend = payload.forceResend,
+                    proof = payload.proof,
+                    location = payload.location
+                )
+            )
+        }.body()
+        response.data ?: throw Exception(response.message ?: "Failed to execute lifecycle command")
     }
 
     override suspend fun cancelJob(jobId: String): Result<Boolean> = runCatching {
@@ -119,5 +150,19 @@ class RealJobApi : JobApi {
             withAuth()
         }
         true
+    }
+
+    override suspend fun getDemandZones(latitude: Double, longitude: Double, radiusKm: Double): Result<DemandZonesResponse> = runCatching {
+        val response: ApiResponse<DemandZonesResponse> = client.get("/api/v1/driver/demand-zones") {
+            withAuth()
+            parameter("lat", latitude)
+            parameter("lng", longitude)
+            parameter("radiusKm", radiusKm)
+        }.body()
+        response.data ?: DemandZonesResponse(
+            centerLatitude = latitude,
+            centerLongitude = longitude,
+            radiusKm = radiusKm
+        )
     }
 }

@@ -257,6 +257,35 @@ data class DeliveryJob(
     val proofOfDelivery: ProofOfDelivery? = null
 )
 
+@Serializable
+data class DemandZonesResponse(
+    val centerLatitude: Double = 0.0,
+    val centerLongitude: Double = 0.0,
+    val radiusKm: Double = 0.0,
+    val vehicleType: String? = null,
+    val zones: List<DemandZone> = emptyList()
+)
+
+@Serializable
+data class DemandZone(
+    val id: String = "",
+    val centerLatitude: Double = 0.0,
+    val centerLongitude: Double = 0.0,
+    val radiusKm: Double = 0.0,
+    val demandCount: Int = 0,
+    val onlineDriverCount: Int = 0,
+    val score: Double = 0.0,
+    val level: DemandZoneLevel = DemandZoneLevel.LOW,
+    val guidance: String = ""
+)
+
+@Serializable
+enum class DemandZoneLevel {
+    LOW,
+    MEDIUM,
+    HIGH
+}
+
 val DeliveryJob.offerExpiryInstant: Instant?
     get() = expiresAt.parseIsoInstantOrNull()
         ?: createdAt.parseIsoInstantOrNull()?.plus(60.seconds)
@@ -338,7 +367,62 @@ val DeliveryJob.isSettlementEligible: Boolean
 data class DeliveryOtpInfo(
     val recipientEmail: String = "",
     val otpSentAt: String? = null,
+    val otpExpiresAt: String? = null,
+    val resendAvailableAt: String? = null,
+    val alreadySent: Boolean = false,
     val adminOtp: String? = null
+)
+
+@Serializable
+enum class DeliveryLifecycleCommand {
+    ARRIVE_PICKUP,
+    VERIFY_PICKUP_OTP,
+    START_DELIVERY,
+    ARRIVE_DROP,
+    REQUEST_DROP_OTP,
+    COMPLETE_DELIVERY,
+    CANCEL_BEFORE_PICKUP
+}
+
+@Serializable
+data class DeliveryLifecycleLocation(
+    val latitude: Double,
+    val longitude: Double,
+    val accuracyMeters: Double? = null,
+    val capturedAt: String? = null
+)
+
+@Serializable
+data class DeliveryLifecycleProof(
+    val photoUrl: String? = null,
+    val recipientName: String? = null
+)
+
+@Serializable
+data class DeliveryLifecycleCommandPayload(
+    val otp: String? = null,
+    val forceResend: Boolean = false,
+    val proof: DeliveryLifecycleProof? = null,
+    val location: DeliveryLifecycleLocation? = null
+)
+
+@Serializable
+data class DeliveryLocationEvidence(
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val accuracyMeters: Double? = null,
+    val capturedAt: String? = null,
+    val source: String = "",
+    val distanceToExpectedMeters: Double? = null
+)
+
+@Serializable
+data class DeliveryLifecycleResult(
+    val job: DeliveryJob = DeliveryJob(),
+    val allowedCommands: List<DeliveryLifecycleCommand> = emptyList(),
+    val otpInfo: DeliveryOtpInfo? = null,
+    val locationEvidence: DeliveryLocationEvidence? = null,
+    val message: String = ""
 )
 
 // ============================================================
@@ -389,7 +473,23 @@ data class WalletInfo(
     val lastPayout: Double? = null,
     val lastPayoutDate: String? = null,
     val bankAccountLinked: Boolean = false,
-    val bankAccountLast4: String? = null
+    val bankAccountLast4: String? = null,
+    val stripeAccountId: String? = null,
+    val stripeDetailsSubmitted: Boolean = false,
+    val stripePayoutsEnabled: Boolean = false
+)
+
+@Serializable
+data class PayoutStatus(
+    val accountId: String? = null,
+    val detailsSubmitted: Boolean = false,
+    val payoutsEnabled: Boolean = false
+)
+
+@Serializable
+data class PayoutOnboardingLink(
+    val url: String = "",
+    val expiresAt: Long = 0
 )
 
 // ============================================================

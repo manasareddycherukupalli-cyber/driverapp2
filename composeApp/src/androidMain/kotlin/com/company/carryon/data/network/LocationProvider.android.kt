@@ -1,8 +1,12 @@
 package com.company.carryon.data.network
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.core.content.ContextCompat
 import android.Manifest
 import android.location.Location
@@ -10,12 +14,18 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.os.Looper
+import androidx.core.app.ActivityCompat
 
 private var appContext: Context? = null
+private var currentActivity: Activity? = null
 private var latestLocation: Location? = null
+private var pendingPermissionCallback: ((Boolean) -> Unit)? = null
+
+const val LOCATION_PERMISSION_REQUEST_CODE = 4801
 
 actual fun initLocationProvider(context: Any?) {
-    appContext = (context as? Context)?.applicationContext
+    (context as? Activity)?.let { currentActivity = it }
+    appContext = (context as? Context)?.applicationContext ?: appContext
     // Start requesting location updates so we always have a fresh fix
     startLocationUpdates()
 }
@@ -100,4 +110,48 @@ actual fun hasLocationPermission(): Boolean {
         Manifest.permission.ACCESS_COARSE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
     return fine || coarse
+}
+
+actual fun requestLocationPermission(onResult: (Boolean) -> Unit) {
+    if (hasLocationPermission()) {
+        startLocationUpdates()
+        onResult(true)
+        return
+    }
+
+    val activity = currentActivity
+    if (activity == null) {
+        onResult(false)
+        return
+    }
+
+    pendingPermissionCallback = onResult
+    ActivityCompat.requestPermissions(
+        activity,
+        arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ),
+        LOCATION_PERMISSION_REQUEST_CODE
+    )
+}
+
+fun handleLocationPermissionResult(requestCode: Int, grantResults: IntArray): Boolean {
+    if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) return false
+    val granted = grantResults.any { it == PackageManager.PERMISSION_GRANTED }
+    if (granted) startLocationUpdates()
+    pendingPermissionCallback?.invoke(granted)
+    pendingPermissionCallback = null
+    return true
+}
+
+actual fun openAppSettings() {
+    val ctx = currentActivity ?: appContext ?: return
+    val intent = Intent(
+        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        Uri.fromParts("package", ctx.packageName, null)
+    ).apply {
+        if (ctx !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    ctx.startActivity(intent)
 }

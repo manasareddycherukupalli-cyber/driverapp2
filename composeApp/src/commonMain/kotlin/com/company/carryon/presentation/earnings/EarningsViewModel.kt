@@ -38,6 +38,12 @@ class EarningsViewModel : ViewModel() {
     private val _withdrawalState = MutableStateFlow<UiState<Transaction>>(UiState.Idle)
     val withdrawalState: StateFlow<UiState<Transaction>> = _withdrawalState.asStateFlow()
 
+    private val _payoutStatus = MutableStateFlow<UiState<PayoutStatus>>(UiState.Idle)
+    val payoutStatus: StateFlow<UiState<PayoutStatus>> = _payoutStatus.asStateFlow()
+
+    private val _onboardingLink = MutableStateFlow<UiState<PayoutOnboardingLink>>(UiState.Idle)
+    val onboardingLink: StateFlow<UiState<PayoutOnboardingLink>> = _onboardingLink.asStateFlow()
+
     // Selected time period
     private val _selectedPeriod = MutableStateFlow(EarningsPeriod.THIS_WEEK)
     val selectedPeriod: StateFlow<EarningsPeriod> = _selectedPeriod.asStateFlow()
@@ -74,6 +80,7 @@ class EarningsViewModel : ViewModel() {
         loadEarnings()
         loadTransactions()
         loadWallet()
+        loadPayoutStatus()
         loadCompletedJobs()
     }
 
@@ -127,6 +134,24 @@ class EarningsViewModel : ViewModel() {
                     loadTransactions() // Refresh transactions
                 }
                 .onFailure { _withdrawalState.value = UiState.Error(it.message ?: "Withdrawal failed") }
+        }
+    }
+
+    fun loadPayoutStatus() {
+        viewModelScope.launch {
+            _payoutStatus.value = UiState.Loading
+            repository.getPayoutStatus()
+                .onSuccess { _payoutStatus.value = UiState.Success(it) }
+                .onFailure { _payoutStatus.value = UiState.Error(it.message ?: "Failed to load payout status") }
+        }
+    }
+
+    fun createPayoutOnboardingLink() {
+        viewModelScope.launch {
+            _onboardingLink.value = UiState.Loading
+            repository.createPayoutOnboardingLink()
+                .onSuccess { _onboardingLink.value = UiState.Success(it) }
+                .onFailure { _onboardingLink.value = UiState.Error(it.message ?: "Failed to start payout setup") }
         }
     }
 

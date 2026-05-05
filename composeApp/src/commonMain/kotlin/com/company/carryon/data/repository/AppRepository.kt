@@ -161,7 +161,12 @@ interface JobRepository {
     suspend fun getIncomingRequest(): Result<DeliveryJob?>
     suspend fun getIncomingRequests(): Result<List<DeliveryJob>>
     suspend fun verifyPickupOtp(jobId: String, otp: String): Result<DeliveryJob>
-    suspend fun requestDeliveryOtp(jobId: String): Result<DeliveryOtpInfo>
+    suspend fun requestDeliveryOtp(jobId: String, forceResend: Boolean = false): Result<DeliveryOtpInfo>
+    suspend fun executeLifecycleCommand(
+        jobId: String,
+        command: DeliveryLifecycleCommand,
+        payload: DeliveryLifecycleCommandPayload = DeliveryLifecycleCommandPayload()
+    ): Result<DeliveryLifecycleResult>
     suspend fun cancelJob(jobId: String): Result<Boolean>
 }
 
@@ -177,7 +182,12 @@ class JobRepositoryImpl(private val api: JobApi) : JobRepository {
     override suspend fun getIncomingRequest() = api.getIncomingJobRequest("")
     override suspend fun getIncomingRequests() = api.getIncomingJobRequests("")
     override suspend fun verifyPickupOtp(jobId: String, otp: String) = api.verifyPickupOtp(jobId, otp)
-    override suspend fun requestDeliveryOtp(jobId: String) = api.requestDeliveryOtp(jobId)
+    override suspend fun requestDeliveryOtp(jobId: String, forceResend: Boolean) = api.requestDeliveryOtp(jobId, forceResend)
+    override suspend fun executeLifecycleCommand(
+        jobId: String,
+        command: DeliveryLifecycleCommand,
+        payload: DeliveryLifecycleCommandPayload
+    ) = api.executeLifecycleCommand(jobId, command, payload)
     override suspend fun cancelJob(jobId: String) = api.cancelJob(jobId)
 }
 
@@ -190,6 +200,8 @@ interface EarningsRepository {
     suspend fun getTransactions(): Result<List<Transaction>>
     suspend fun getWalletInfo(): Result<WalletInfo>
     suspend fun requestWithdrawal(amount: Double): Result<Transaction>
+    suspend fun getPayoutStatus(): Result<PayoutStatus>
+    suspend fun createPayoutOnboardingLink(): Result<PayoutOnboardingLink>
 }
 
 class EarningsRepositoryImpl(private val api: EarningsApi) : EarningsRepository {
@@ -197,6 +209,8 @@ class EarningsRepositoryImpl(private val api: EarningsApi) : EarningsRepository 
     override suspend fun getTransactions() = api.getTransactionHistory("")
     override suspend fun getWalletInfo() = api.getWalletInfo("")
     override suspend fun requestWithdrawal(amount: Double) = api.requestWithdrawal("", amount)
+    override suspend fun getPayoutStatus() = api.getPayoutStatus()
+    override suspend fun createPayoutOnboardingLink() = api.createPayoutOnboardingLink()
 }
 
 // ============================================================

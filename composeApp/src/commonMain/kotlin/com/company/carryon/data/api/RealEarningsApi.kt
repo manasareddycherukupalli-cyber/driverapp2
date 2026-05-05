@@ -32,11 +32,25 @@ class RealEarningsApi : EarningsApi {
     }
 
     override suspend fun requestWithdrawal(driverId: String, amount: Double): Result<Transaction> = runCatching {
-        val response: ApiResponse<Transaction> = client.post("/api/driver/earnings/wallet/withdraw") {
+        val response: ApiResponse<Transaction> = client.post("/api/driver/payouts/withdraw") {
             withAuth()
             contentType(ContentType.Application.Json)
             setBody(mapOf("amount" to amount))
         }.body()
         response.data ?: throw Exception("Withdrawal failed")
+    }
+
+    override suspend fun getPayoutStatus(): Result<PayoutStatus> = runCatching {
+        val response: ApiResponse<PayoutStatus> = client.get("/api/driver/payouts/status") {
+            withAuth()
+        }.body()
+        response.data ?: throw Exception(response.message ?: "Failed to load payout status")
+    }
+
+    override suspend fun createPayoutOnboardingLink(): Result<PayoutOnboardingLink> = runCatching {
+        val response: ApiResponse<PayoutOnboardingLink> = client.post("/api/driver/payouts/onboarding-link") {
+            withAuth()
+        }.body()
+        response.data ?: throw Exception(response.message ?: "Failed to start payout setup")
     }
 }

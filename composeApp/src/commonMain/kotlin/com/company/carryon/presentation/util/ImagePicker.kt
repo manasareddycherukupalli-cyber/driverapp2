@@ -12,9 +12,11 @@ expect class ImagePickerLauncher {
 
 /**
  * Returns a remembered [ImagePickerLauncher] that calls [onImagePicked]
- * with the raw JPEG bytes of the selected image.
+ * with upload-ready JPEG bytes of the selected image, or [onImagePickFailed]
+ * when camera permission, capture, or image decoding fails.
  */
 @Composable
 expect fun rememberImagePickerLauncher(
+    onImagePickFailed: (String) -> Unit = {},
     onImagePicked: (ByteArray) -> Unit
 ): ImagePickerLauncher

@@ -56,6 +56,20 @@ actual fun hasLocationPermission(): Boolean {
         status == kCLAuthorizationStatusAuthorizedAlways
 }
 
+actual fun requestLocationPermission(onResult: (Boolean) -> Unit) {
+    if (!hasLocationPermission()) {
+        locationManager.requestWhenInUseAuthorization()
+    }
+    if (hasLocationPermission()) {
+        locationManager.startUpdatingLocation()
+    }
+    onResult(hasLocationPermission())
+}
+
+actual fun openAppSettings() {
+    // No-op for now; iOS uses MapKit and the driver issue reported here is Android-specific.
+}
+
 private class LocationDelegate : NSObject(), CLLocationManagerDelegateProtocol {
     override fun locationManagerDidChangeAuthorization(manager: CLLocationManager) {
         val status = CLLocationManager.authorizationStatus()

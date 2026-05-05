@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -41,8 +42,18 @@ fun WalletScreen(navigator: AppNavigator) {
     val walletState by viewModel.walletInfo.collectAsState()
     val transactionsState by viewModel.transactions.collectAsState()
     val withdrawalState by viewModel.withdrawalState.collectAsState()
+    val payoutStatus by viewModel.payoutStatus.collectAsState()
+    val onboardingLink by viewModel.onboardingLink.collectAsState()
+    val uriHandler = LocalUriHandler.current
 
     var showWithdrawDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(onboardingLink) {
+        val link = (onboardingLink as? UiState.Success)?.data?.url
+        if (!link.isNullOrBlank()) {
+            uriHandler.openUri(link)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -63,7 +74,9 @@ fun WalletScreen(navigator: AppNavigator) {
                 when (val state = walletState) {
                     is UiState.Success -> WalletBalanceCard(
                         wallet = state.data,
-                        onWithdraw = { showWithdrawDialog = true }
+                        payoutStatus = (payoutStatus as? UiState.Success)?.data,
+                        onWithdraw = { showWithdrawDialog = true },
+                        onSetupPayouts = { viewModel.createPayoutOnboardingLink() }
                     )
                     is UiState.Loading -> LoadingScreen()
                     else -> {}
@@ -116,8 +129,15 @@ fun WalletScreen(navigator: AppNavigator) {
 }
 
 @Composable
-private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
+private fun WalletBalanceCard(
+    wallet: WalletInfo,
+    payoutStatus: PayoutStatus?,
+    onWithdraw: () -> Unit,
+    onSetupPayouts: () -> Unit
+) {
     val strings = LocalStrings.current
+    val payoutsEnabled = payoutStatus?.payoutsEnabled ?: wallet.stripePayoutsEnabled
+    val hasAccount = payoutStatus?.accountId != null || wallet.stripeAccountId != null
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -153,18 +173,28 @@ private fun WalletBalanceCard(wallet: WalletInfo, onWithdraw: () -> Unit) {
                 }
                 Spacer(Modifier.height(16.dp))
                 Button(
-                    onClick = onWithdraw,
+                    onClick = if (payoutsEnabled) onWithdraw else onSetupPayouts,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = WalletBlue),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Filled.AccountBalance, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text(strings.withdrawToBank, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (payoutsEnabled) strings.withdrawToBank else if (hasAccount) "Continue payout setup" else "Set up payouts",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                if (wallet.bankAccountLinked) {
+                if (payoutsEnabled) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "💳 Bank account ****${wallet.bankAccountLast4}",
+                        text = "Stripe payouts enabled",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 12.sp
+                    )
+                } else if (hasAccount) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Stripe needs a few more payout details",
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 12.sp
                     )

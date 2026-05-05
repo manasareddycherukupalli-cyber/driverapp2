@@ -15,15 +15,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PinDrop
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,11 +37,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DeliveryJob
+import com.company.carryon.data.model.DeliveryLifecycleCommand
+import com.company.carryon.data.model.JobStatus
+import com.company.carryon.data.model.LatLng
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.displayDurationMinutes
-import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.ErrorState
 import com.company.carryon.presentation.components.LoadingScreen
+import com.company.carryon.presentation.components.MapMarker
+import com.company.carryon.presentation.components.MapViewComposable
+import com.company.carryon.presentation.components.MarkerColor
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import kotlin.math.abs
@@ -52,17 +56,19 @@ private val SDBlue = Color(0xFF2F80ED)
 private val SDSoft = Color(0x4DA6D2F3)
 private val SDWhite = Color(0xFFFFFFFF)
 private val SDBlack = Color(0xFF000000)
+private val DefaultCenter = LatLng(12.9716, 77.5946)
 
 @Composable
-fun StartDeliveryScreen(navigator: AppNavigator) {
-    val viewModel = remember { DeliveryViewModel() }
+fun StartDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
     val jobState by viewModel.currentJob.collectAsState()
+    val startDeliveryState by viewModel.startDeliveryState.collectAsState()
+    val routeGeometry by viewModel.routeGeometry.collectAsState()
+    val mapMarkers by viewModel.markers.collectAsState()
     val jobId = navigator.selectedJobId
 
     LaunchedEffect(jobId) {
         jobId?.let { viewModel.loadJob(it) }
     }
-
     if (jobId == null) {
         ErrorState("No active job selected") { navigator.goBack() }
         return
@@ -80,147 +86,128 @@ fun StartDeliveryScreen(navigator: AppNavigator) {
         }
     }
 
-    StartDeliveryContent(
-        job = job,
-        onStartNavigation = { navigator.navigateTo(Screen.InTransitNavigation) }
-    )
-}
+    LaunchedEffect(job.status) {
+        viewModel.redirectIfCurrentScreenInvalid(Screen.StartDelivery, job)
+    }
 
-@Composable
-private fun StartDeliveryContent(
-    job: DeliveryJob,
-    onStartNavigation: () -> Unit
-) {
-    val strings = LocalStrings.current
-    val pickupLabel = job.pickup.shortAddress.ifBlank { job.pickup.address }.ifBlank { "--" }
-    val destinationLabel = job.dropoff.shortAddress.ifBlank { job.dropoff.address }.ifBlank { "--" }
-    val receiverLabel = job.dropoff.contactName
-        ?: job.customerName.takeIf { it.isNotBlank() }
-        ?: "--"
-    val etaMajor = job.displayDurationMinutes.takeIf { it > 0 }?.toString() ?: "--"
-    val distanceMajor = job.distance.takeIf { it > 0 }?.let { formatOneDecimal(it) } ?: "--"
+    val pickup = job.pickup
+    val dropoff = job.dropoff
+    val centerLat = if (pickup.latitude != 0.0) pickup.latitude else DefaultCenter.lat
+    val centerLng = if (pickup.longitude != 0.0) pickup.longitude else DefaultCenter.lng
+
+    val distanceKm = job.distance.takeIf { it > 0 }?.let { formatOneDecimal(it) } ?: "--"
+    val durationMin = job.displayDurationMinutes.takeIf { it > 0 }?.toString() ?: "--"
     val orderLabel = job.displayOrderId.takeIf { it.isNotBlank() } ?: job.id.takeLast(8).uppercase()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(SDWhite)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
+    Box(modifier = Modifier.fillMaxSize().background(SDWhite)) {
+        // Map background showing pickup to dropoff route
+        MapViewComposable(
+            modifier = Modifier.fillMaxSize(),
+            styleUrl = "",
+            centerLat = centerLat,
+            centerLng = centerLng,
+            zoom = if (pickup.latitude != 0.0) 12.0 else 12.0,
+            markers = buildList {
+                if (pickup.latitude != 0.0) {
+                    add(MapMarker("pickup", pickup.latitude, pickup.longitude, "Pickup", MarkerColor.GREEN))
+                }
+                if (dropoff.latitude != 0.0) {
+                    add(MapMarker("dropoff", dropoff.latitude, dropoff.longitude, "Drop-off", MarkerColor.RED))
+                }
+            },
+            routeGeometry = routeGeometry
+        )
+
+        // Soft overlay
+        Box(modifier = Modifier.fillMaxSize().background(SDSoft))
+
+        // Top bar card
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = SDWhite)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(34.dp).background(SDSoft, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.Person, contentDescription = null, tint = SDBlue, modifier = Modifier.size(18.dp))
-                }
-                Spacer(Modifier.width(10.dp))
-                Text("#$orderLabel", color = SDBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            }
-            Icon(Icons.Filled.NotificationsNone, contentDescription = null, tint = SDBlack.copy(alpha = 0.6f))
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 26.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            StepDot("1", false)
-            Box(modifier = Modifier.width(40.dp).height(3.dp).background(SDBlack.copy(alpha = 0.25f)))
-            StepDot("2", false)
-            Box(modifier = Modifier.width(40.dp).height(3.dp).background(SDBlack.copy(alpha = 0.25f)))
-            StepDot("3", true)
-            Box(modifier = Modifier.width(40.dp).height(3.dp).background(SDBlack.copy(alpha = 0.25f)))
-            StepDot("4", false)
-        }
-
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Box(
-                modifier = Modifier
-                    .size(84.dp)
-                    .background(SDSoft, CircleShape),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = SDBlue, modifier = Modifier.size(38.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.size(36.dp).background(SDBlue, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.Navigation, contentDescription = null, tint = SDWhite, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        dropoff.shortAddress.ifBlank { dropoff.address }.ifBlank { "--" },
+                        color = SDBlue,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        maxLines = 1
+                    )
+                }
+                Text("#$orderLabel", color = SDBlack.copy(alpha = 0.55f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
             }
         }
 
-        Text(strings.readyToDeliver, color = SDBlack, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Package collected from ", color = SDBlack.copy(alpha = 0.65f), fontSize = 14.sp)
-            Text(pickupLabel, color = SDBlue, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        }
-
+        // Bottom card with distance, time, and Start Delivery button
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = SDSoft)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 64.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = SDWhite)
         ) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(strings.destination, color = SDBlue, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
-                        Text(destinationLabel, color = SDBlack, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
-                        Spacer(Modifier.height(6.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Person, contentDescription = null, tint = SDBlack.copy(alpha = 0.65f), modifier = Modifier.size(14.dp))
+                        Text("DISTANCE", color = SDBlack.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(distanceKm, color = SDBlue, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
                             Spacer(Modifier.width(4.dp))
-                            Text(receiverLabel, color = SDBlack, fontSize = 14.sp)
+                            Text("km", color = SDBlue, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    Box(modifier = Modifier.size(30.dp).background(SDWhite, CircleShape), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.PinDrop, contentDescription = null, tint = SDBlue, modifier = Modifier.size(18.dp))
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("EST. TIME", color = SDBlack.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Filled.GpsFixed, contentDescription = null, tint = SDBlue, modifier = Modifier.size(14.dp))
+                        }
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(durationMin, color = SDBlue, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
+                            Spacer(Modifier.width(4.dp))
+                            Text("min", color = SDBlue, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
+
+                Button(
+                    onClick = { viewModel.startDelivery(jobId) },
+                    enabled = viewModel.canRun(DeliveryLifecycleCommand.START_DELIVERY, job) &&
+                        startDeliveryState !is UiState.Loading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SDBlue)
+                ) {
+                    if (startDeliveryState is UiState.Loading) {
+                        CircularProgressIndicator(color = SDWhite, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                    } else {
+                        Text("Start Delivery", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = SDWhite, modifier = Modifier.size(16.dp))
+                    }
+                }
+
+                val errorState = startDeliveryState as? UiState.Error
+                if (errorState != null) {
+                    Text(errorState.message, color = Color(0xFFCC3D3D), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
-        }
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MetricCard(strings.eta, etaMajor, "min", Modifier.weight(1f))
-            MetricCard(strings.distanceLabel, distanceMajor, "km", Modifier.weight(1f))
-        }
-
-        Button(
-            onClick = onStartNavigation,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = SDBlue)
-        ) {
-            Text(strings.startNavigation, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Spacer(Modifier.width(8.dp))
-            Icon(Icons.Filled.Map, contentDescription = null, tint = SDWhite, modifier = Modifier.size(16.dp))
-        }
-
-        Button(
-            onClick = { },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = SDWhite, contentColor = SDBlue)
-        ) {
-            Text(strings.reportAnIssue, fontWeight = FontWeight.SemiBold)
-        }
-
-        Spacer(Modifier.weight(1f))
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SmallTab("ROUTE", false)
-            SmallTab("EARNINGS", false)
-            SmallTab("ORDERS", true)
-            SmallTab("WALLET", false)
-            SmallTab("ACCOUNT", false)
         }
     }
 }
@@ -232,49 +219,4 @@ private fun formatOneDecimal(value: Double): String {
     val fraction = absScaled % 10
     val sign = if (scaled < 0) "-" else ""
     return "$sign$whole.$fraction"
-}
-
-@Composable
-private fun StepDot(label: String, active: Boolean) {
-    Box(
-        modifier = Modifier
-            .size(if (active) 38.dp else 28.dp)
-            .background(SDBlue, CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, color = SDWhite, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun MetricCard(title: String, major: String, minor: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = SDWhite)
-    ) {
-        Column(Modifier.padding(12.dp)) {
-            Text(title, color = SDBlack.copy(alpha = 0.55f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(major, color = SDBlue, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
-                Spacer(Modifier.width(4.dp))
-                Text(minor, color = SDBlue, fontWeight = FontWeight.SemiBold)
-            }
-        }
-    }
-}
-
-@Composable
-private fun SmallTab(label: String, selected: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(if (selected) SDSoft else SDWhite, RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = if (selected) SDBlue else SDBlack.copy(alpha = 0.45f), modifier = Modifier.size(16.dp))
-        }
-        Text(label, color = if (selected) SDBlue else SDBlack.copy(alpha = 0.45f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-    }
 }

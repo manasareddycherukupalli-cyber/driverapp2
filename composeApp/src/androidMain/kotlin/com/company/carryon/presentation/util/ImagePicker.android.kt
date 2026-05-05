@@ -1,22 +1,28 @@
 package com.company.carryon.presentation.util
 
 import android.Manifest
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
-import android.provider.MediaStore
-import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import java.io.ByteArrayOutputStream
 import java.io.File
+import kotlin.math.max
+import kotlin.math.roundToInt
+
+private const val MaxUploadImageBytes = 6 * 1024 * 1024
+private const val MaxUploadImageDimensionPx = 2048
+private const val ImagePickerLogTag = "[image-picker]"
 
 actual class ImagePickerLauncher(
     private val onLaunch: () -> Unit
@@ -26,56 +32,56 @@ actual class ImagePickerLauncher(
     }
 }
 
-private class CaptureFromCameraContract : ActivityResultContract<Unit, Uri?>() {
-    private var outputUri: Uri? = null
-
-    override fun createIntent(context: Context, input: Unit): Intent {
-        val imageFile = File.createTempFile(
-            "carryon_profile_photo_",
-            ".jpg",
-            context.cacheDir
-        )
-        val authority = "${context.packageName}.fileprovider"
-        outputUri = FileProvider.getUriForFile(context, authority, imageFile)
-
-        return Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-            // Hint supported camera apps to open selfie camera first.
-            putExtra("android.intent.extra.USE_FRONT_CAMERA", true)
-            putExtra("android.intent.extras.CAMERA_FACING", 1)
-            putExtra("camerafacing", "front")
-            putExtra("previous_mode", "front")
-            putExtra(MediaStore.EXTRA_OUTPUT, outputUri)
-            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-    }
-
-    override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
-        if (resultCode != Activity.RESULT_OK) return null
-        return outputUri
-    }
-}
-
 @Composable
 actual fun rememberImagePickerLauncher(
+    onImagePickFailed: (String) -> Unit,
     onImagePicked: (ByteArray) -> Unit
 ): ImagePickerLauncher {
     val context = LocalContext.current
+    val latestOnImagePicked = rememberUpdatedState(onImagePicked)
+    val latestOnImagePickFailed = rememberUpdatedState(onImagePickFailed)
+    val pendingCaptureUri = remember { mutableStateOf<Uri?>(null) }
     val captureLauncher = rememberLauncherForActivityResult(
-        contract = CaptureFromCameraContract()
-    ) { uri ->
-        uri?.let {
-            context.contentResolver.openInputStream(it)?.use { stream ->
-                onImagePicked(stream.readBytes())
+        contract = ActivityResultContracts.TakePicture()
+    ) { saved ->
+        val uri = pendingCaptureUri.value
+        println("$ImagePickerLogTag TakePicture result saved=$saved uri=$uri")
+        if (!saved || uri == null) {
+            pendingCaptureUri.value = null
+            latestOnImagePickFailed.value("No photo was saved. Please retake and confirm the photo.")
+            return@rememberLauncherForActivityResult
+        }
+        try {
+            val bytes = context.contentResolver.openInputStream(uri)?.use { stream ->
+                stream.readBytes().compressedForUpload()
             }
+            println("$ImagePickerLogTag captured bytes=${bytes?.size ?: 0}")
+            if (bytes == null || bytes.isEmpty()) {
+                latestOnImagePickFailed.value("No photo was saved. Please retake and confirm the photo.")
+            } else {
+                latestOnImagePicked.value(bytes)
+            }
+        } catch (error: Exception) {
+            println("$ImagePickerLogTag read captured photo failed: ${error.message}")
+            latestOnImagePickFailed.value("Could not read the captured photo. Please try again.")
+        } finally {
+            pendingCaptureUri.value = null
         }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
+        println("$ImagePickerLogTag camera permission granted=$granted")
         if (granted) {
-            captureLauncher.launch(Unit)
+            launchCameraCapture(
+                context = context,
+                setPendingUri = { pendingCaptureUri.value = it },
+                launch = { captureLauncher.launch(it) },
+                onFailure = { latestOnImagePickFailed.value(it) }
+            )
+        } else {
+            latestOnImagePickFailed.value("Camera permission is required to capture proof of delivery.")
         }
     }
 
@@ -87,10 +93,130 @@ actual fun rememberImagePickerLauncher(
             ) == PackageManager.PERMISSION_GRANTED
 
             if (hasCameraPermission) {
-                captureLauncher.launch(Unit)
+                launchCameraCapture(
+                    context = context,
+                    setPendingUri = { pendingCaptureUri.value = it },
+                    launch = { captureLauncher.launch(it) },
+                    onFailure = { latestOnImagePickFailed.value(it) }
+                )
             } else {
                 permissionLauncher.launch(Manifest.permission.CAMERA)
             }
         }
     }
 }
+
+private fun launchCameraCapture(
+    context: Context,
+    setPendingUri: (Uri?) -> Unit,
+    launch: (Uri) -> Unit,
+    onFailure: (String) -> Unit
+) {
+    val uri = try {
+        context.createCameraImageUri()
+    } catch (error: Exception) {
+        println("$ImagePickerLogTag create uri failed: ${error.message}")
+        onFailure("Could not prepare the camera. Please try again.")
+        return
+    }
+    println("$ImagePickerLogTag created capture uri=$uri")
+    setPendingUri(uri)
+    try {
+        launch(uri)
+    } catch (error: Exception) {
+        println("$ImagePickerLogTag launch camera failed: ${error.message}")
+        setPendingUri(null)
+        onFailure("Could not open the camera. Please try again.")
+    }
+}
+
+private fun Context.createCameraImageUri(): Uri {
+    val imageFile = File.createTempFile(
+        "carryon_proof_photo_",
+        ".jpg",
+        cacheDir
+    )
+    val authority = "$packageName.fileprovider"
+    return FileProvider.getUriForFile(this, authority, imageFile)
+}
+
+private fun ByteArray.compressedForUpload(): ByteArray {
+    if (size <= MaxUploadImageBytes) return this
+
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(this, 0, size, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return this
+
+    val largestBound = max(bounds.outWidth, bounds.outHeight)
+    var sampleSize = 1
+    while (largestBound / sampleSize > MaxUploadImageDimensionPx) {
+        sampleSize *= 2
+    }
+
+    val bitmap = BitmapFactory.decodeByteArray(
+        this,
+        0,
+        size,
+        BitmapFactory.Options().apply { inSampleSize = sampleSize }
+    ) ?: return this
+
+    return try {
+        compressBitmapUnderLimit(bitmap)
+    } finally {
+        bitmap.recycle()
+    }
+}
+
+private fun compressBitmapUnderLimit(source: Bitmap): ByteArray {
+    var working = scaleBitmapToMaxDimension(source, MaxUploadImageDimensionPx)
+    var shouldRecycleWorking = working !== source
+
+    try {
+        var quality = 85
+        repeat(8) {
+            val bytes = working.toJpegBytes(quality)
+            if (bytes.size <= MaxUploadImageBytes || quality <= 45) {
+                return bytes
+            }
+            quality -= 10
+        }
+
+        repeat(6) {
+            val nextWidth = (working.width * 0.85f).roundToInt().coerceAtLeast(640)
+            val nextHeight = (working.height * 0.85f).roundToInt().coerceAtLeast(640)
+            if (nextWidth == working.width && nextHeight == working.height) {
+                return working.toJpegBytes(45)
+            }
+
+            val scaled = Bitmap.createScaledBitmap(working, nextWidth, nextHeight, true)
+            if (shouldRecycleWorking) working.recycle()
+            working = scaled
+            shouldRecycleWorking = true
+
+            val bytes = working.toJpegBytes(75)
+            if (bytes.size <= MaxUploadImageBytes) {
+                return bytes
+            }
+        }
+
+        return working.toJpegBytes(45)
+    } finally {
+        if (shouldRecycleWorking) working.recycle()
+    }
+}
+
+private fun scaleBitmapToMaxDimension(bitmap: Bitmap, maxDimension: Int): Bitmap {
+    val largestSide = max(bitmap.width, bitmap.height)
+    if (largestSide <= maxDimension) return bitmap
+
+    val scale = maxDimension.toFloat() / largestSide.toFloat()
+    val targetWidth = (bitmap.width * scale).roundToInt().coerceAtLeast(1)
+    val targetHeight = (bitmap.height * scale).roundToInt().coerceAtLeast(1)
+    return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+}
+
+private fun Bitmap.toJpegBytes(quality: Int): ByteArray =
+    ByteArrayOutputStream().use { output ->
+        compress(Bitmap.CompressFormat.JPEG, quality.coerceIn(1, 100), output)
+        output.toByteArray()
+    }

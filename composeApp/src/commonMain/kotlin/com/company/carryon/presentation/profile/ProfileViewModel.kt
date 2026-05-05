@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.*
 import com.company.carryon.di.ServiceLocator
 import com.company.carryon.data.network.getOnboardingDraft
+import com.company.carryon.data.network.SupabaseConfig
+import io.github.jan.supabase.auth.auth
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -32,22 +34,57 @@ class ProfileViewModel : ViewModel() {
     private val _updateState = MutableStateFlow<UiState<Driver>>(UiState.Idle)
     val updateState: StateFlow<UiState<Driver>> = _updateState.asStateFlow()
 
+    private val _passwordUpdateState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
+    val passwordUpdateState: StateFlow<UiState<Boolean>> = _passwordUpdateState.asStateFlow()
+
     init {
         refreshDocumentsForHub()
     }
 
-    fun updateProfile(name: String, email: String, emergencyContact: String) {
+    fun updateProfile(name: String, email: String, phone: String, emergencyContact: String) {
         viewModelScope.launch {
             _updateState.value = UiState.Loading
-            val current = currentDriver.value ?: return@launch
+            val current = currentDriver.value
+            if (current == null) {
+                _updateState.value = UiState.Error("No active driver session")
+                return@launch
+            }
             val updated = current.copy(
                 name = name,
                 email = email,
+                phone = phone,
                 emergencyContact = emergencyContact
             )
             authRepository.updateProfile(updated)
                 .onSuccess { _updateState.value = UiState.Success(it) }
                 .onFailure { _updateState.value = UiState.Error(it.message ?: "Update failed") }
+        }
+    }
+
+    fun updatePassword(newPassword: String, confirmPassword: String) {
+        viewModelScope.launch {
+            val password = newPassword.trim()
+            _passwordUpdateState.value = UiState.Loading
+
+            when {
+                password.length < 8 -> {
+                    _passwordUpdateState.value = UiState.Error("Password must be at least 8 characters")
+                    return@launch
+                }
+                password != confirmPassword -> {
+                    _passwordUpdateState.value = UiState.Error("Passwords do not match")
+                    return@launch
+                }
+            }
+
+            runCatching {
+                SupabaseConfig.client.auth.updateUser {
+                    this.password = password
+                }
+                true
+            }
+                .onSuccess { _passwordUpdateState.value = UiState.Success(true) }
+                .onFailure { _passwordUpdateState.value = UiState.Error(it.message ?: "Password update failed") }
         }
     }
 

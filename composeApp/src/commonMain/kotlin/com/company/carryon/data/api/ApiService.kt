@@ -37,8 +37,14 @@ interface JobApi {
     suspend fun getIncomingJobRequest(driverId: String): Result<DeliveryJob?>
     suspend fun getIncomingJobRequests(driverId: String): Result<List<DeliveryJob>>
     suspend fun verifyPickupOtp(jobId: String, otp: String): Result<DeliveryJob>
-    suspend fun requestDeliveryOtp(jobId: String): Result<DeliveryOtpInfo>
+    suspend fun requestDeliveryOtp(jobId: String, forceResend: Boolean = false): Result<DeliveryOtpInfo>
+    suspend fun executeLifecycleCommand(
+        jobId: String,
+        command: DeliveryLifecycleCommand,
+        payload: DeliveryLifecycleCommandPayload = DeliveryLifecycleCommandPayload()
+    ): Result<DeliveryLifecycleResult>
     suspend fun cancelJob(jobId: String): Result<Boolean>
+    suspend fun getDemandZones(latitude: Double, longitude: Double, radiusKm: Double = 10.0): Result<DemandZonesResponse>
 }
 
 /**
@@ -50,6 +56,8 @@ interface EarningsApi {
     suspend fun getTransactionHistory(driverId: String): Result<List<Transaction>>
     suspend fun getWalletInfo(driverId: String): Result<WalletInfo>
     suspend fun requestWithdrawal(driverId: String, amount: Double): Result<Transaction>
+    suspend fun getPayoutStatus(): Result<PayoutStatus>
+    suspend fun createPayoutOnboardingLink(): Result<PayoutOnboardingLink>
 }
 
 /**

@@ -1,6 +1,7 @@
 package com.company.carryon.presentation.delivery
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,19 +18,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,9 +57,9 @@ private val DoneCard = Color(0xFFD3DEEF)
 private val DoneBg = Color(0xFFF7F8FC)
 private val DoneText = Color(0xFF242A36)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeliveryCompleteScreen(navigator: AppNavigator) {
-    val viewModel = remember { DeliveryViewModel() }
+fun DeliveryCompleteScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
     val jobState by viewModel.currentJob.collectAsState()
     val jobId = navigator.selectedJobId
 
@@ -77,6 +83,13 @@ fun DeliveryCompleteScreen(navigator: AppNavigator) {
             return
         }
     }
+
+    LaunchedEffect(job.status) {
+        viewModel.redirectIfCurrentScreenInvalid(Screen.DeliveryComplete, job)
+    }
+
+    var activeSheet by remember { mutableStateOf<String?>(null) }
+    val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier
@@ -159,24 +172,39 @@ fun DeliveryCompleteScreen(navigator: AppNavigator) {
         Button(
             onClick = {
                 navigator.clearPersistedDeliveryState()
-                navigator.initialJobsTabIndex = 0
-                navigator.navigateAndClearStack(Screen.Jobs)
+                navigator.navigateAndClearStack(Screen.Home)
             },
             modifier = Modifier.fillMaxWidth().height(54.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = DoneBlue)
         ) {
-            Text("Find Next Job", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Back to Homepage", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
 
-        OutlinedButton(
-            onClick = { navigator.navigateTo(Screen.JobReceipt) },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = DoneBlue),
-            border = androidx.compose.foundation.BorderStroke(2.dp, DoneBlue)
-        ) {
-            Text("View Receipt", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(
+                onClick = {
+                    navigator.clearPersistedDeliveryState()
+                    navigator.initialJobsTabIndex = 0
+                    navigator.navigateAndClearStack(Screen.Jobs)
+                },
+                modifier = Modifier.weight(1f).height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = DoneBlue),
+                border = androidx.compose.foundation.BorderStroke(2.dp, DoneBlue)
+            ) {
+                Text("Find Next Job", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            }
+
+            OutlinedButton(
+                onClick = { navigator.navigateTo(Screen.JobReceipt) },
+                modifier = Modifier.weight(1f).height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = DoneBlue),
+                border = androidx.compose.foundation.BorderStroke(2.dp, DoneBlue)
+            ) {
+                Text("View Receipt", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            }
         }
 
         Card(
@@ -192,16 +220,45 @@ fun DeliveryCompleteScreen(navigator: AppNavigator) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(16.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .background(Color.White, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            MiniBottom("ROUTE", false)
-            MiniBottom("EARNINGS", false)
-            MiniBottom("RATINGS", false)
-            MiniBottom("ROUTE", true)
-            MiniBottom("ACCOUNT", false)
+            DeliveryBottomTab("ROUTE", true) { activeSheet = "ROUTE" }
+            DeliveryBottomTab("EARNINGS", false) { activeSheet = "EARNINGS" }
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(DoneBlue, CircleShape)
+                    .clickable {
+                        uriHandler.openUri(
+                            "https://www.google.com/maps/dir/?api=1&destination=${job.dropoff.latitude},${job.dropoff.longitude}&travelmode=driving"
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Navigation, contentDescription = "Navigate", tint = Color.White)
+            }
+            DeliveryBottomTab("INBOX", false) {
+                navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
+            }
+            DeliveryBottomTab("ACCOUNT", false) { navigator.switchTab(Screen.Profile) }
+        }
+    }
+
+    if (activeSheet == "ROUTE") {
+        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
+            DeliveryRouteSheet(
+                pickupAddress = job.pickup.shortAddress.ifBlank { job.pickup.address },
+                dropoffAddress = job.dropoff.shortAddress.ifBlank { job.dropoff.address },
+                blue = DoneBlue, black = DoneText
+            )
+        }
+    }
+    if (activeSheet == "EARNINGS") {
+        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
+            DeliveryEarningsSheet(earnings = job.estimatedEarnings, orderId = job.id, blue = DoneBlue, black = DoneText)
         }
     }
 }
@@ -224,15 +281,51 @@ private fun MetricCard(title: String, value: String, unit: String, modifier: Mod
 }
 
 @Composable
-private fun MiniBottom(label: String, selected: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .background(if (selected) DoneSoft else Color.Transparent, RoundedCornerShape(10.dp))
-                .padding(horizontal = 10.dp, vertical = 6.dp)
-        ) {
-            Icon(Icons.Filled.Star, contentDescription = null, tint = if (selected) DoneBlue else DoneText.copy(alpha = 0.45f), modifier = Modifier.size(14.dp))
+private fun DeliveryBottomTab(label: String, selected: Boolean, onClick: () -> Unit = {}) {
+    Text(
+        text = label,
+        color = if (selected) DoneBlue else DoneText.copy(alpha = 0.55f),
+        fontSize = 10.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.clickable { onClick() }
+    )
+}
+
+@Composable
+private fun DeliveryRouteSheet(pickupAddress: String, dropoffAddress: String, blue: Color, black: Color) {
+    Column(
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text("Delivery Route", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(modifier = Modifier.size(10.dp).background(blue, CircleShape))
+            Column {
+                Text("PICKUP", fontSize = 10.sp, color = black.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
+                Text(pickupAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = black)
+            }
         }
-        Text(label, color = if (selected) DoneBlue else DoneText.copy(alpha = 0.45f), fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(modifier = Modifier.size(10.dp).background(Color(0xFFE53935), CircleShape))
+            Column {
+                Text("DROP-OFF", fontSize = 10.sp, color = black.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
+                Text(dropoffAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = black)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun DeliveryEarningsSheet(earnings: Double, orderId: String, blue: Color, black: Color) {
+    Column(
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Job Earnings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
+        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = blue)
+        Text("Order #${orderId.takeLast(8).uppercase()}", color = black.copy(alpha = 0.5f), fontSize = 13.sp)
+        Text("Final amount confirmed after delivery completion.", fontSize = 12.sp, color = black.copy(alpha = 0.4f))
+        Spacer(Modifier.height(16.dp))
     }
 }

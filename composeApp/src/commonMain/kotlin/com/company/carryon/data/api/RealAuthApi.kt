@@ -119,11 +119,11 @@ class RealAuthApi : AuthApi {
     }
 
     override suspend fun updateLocation(latitude: Double, longitude: Double): Result<Boolean> = runCatching {
-        val response: ApiResponse<Any> = client.post("/api/driver/profile/location") {
+        client.post("/api/driver/profile/location") {
             withAuth()
             contentType(ContentType.Application.Json)
             setBody(mapOf("latitude" to latitude, "longitude" to longitude))
-        }.body()
-        response.success
+        }
+        true
     }
 }

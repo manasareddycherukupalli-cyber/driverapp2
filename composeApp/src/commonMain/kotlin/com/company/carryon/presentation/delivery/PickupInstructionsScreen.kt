@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,25 +26,37 @@ import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DeliveryJob
+import com.company.carryon.data.model.DeliveryLifecycleCommand
 import com.company.carryon.data.model.JobStatus
 import com.company.carryon.data.model.UiState
 import com.company.carryon.presentation.components.ErrorState
@@ -54,15 +68,28 @@ private val PickBlue = Color(0xFF2F80ED)
 private val PickSoft = Color(0x4DA6D2F3)
 private val PickWhite = Color(0xFFFFFFFF)
 private val PickBlack = Color(0xFF000000)
+private const val PICKUP_OTP_LENGTH = 4
 
 @Composable
-fun PickupInstructionsScreen(navigator: AppNavigator) {
-    val viewModel = remember { DeliveryViewModel() }
+fun PickupInstructionsScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
     val jobState by viewModel.currentJob.collectAsState()
+    val otpError by viewModel.otpError.collectAsState()
+    val otpVerifying by viewModel.otpVerifying.collectAsState()
+    val cancelState by viewModel.cancelState.collectAsState()
     val jobId = navigator.selectedJobId
 
     LaunchedEffect(jobId) {
         jobId?.let { viewModel.loadJob(it) }
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.cancelCompletedEvents.collect {
+            navigator.clearPersistedDeliveryState()
+            navigator.navigateAndClearStack(Screen.Home)
+        }
+    }
+    LaunchedEffect(jobState) {
+        val job = (jobState as? UiState.Success)?.data ?: return@LaunchedEffect
+        viewModel.redirectIfCurrentScreenInvalid(Screen.PickupInstructions, job)
     }
 
     if (jobId == null) {
@@ -79,10 +106,15 @@ fun PickupInstructionsScreen(navigator: AppNavigator) {
         is UiState.Success -> PickupInstructionsContent(
             job = state.data,
             navigator = navigator,
-            onConfirm = {
-                viewModel.updateStatus(state.data.id, JobStatus.PICKED_UP)
-                navigator.navigateTo(Screen.StartDelivery)
-            }
+            otpError = otpError,
+            otpVerifying = otpVerifying,
+            cancelError = (cancelState as? UiState.Error)?.message,
+            isCancelling = cancelState is UiState.Loading,
+            canVerifyPickup = viewModel.canRun(DeliveryLifecycleCommand.VERIFY_PICKUP_OTP, state.data),
+            canCancelPickup = viewModel.canCancelBeforePickup(state.data),
+            onOtpChanged = { viewModel.clearOtpError() },
+            onConfirm = { otp -> viewModel.verifyPickupOtp(state.data.id, otp) },
+            onCancelPickup = { viewModel.cancelJob(state.data.id) }
         )
     }
 }
@@ -91,9 +123,19 @@ fun PickupInstructionsScreen(navigator: AppNavigator) {
 private fun PickupInstructionsContent(
     job: DeliveryJob,
     navigator: AppNavigator,
-    onConfirm: () -> Unit
+    otpError: String?,
+    otpVerifying: Boolean,
+    cancelError: String?,
+    isCancelling: Boolean,
+    canVerifyPickup: Boolean,
+    canCancelPickup: Boolean,
+    onOtpChanged: () -> Unit,
+    onConfirm: (String) -> Unit,
+    onCancelPickup: () -> Unit
 ) {
     val checks = remember(job.id) { mutableStateListOf(false, false, false, false) }
+    var pickupOtp by remember(job.id) { mutableStateOf("") }
+    var showCancelDialog by remember(job.id) { mutableStateOf(false) }
     val allChecksComplete = checks.all { it }
     val displayOrderId = remember(job.id, job.displayOrderId) {
         job.displayOrderId.takeIf { it.isNotBlank() }
@@ -104,6 +146,36 @@ private fun PickupInstructionsContent(
         ?.takeIf { it.isNotBlank() }
         ?: job.notes?.takeIf { it.isNotBlank() }
         ?: "No special instructions provided."
+
+    LaunchedEffect(canCancelPickup) {
+        if (!canCancelPickup) {
+            showCancelDialog = false
+        }
+    }
+
+    if (showCancelDialog && canCancelPickup) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text("Cancel pickup?") },
+            text = { Text("The job will be returned to the queue for another driver.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCancelDialog = false
+                        onCancelPickup()
+                    }
+                ) {
+                    Text("Cancel pickup", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelDialog = false }) {
+                    Text("Keep job")
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -196,20 +268,125 @@ private fun PickupInstructionsContent(
             }
         }
 
+        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PickWhite), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Pickup OTP", color = PickBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                PickupOtpInput(
+                    value = pickupOtp,
+                    onValueChange = {
+                        pickupOtp = it
+                        onOtpChanged()
+                    },
+                    hasError = !otpError.isNullOrBlank()
+                )
+                Text(
+                    "Ask sender for the pickup code",
+                    color = PickBlack.copy(alpha = 0.55f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (!otpError.isNullOrBlank()) {
+                    Text(otpError, color = Color(0xFFCC3D3D), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+
         Button(
-            onClick = onConfirm,
-            enabled = allChecksComplete,
+            onClick = { onConfirm(pickupOtp) },
+            enabled = canVerifyPickup && allChecksComplete && pickupOtp.length == PICKUP_OTP_LENGTH && !otpVerifying && !isCancelling,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PickBlue)
         ) {
-            Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = PickWhite, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Confirm & Start Delivery", fontWeight = FontWeight.Bold)
+            if (otpVerifying) {
+                androidx.compose.material3.CircularProgressIndicator(color = PickWhite, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+            } else {
+                Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = PickWhite, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Confirm & Start Delivery", fontWeight = FontWeight.Bold)
+            }
+        }
+
+        if (canCancelPickup) {
+            OutlinedButton(
+                onClick = { showCancelDialog = true },
+                enabled = !otpVerifying && !isCancelling,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                if (isCancelling) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.error,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp)
+                    )
+                } else {
+                    Text("Cancel pickup", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        if (!cancelError.isNullOrBlank()) {
+            Text(cancelError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
     }
+}
+
+@Composable
+private fun PickupOtpInput(value: String, onValueChange: (String) -> Unit, hasError: Boolean) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+    BasicTextField(
+        value = value,
+        onValueChange = { raw -> onValueChange(raw.filter { it.isDigit() }.take(PICKUP_OTP_LENGTH)) },
+        singleLine = true,
+        textStyle = androidx.compose.ui.text.TextStyle(
+            color = Color.Transparent,
+            fontSize = 1.sp,
+            textAlign = TextAlign.Center
+        ),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        decorationBox = { inner ->
+            Column {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    repeat(PICKUP_OTP_LENGTH) { index ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .background(PickWhite, RoundedCornerShape(10.dp))
+                                .border(
+                                    1.dp,
+                                    if (hasError) Color(0xFFCC3D3D) else PickBlue.copy(alpha = 0.35f),
+                                    RoundedCornerShape(10.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                value.getOrNull(index)?.toString().orEmpty(),
+                                color = PickBlack,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+                Box(Modifier.size(1.dp)) {
+                    inner()
+                }
+            }
+        }
+    )
 }
 
 @Composable

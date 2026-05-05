@@ -30,6 +30,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +46,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DocumentType
@@ -59,10 +63,10 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import org.jetbrains.compose.resources.painterResource
 
-private val EditBg = Color(0xFFF9F9FF)
-private val EditBlue = Color(0xFF2F80ED)
-private val EditBody = Color(0xFF414755)
-private val EditInputBg = Color(0x33A6D2F3)
+internal val EditBg = Color(0xFFF9F9FF)
+internal val EditBlue = Color(0xFF2F80ED)
+internal val EditBody = Color(0xFF414755)
+internal val EditInputBg = Color(0x33A6D2F3)
 
 @Composable
 fun EditProfileScreen(navigator: AppNavigator) {
@@ -82,13 +86,22 @@ fun EditProfileScreen(navigator: AppNavigator) {
 
     var name by remember { mutableStateOf(driver?.name.orEmpty()) }
     var email by remember { mutableStateOf(driver?.email.orEmpty()) }
-    val phone = driver?.phone.orEmpty().ifBlank { "--" }
-    val address = "Address unavailable"
+    var phone by remember { mutableStateOf(driver?.phone.orEmpty()) }
+    val address = remember(driver) {
+        listOfNotNull(
+            driver?.addressLine1?.takeIf { it.isNotBlank() },
+            driver?.addressLine2?.takeIf { it.isNotBlank() },
+            driver?.city?.takeIf { it.isNotBlank() },
+            driver?.postcode?.takeIf { it.isNotBlank() },
+            driver?.state?.name?.replace('_', ' ')?.takeIf { it.isNotBlank() }
+        ).joinToString(", ").ifBlank { "Address unavailable" }
+    }
 
     LaunchedEffect(driver) {
         driver?.let {
             if (it.name.isNotBlank()) name = it.name
             if (it.email.isNotBlank()) email = it.email
+            phone = it.phone
         }
     }
 
@@ -170,8 +183,15 @@ fun EditProfileScreen(navigator: AppNavigator) {
                 }
 
                 AccountStatusCard(isVerified = driver?.isVerified == true)
-                ProfileFormCard(name = name, email = email, phone = phone, address = address)
-                PasswordCard()
+                ProfileFormCard(
+                    name = name,
+                    onNameChange = { name = it },
+                    email = email,
+                    phone = phone,
+                    onPhoneChange = { phone = it },
+                    address = address
+                )
+                PasswordCard(onChangePassword = { navigator.navigateTo(Screen.ChangePassword) })
 
                 if (updateState is UiState.Error) {
                     Text((updateState as UiState.Error).message, color = Color(0xFFB3261E), fontSize = 12.sp)
@@ -188,7 +208,7 @@ fun EditProfileScreen(navigator: AppNavigator) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Button(
-                onClick = { viewModel.updateProfile(name, email, "") },
+                onClick = { viewModel.updateProfile(name, email, phone, "") },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = EditBlue)
@@ -266,7 +286,14 @@ private fun AccountStatusCard(isVerified: Boolean) {
 }
 
 @Composable
-private fun ProfileFormCard(name: String, email: String, phone: String, address: String) {
+private fun ProfileFormCard(
+    name: String,
+    onNameChange: (String) -> Unit,
+    email: String,
+    phone: String,
+    onPhoneChange: (String) -> Unit,
+    address: String
+) {
     val strings = LocalStrings.current
     Column(
         modifier = Modifier
@@ -275,10 +302,56 @@ private fun ProfileFormCard(name: String, email: String, phone: String, address:
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        InfoField(strings.fullName, name, Icons.Filled.PersonOutline, singleLine = true)
+        EditableInfoField(
+            label = strings.fullName,
+            value = name,
+            onValueChange = onNameChange,
+            icon = Icons.Filled.PersonOutline,
+            keyboardType = KeyboardType.Text
+        )
         InfoField(strings.emailAddress, email, Icons.Filled.Email, singleLine = true)
-        InfoField(strings.phoneNumber, phone, Icons.Filled.Phone, singleLine = true)
+        EditableInfoField(
+            label = strings.phoneNumber,
+            value = phone,
+            onValueChange = onPhoneChange,
+            icon = Icons.Filled.Phone,
+            keyboardType = KeyboardType.Phone
+        )
         InfoField(strings.residentialAddress, address, Icons.Filled.LocationOn, singleLine = false)
+    }
+}
+
+@Composable
+private fun EditableInfoField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    keyboardType: KeyboardType
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, color = EditBody, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(EditInputBg, RoundedCornerShape(12.dp))
+                .border(1.dp, Color(0x33C1C6D7), RoundedCornerShape(12.dp)),
+            leadingIcon = {
+                Icon(icon, contentDescription = null, tint = Color(0xFF8A96A9), modifier = Modifier.size(16.dp))
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                cursorColor = EditBlue
+            )
+        )
     }
 }
 
@@ -307,7 +380,7 @@ private fun InfoField(
 }
 
 @Composable
-private fun PasswordCard() {
+private fun PasswordCard(onChangePassword: () -> Unit) {
     val strings = LocalStrings.current
     Row(
         modifier = Modifier
@@ -333,6 +406,6 @@ private fun PasswordCard() {
                 Text("Last changed 4 months ago", color = EditBody, fontSize = 12.sp)
             }
         }
-        Text(strings.changePassword, color = Color(0xFF0058BC), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { })
+        Text(strings.changePassword, color = Color(0xFF0058BC), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onChangePassword() })
     }
 }

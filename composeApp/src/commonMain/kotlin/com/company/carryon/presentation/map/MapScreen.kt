@@ -35,8 +35,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -61,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.ic_nav_arrow
+import com.company.carryon.data.model.DeliveryLifecycleCommand
 import com.company.carryon.data.model.JobStatus
 import com.company.carryon.data.model.LatLng
 import com.company.carryon.presentation.components.ErrorState
@@ -77,12 +80,13 @@ private val NavWhite = Color(0xFFFFFFFF)
 private val NavBlack = Color(0xFF000000)
 private val DefaultCenter = LatLng(12.9716, 77.5946)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(navigator: AppNavigator) {
+fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
     val jobId = navigator.selectedJobId
     val viewModel = remember { MapViewModel() }
-    val deliveryViewModel = remember { DeliveryViewModel() }
     val cancelState by deliveryViewModel.cancelState.collectAsState()
+    val isCancelling = cancelState is UiState.Loading
     var showCancelMenu by remember { mutableStateOf(false) }
     var showCancelDialog by remember { mutableStateOf(false) }
     val driverLocation by viewModel.driverLocation.collectAsState()
@@ -95,6 +99,7 @@ fun MapScreen(navigator: AppNavigator) {
     val markers by viewModel.markers.collectAsState()
     val routeGeometry by viewModel.routeGeometry.collectAsState()
     val routeError by viewModel.routeError.collectAsState()
+    val statusUpdateState by deliveryViewModel.statusUpdateState.collectAsState()
     val animatedHeading by animateFloatAsState(
         targetValue = driverHeading,
         animationSpec = tween(durationMillis = 300)
@@ -106,8 +111,8 @@ fun MapScreen(navigator: AppNavigator) {
         return
     }
 
-    LaunchedEffect(cancelState) {
-        if (cancelState is UiState.Success) {
+    LaunchedEffect(deliveryViewModel) {
+        deliveryViewModel.cancelCompletedEvents.collect {
             navigator.clearPersistedDeliveryState()
             navigator.navigateAndClearStack(Screen.Home)
         }
@@ -115,6 +120,7 @@ fun MapScreen(navigator: AppNavigator) {
 
     LaunchedEffect(jobId) {
         viewModel.loadJob(jobId)
+        deliveryViewModel.loadJob(jobId)
     }
 
     if (currentJob == null && loadError == null) {
@@ -129,6 +135,19 @@ fun MapScreen(navigator: AppNavigator) {
         return
     }
 
+    LaunchedEffect(currentJob?.status) {
+        currentJob?.let { job ->
+            deliveryViewModel.redirectIfCurrentScreenInvalid(Screen.MapNavigation, job)
+        }
+    }
+
+    val canCancelJob = currentJob?.let { job -> deliveryViewModel.canCancelBeforePickup(job) } == true
+    LaunchedEffect(canCancelJob) {
+        if (!canCancelJob) {
+            showCancelMenu = false
+            showCancelDialog = false
+        }
+    }
     val destination = currentJob?.let { job ->
         if (job.status.ordinal <= JobStatus.ARRIVED_AT_PICKUP.ordinal) job.pickup else job.dropoff
     }
@@ -139,6 +158,7 @@ fun MapScreen(navigator: AppNavigator) {
         ?: "--"
     val earningsLabel = currentJob?.estimatedEarnings?.let { "RM${it.toInt()}" } ?: "--"
     val distanceLabel = currentJob?.distance?.takeIf { it > 0 }?.let { "${formatOneDecimal(it)} km" } ?: "--"
+    var activeSheet by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -190,29 +210,31 @@ fun MapScreen(navigator: AppNavigator) {
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = NavBlue)
-                Box {
-                    Icon(
-                        Icons.Filled.MoreVert,
-                        contentDescription = "More options",
-                        tint = NavBlue,
-                        modifier = Modifier.clickable { showCancelMenu = true }
-                    )
-                    DropdownMenu(
-                        expanded = showCancelMenu,
-                        onDismissRequest = { showCancelMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Cancel Job", color = MaterialTheme.colorScheme.error) },
-                            onClick = {
-                                showCancelMenu = false
-                                showCancelDialog = true
-                            }
+                if (canCancelJob) {
+                    Box {
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = "More options",
+                            tint = NavBlue,
+                            modifier = Modifier.clickable { showCancelMenu = true }
                         )
+                        DropdownMenu(
+                            expanded = showCancelMenu,
+                            onDismissRequest = { showCancelMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Cancel Job", color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showCancelMenu = false
+                                    showCancelDialog = true
+                                }
+                            )
+                        }
                     }
                 }
             }
 
-            if (showCancelDialog) {
+            if (showCancelDialog && canCancelJob) {
                 AlertDialog(
                     onDismissRequest = { showCancelDialog = false },
                     title = { Text("Cancel Job?") },
@@ -272,7 +294,8 @@ fun MapScreen(navigator: AppNavigator) {
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = NavWhite)
                             ) {
                                 Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
@@ -294,7 +317,8 @@ fun MapScreen(navigator: AppNavigator) {
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = NavWhite)
                             ) {
                                 Icon(Icons.Filled.Phone, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
@@ -366,20 +390,52 @@ fun MapScreen(navigator: AppNavigator) {
 
                 Button(
                     onClick = {
-                        currentJob?.id?.let {
-                            navigator.selectedJobId = it
-                            navigator.navigateTo(Screen.ActiveDelivery)
+                        currentJob?.id?.let { id ->
+                            navigator.selectedJobId = id
+                            deliveryViewModel.updateStatus(id, JobStatus.ARRIVED_AT_PICKUP)
                         }
                     },
-                    enabled = currentJob != null,
+                    enabled = currentJob?.let { deliveryViewModel.canRun(DeliveryLifecycleCommand.ARRIVE_PICKUP, it) } == true &&
+                        statusUpdateState !is UiState.Loading,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = NavBlue),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("I’ve Arrived!  ", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Icon(Icons.Filled.Navigation, contentDescription = null, tint = NavWhite, modifier = Modifier.size(16.dp))
+                    if (statusUpdateState is UiState.Loading) {
+                        CircularProgressIndicator(color = NavWhite, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                    } else {
+                        Text("I’ve Arrived!  ", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Icon(Icons.Filled.Navigation, contentDescription = null, tint = NavWhite, modifier = Modifier.size(16.dp))
+                    }
+                }
+
+                if (canCancelJob) {
+                    OutlinedButton(
+                        onClick = { showCancelDialog = true },
+                        enabled = !isCancelling,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        if (isCancelling) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.error,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        } else {
+                            Text("Cancel pickup", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                    }
+                }
+
+                val arrivalError = (statusUpdateState as? UiState.Error)?.message
+                if (!arrivalError.isNullOrBlank()) {
+                    Text(arrivalError, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -424,13 +480,46 @@ fun MapScreen(navigator: AppNavigator) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BottomTab("ROUTE", true)
-            BottomTab("EARNINGS", false)
-            Box(modifier = Modifier.size(52.dp).background(NavBlue, CircleShape), contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Navigation, contentDescription = null, tint = NavWhite)
+            BottomTab("ROUTE", true) { activeSheet = "ROUTE" }
+            BottomTab("EARNINGS", false) { activeSheet = "EARNINGS" }
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(NavBlue, CircleShape)
+                    .clickable {
+                        destination?.let {
+                            uriHandler.openUri(
+                                "https://www.google.com/maps/dir/?api=1&destination=${it.latitude},${it.longitude}&travelmode=driving"
+                            )
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Navigation, contentDescription = "Navigate", tint = NavWhite)
             }
-            BottomTab("INBOX", false)
-            BottomTab("ACCOUNT", false)
+            BottomTab("INBOX", false) {
+                currentJob?.let { job ->
+                    navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
+                }
+            }
+            BottomTab("ACCOUNT", false) { navigator.switchTab(Screen.Profile) }
+        }
+    }
+
+    if (activeSheet == "ROUTE") {
+        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
+            NavRouteSheet(
+                pickupAddress = currentJob?.pickup?.shortAddress?.ifBlank { currentJob?.pickup?.address } ?: "--",
+                dropoffAddress = currentJob?.dropoff?.shortAddress?.ifBlank { currentJob?.dropoff?.address } ?: "--"
+            )
+        }
+    }
+    if (activeSheet == "EARNINGS") {
+        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
+            NavEarningsSheet(
+                earnings = currentJob?.estimatedEarnings ?: 0.0,
+                orderId = currentJob?.id ?: ""
+            )
         }
     }
 }
@@ -456,11 +545,51 @@ private fun ChipText(text: String) {
 }
 
 @Composable
-private fun BottomTab(label: String, selected: Boolean) {
+private fun BottomTab(label: String, selected: Boolean, onClick: () -> Unit = {}) {
     Text(
         text = label,
         color = if (selected) NavBlue else NavBlack.copy(alpha = 0.55f),
         fontSize = 10.sp,
-        fontWeight = FontWeight.SemiBold
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.clickable { onClick() }
     )
+}
+
+@Composable
+private fun NavRouteSheet(pickupAddress: String, dropoffAddress: String) {
+    Column(
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text("Delivery Route", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = NavBlack)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(modifier = Modifier.size(10.dp).background(NavBlue, CircleShape))
+            Column {
+                Text("PICKUP", fontSize = 10.sp, color = NavBlack.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
+                Text(pickupAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NavBlack)
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(modifier = Modifier.size(10.dp).background(Color(0xFFE53935), CircleShape))
+            Column {
+                Text("DROP-OFF", fontSize = 10.sp, color = NavBlack.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
+                Text(dropoffAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NavBlack)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun NavEarningsSheet(earnings: Double, orderId: String) {
+    Column(
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Job Earnings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = NavBlack)
+        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = NavBlue)
+        Text("Order #${orderId.takeLast(8).uppercase()}", color = NavBlack.copy(alpha = 0.5f), fontSize = 13.sp)
+        Text("Final amount confirmed after delivery completion.", fontSize = 12.sp, color = NavBlack.copy(alpha = 0.4f))
+        Spacer(Modifier.height(16.dp))
+    }
 }

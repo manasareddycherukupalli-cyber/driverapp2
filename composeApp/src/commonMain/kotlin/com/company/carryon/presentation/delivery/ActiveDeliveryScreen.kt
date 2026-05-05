@@ -23,13 +23,19 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -37,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -68,8 +75,7 @@ private val ArriveWhite = Color(0xFFFFFFFF)
 private val ArriveBlack = Color(0xFF000000)
 
 @Composable
-fun ActiveDeliveryScreen(navigator: AppNavigator) {
-    val viewModel = remember { DeliveryViewModel() }
+fun ActiveDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
     val jobState by viewModel.currentJob.collectAsState()
     val cancelState by viewModel.cancelState.collectAsState()
     val jobId = navigator.selectedJobId
@@ -79,15 +85,21 @@ fun ActiveDeliveryScreen(navigator: AppNavigator) {
         jobId?.let { viewModel.loadJob(it) }
     }
 
-    LaunchedEffect(cancelState) {
-        when (val state = cancelState) {
-            is UiState.Success -> {
-                navigator.clearPersistedDeliveryState()
-                navigator.goBack()
-            }
-            is UiState.Error -> snackbarHostState.showSnackbar(state.message)
-            else -> Unit
+    LaunchedEffect(viewModel) {
+        viewModel.cancelCompletedEvents.collect {
+            navigator.clearPersistedDeliveryState()
+            navigator.navigateAndClearStack(Screen.Home)
         }
+    }
+
+    LaunchedEffect(cancelState) {
+        val state = cancelState as? UiState.Error ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(state.message)
+    }
+
+    LaunchedEffect(jobState) {
+        val job = (jobState as? UiState.Success)?.data ?: return@LaunchedEffect
+        viewModel.redirectIfCurrentScreenInvalid(Screen.ActiveDelivery, job)
     }
 
     Scaffold(
@@ -126,6 +138,7 @@ fun ActiveDeliveryScreen(navigator: AppNavigator) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ActiveDeliveryContent(
     job: DeliveryJob,
@@ -135,11 +148,24 @@ private fun ActiveDeliveryContent(
     mapMarkers: List<MapMarker>
 ) {
     var showCancelDialog by remember { mutableStateOf(false) }
+    var showCancelMenu by remember { mutableStateOf(false) }
+    val cancelState by viewModel.cancelState.collectAsState()
+    val canCancelJob = viewModel.canCancelBeforePickup(job)
+    val isCancelling = cancelState is UiState.Loading
+    var activeSheet by remember { mutableStateOf<String?>(null) }
+    val uriHandler = LocalUriHandler.current
 
-    if (showCancelDialog) {
+    LaunchedEffect(canCancelJob) {
+        if (!canCancelJob) {
+            showCancelMenu = false
+            showCancelDialog = false
+        }
+    }
+
+    if (showCancelDialog && canCancelJob) {
         AlertDialog(
             onDismissRequest = { showCancelDialog = false },
-            title = { Text("Cancel Delivery?") },
+            title = { Text("Cancel Job?") },
             text = { Text("The job will be re-assigned to another driver.") },
             confirmButton = {
                 TextButton(
@@ -147,7 +173,7 @@ private fun ActiveDeliveryContent(
                         showCancelDialog = false
                         viewModel.cancelJob(job.id)
                     }
-                ) { Text("Cancel Delivery", color = MaterialTheme.colorScheme.error) }
+                ) { Text("Cancel Job", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
                 TextButton(onClick = { showCancelDialog = false }) { Text("Keep Job") }
@@ -180,7 +206,28 @@ private fun ActiveDeliveryContent(
                 Spacer(Modifier.width(10.dp))
                 Text("Arrived at Pickup", color = ArriveBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
-            Icon(Icons.Filled.MoreVert, contentDescription = null, tint = ArriveBlack.copy(alpha = 0.6f))
+            if (canCancelJob) {
+                Box {
+                    Icon(
+                        Icons.Filled.MoreVert,
+                        contentDescription = "More options",
+                        tint = ArriveBlack.copy(alpha = 0.6f),
+                        modifier = Modifier.clickable { showCancelMenu = true }
+                    )
+                    DropdownMenu(
+                        expanded = showCancelMenu,
+                        onDismissRequest = { showCancelMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Cancel Job", color = MaterialTheme.colorScheme.error) },
+                            onClick = {
+                                showCancelMenu = false
+                                showCancelDialog = true
+                            }
+                        )
+                    }
+                }
+            }
         }
 
         Column(
@@ -272,6 +319,7 @@ private fun ActiveDeliveryContent(
 
             Button(
                 onClick = { navigator.navigateTo(Screen.PickupInstructions) },
+                enabled = !isCancelling,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -283,21 +331,77 @@ private fun ActiveDeliveryContent(
                 Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = ArriveWhite, modifier = Modifier.size(16.dp))
             }
 
+            if (canCancelJob) {
+                OutlinedButton(
+                    onClick = { showCancelDialog = true },
+                    enabled = !isCancelling,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    if (isCancelling) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.error,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    } else {
+                        Text("Cancel pickup", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    }
+                }
+            }
+
             Spacer(Modifier.height(8.dp))
         }
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ArriveWhite)
-                .padding(horizontal = 18.dp, vertical = 10.dp),
+                .background(ArriveWhite, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BottomMiniTab("Route", false)
-            BottomMiniTab("Tasks", true)
-            BottomMiniTab("Earnings", false)
-            BottomMiniTab("Profile", false)
+            DeliveryBottomTab("ROUTE", true) { activeSheet = "ROUTE" }
+            DeliveryBottomTab("EARNINGS", false) { activeSheet = "EARNINGS" }
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(ArriveBlue, CircleShape)
+                    .clickable {
+                        uriHandler.openUri(
+                            "https://www.google.com/maps/dir/?api=1&destination=${job.dropoff.latitude},${job.dropoff.longitude}&travelmode=driving"
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Navigation, contentDescription = "Navigate", tint = ArriveWhite)
+            }
+            DeliveryBottomTab("INBOX", false) {
+                navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
+            }
+            DeliveryBottomTab("ACCOUNT", false) { navigator.switchTab(Screen.Profile) }
+        }
+    }
+
+    if (activeSheet == "ROUTE") {
+        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
+            DeliveryRouteSheet(
+                pickupAddress = job.pickup.shortAddress.ifBlank { job.pickup.address },
+                dropoffAddress = job.dropoff.shortAddress.ifBlank { job.dropoff.address },
+                blue = ArriveBlue, black = ArriveBlack
+            )
+        }
+    }
+    if (activeSheet == "EARNINGS") {
+        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
+            DeliveryEarningsSheet(
+                earnings = job.estimatedEarnings,
+                orderId = job.id,
+                blue = ArriveBlue, black = ArriveBlack
+            )
         }
     }
 }
@@ -313,16 +417,60 @@ private fun StepLabel(text: String, active: Boolean) {
 }
 
 @Composable
-private fun BottomMiniTab(label: String, selected: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .background(if (selected) ArriveSoft else ArriveWhite, RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Filled.Person, contentDescription = null, tint = if (selected) ArriveBlue else ArriveBlack.copy(alpha = 0.55f), modifier = Modifier.size(16.dp))
+private fun DeliveryBottomTab(label: String, selected: Boolean, onClick: () -> Unit = {}) {
+    Text(
+        text = label,
+        color = if (selected) ArriveBlue else ArriveBlack.copy(alpha = 0.55f),
+        fontSize = 10.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.clickable { onClick() }
+    )
+}
+
+@Composable
+private fun DeliveryRouteSheet(pickupAddress: String, dropoffAddress: String, blue: Color, black: Color) {
+    Column(
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text("Delivery Route", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(modifier = Modifier.size(10.dp).background(blue, CircleShape))
+            Column {
+                Text("PICKUP", fontSize = 10.sp, color = black.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
+                Text(pickupAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = black)
+            }
         }
-        Text(label, color = if (selected) ArriveBlue else ArriveBlack.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(modifier = Modifier.size(10.dp).background(Color(0xFFE53935), CircleShape))
+            Column {
+                Text("DROP-OFF", fontSize = 10.sp, color = black.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
+                Text(dropoffAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = black)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun DeliveryEarningsSheet(earnings: Double, orderId: String, blue: Color, black: Color) {
+    Column(
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Job Earnings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
+        Text(
+            "RM ${earnings.toInt()}",
+            fontSize = 36.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = blue
+        )
+        Text("Order #${orderId.takeLast(8).uppercase()}", color = black.copy(alpha = 0.5f), fontSize = 13.sp)
+        Text(
+            "Final amount confirmed after delivery completion.",
+            fontSize = 12.sp,
+            color = black.copy(alpha = 0.4f)
+        )
+        Spacer(Modifier.height(16.dp))
     }
 }

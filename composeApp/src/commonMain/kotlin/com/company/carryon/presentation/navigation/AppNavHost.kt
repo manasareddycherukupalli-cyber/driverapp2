@@ -46,7 +46,22 @@ fun AppNavHost(
     val showBottomBar = currentScreen in mainTabScreens
     val authViewModel = remember { AuthViewModel() }
     val onboardingViewModel = remember(authViewModel) { DriverOnboardingViewModel(authViewModel) }
+    val deliveryViewModel = remember { DeliveryViewModel() }
     val bottomNavItems = rememberDriveBottomNavItems()
+
+    LaunchedEffect(deliveryViewModel) {
+        deliveryViewModel.navigationEvents.collect { event ->
+            when (event) {
+                is DeliveryNavigationEvent.Navigate -> {
+                    if (event.clearStack) {
+                        navigator.navigateAndClearStack(event.screen)
+                    } else {
+                        navigator.navigateTo(event.screen)
+                    }
+                }
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -92,19 +107,20 @@ fun AppNavHost(
 
                     // ---- Sub Screens ----
                     Screen.JobDetails -> JobDetailsScreen(navigator)
-                    Screen.ActiveDelivery -> ActiveDeliveryScreen(navigator)
-                    Screen.PickupInstructions -> PickupInstructionsScreen(navigator)
-                    Screen.StartDelivery -> StartDeliveryScreen(navigator)
-                    Screen.InTransitNavigation -> InTransitScreen(navigator)
-                    Screen.ArrivedAtDrop -> ArrivedAtDropScreen(navigator)
-                    Screen.ProofOfDelivery -> ProofOfDeliveryScreen(navigator)
-                    Screen.DeliveryComplete -> DeliveryCompleteScreen(navigator)
-                    Screen.JobReceipt -> JobReceiptScreen(navigator)
-                    Screen.MapNavigation -> MapScreen(navigator)
+                    Screen.ActiveDelivery -> ActiveDeliveryScreen(navigator, deliveryViewModel)
+                    Screen.PickupInstructions -> PickupInstructionsScreen(navigator, deliveryViewModel)
+                    Screen.StartDelivery -> StartDeliveryScreen(navigator, deliveryViewModel)
+                    Screen.InTransitNavigation -> InTransitScreen(navigator, deliveryViewModel)
+                    Screen.ArrivedAtDrop -> ArrivedAtDropScreen(navigator, deliveryViewModel)
+                    Screen.ProofOfDelivery -> ProofOfDeliveryScreen(navigator, deliveryViewModel)
+                    Screen.DeliveryComplete -> DeliveryCompleteScreen(navigator, deliveryViewModel)
+                    Screen.JobReceipt -> JobReceiptScreen(navigator, deliveryViewModel)
+                    Screen.MapNavigation -> MapScreen(navigator, deliveryViewModel)
                     Screen.Wallet -> WalletScreen(navigator)
                     Screen.TransactionHistory -> WalletScreen(navigator)
                     Screen.Ratings -> RatingsScreen(navigator)
                     Screen.EditProfile -> EditProfileScreen(navigator)
+                    Screen.ChangePassword -> ChangePasswordScreen(navigator)
                     Screen.Settings -> SettingsScreen(navigator, onLanguageChanged)
                     Screen.NotificationPreferences -> NotificationPreferencesScreen(navigator)
                     Screen.Language -> LanguageScreen(navigator, currentLanguage, onLanguageChanged)

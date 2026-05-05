@@ -46,6 +46,7 @@ import com.company.carryon.presentation.components.MapMarker
 import com.company.carryon.presentation.components.MapViewComposable
 import com.company.carryon.presentation.components.MarkerColor
 import com.company.carryon.presentation.navigation.AppNavigator
+import com.company.carryon.presentation.navigation.Screen
 
 private val ReceiptBlue = Color(0xFF5A86E8)
 private val ReceiptBg = Color(0xFFF7F8FC)
@@ -55,8 +56,7 @@ private val ReceiptDivider = Color(0xFFE0E8F5)
 private val ReceiptText = Color(0xFF242A36)
 
 @Composable
-fun JobReceiptScreen(navigator: AppNavigator) {
-    val viewModel = remember { DeliveryViewModel() }
+fun JobReceiptScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
     val jobState by viewModel.currentJob.collectAsState()
     val jobId = navigator.selectedJobId
 
@@ -79,6 +79,10 @@ fun JobReceiptScreen(navigator: AppNavigator) {
             ErrorState(state.message) { viewModel.loadJob(jobId) }
             return
         }
+    }
+
+    LaunchedEffect(job.status) {
+        viewModel.redirectIfCurrentScreenInvalid(Screen.JobReceipt, job)
     }
 
     val pickupLat = job.pickup.latitude
