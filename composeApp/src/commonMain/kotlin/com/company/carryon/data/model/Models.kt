@@ -19,7 +19,7 @@ data class Driver(
     val driversLicenseNumber: String = "",
     val dateOfBirth: String = "",
     val gender: String = "",
-    val preferredLanguage: String = "",
+    @SerialName("language") val preferredLanguage: String = "",
     val nationality: DriverNationality? = null,
     val mykadNumber: String = "",
     val passportNumber: String = "",
@@ -82,14 +82,16 @@ data class OtpVerifyRequest(
 
 @Serializable
 data class SyncRequest(
-    val name: String = ""
+    val name: String = "",
+    val language: String = ""
 )
 
 @Serializable
 data class RegisterRequest(
     val name: String,
     val phone: String = "",
-    val emergencyContact: String = ""
+    val emergencyContact: String = "",
+    val language: String = ""
 )
 
 // ============================================================
@@ -425,6 +427,40 @@ data class DeliveryLifecycleResult(
     val message: String = ""
 )
 
+@Serializable
+enum class ExtraChargeType(val displayName: String) {
+    TOLL("Toll"),
+    PARKING("Parking")
+}
+
+@Serializable
+enum class ExtraChargeStatus {
+    PENDING,
+    APPROVED,
+    REJECTED
+}
+
+@Serializable
+data class BookingExtraCharge(
+    val id: String = "",
+    val bookingId: String = "",
+    val driverId: String = "",
+    val type: ExtraChargeType = ExtraChargeType.TOLL,
+    val amount: Double = 0.0,
+    val proofUrl: String = "",
+    val note: String? = null,
+    val status: ExtraChargeStatus = ExtraChargeStatus.PENDING,
+    val createdAt: String? = null,
+    val reviewedAt: String? = null
+)
+
+@Serializable
+data class SosResult(
+    val ticket: SupportTicket? = null,
+    val emergencyNumber: String = "999",
+    val action: String = ""
+)
+
 // ============================================================
 // EARNINGS & WALLET MODELS
 // ============================================================
@@ -490,6 +526,11 @@ data class PayoutStatus(
 data class PayoutOnboardingLink(
     val url: String = "",
     val expiresAt: Long = 0
+)
+
+@Serializable
+data class InvoiceLink(
+    val url: String = ""
 )
 
 // ============================================================

@@ -1,6 +1,7 @@
 package com.company.carryon.presentation.earnings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +26,7 @@ import com.company.carryon.data.model.*
 import com.company.carryon.presentation.components.*
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
+import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
 
 private val WalletBlue = Color(0xFF2F80ED)
@@ -106,7 +108,12 @@ fun WalletScreen(navigator: AppNavigator) {
                     if (state.data.isEmpty()) {
                         item { EmptyState(strings.noTransactionsYet, emoji = "💳") }
                     } else {
-                        items(state.data) { TransactionItem(it) }
+                        items(state.data) { transaction ->
+                            TransactionItem(transaction) {
+                                navigator.selectedTransactionId = transaction.id
+                                navigator.navigateTo(Screen.TransactionDetail)
+                            }
+                        }
                     }
                 }
                 is UiState.Loading -> item { LoadingScreen() }
@@ -229,9 +236,11 @@ private fun WalletStatsRow(wallet: WalletInfo) {
 }
 
 @Composable
-private fun TransactionItem(transaction: Transaction) {
+private fun TransactionItem(transaction: Transaction, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = TransactionCardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)

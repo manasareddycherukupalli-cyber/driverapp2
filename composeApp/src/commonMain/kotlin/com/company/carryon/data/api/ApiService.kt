@@ -44,6 +44,13 @@ interface JobApi {
         payload: DeliveryLifecycleCommandPayload = DeliveryLifecycleCommandPayload()
     ): Result<DeliveryLifecycleResult>
     suspend fun cancelJob(jobId: String): Result<Boolean>
+    suspend fun submitExtraCharge(
+        jobId: String,
+        type: ExtraChargeType,
+        amount: Double,
+        proofPath: String,
+        note: String = ""
+    ): Result<BookingExtraCharge>
     suspend fun getDemandZones(latitude: Double, longitude: Double, radiusKm: Double = 10.0): Result<DemandZonesResponse>
 }
 
@@ -58,6 +65,7 @@ interface EarningsApi {
     suspend fun requestWithdrawal(driverId: String, amount: Double): Result<Transaction>
     suspend fun getPayoutStatus(): Result<PayoutStatus>
     suspend fun createPayoutOnboardingLink(): Result<PayoutOnboardingLink>
+    suspend fun getInvoiceUrl(transactionId: String): Result<InvoiceLink>
 }
 
 /**
@@ -78,7 +86,7 @@ interface SupportApi {
     suspend fun createTicket(ticket: SupportTicket): Result<SupportTicket>
     suspend fun getTicketMessages(ticketId: String): Result<List<ChatMessage>>
     suspend fun sendMessage(ticketId: String, message: ChatMessage): Result<ChatMessage>
-    suspend fun triggerSos(driverId: String, latitude: Double, longitude: Double): Result<Boolean>
+    suspend fun triggerSos(driverId: String, latitude: Double, longitude: Double): Result<SosResult>
 }
 
 /**

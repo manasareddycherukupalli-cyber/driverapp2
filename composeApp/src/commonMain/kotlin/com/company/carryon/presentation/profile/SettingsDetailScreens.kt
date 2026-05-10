@@ -24,9 +24,11 @@ import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.Document
 import com.company.carryon.data.model.DocumentStatus
 import com.company.carryon.data.model.DocumentType
-import com.company.carryon.data.network.saveLanguage
+import com.company.carryon.data.api.DriverOnboardingApi
+import com.company.carryon.data.model.DriverProfileUpdateRequest
 import com.company.carryon.i18n.LocalStrings
-import com.company.carryon.i18n.getLanguageDisplayName
+import com.company.carryon.i18n.SupportedLanguages
+import com.company.carryon.i18n.storeLanguagePreference
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.DriveAppBottomBar
 import com.company.carryon.presentation.navigation.Screen
@@ -42,6 +44,7 @@ import drive_app.composeapp.generated.resources.vehicle_spec_fuel_type
 import drive_app.composeapp.generated.resources.vehicle_spec_max_payload
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+import kotlinx.coroutines.launch
 
 @Composable
 private fun SettingsTopBar(title: String, onBack: () -> Unit) {
@@ -221,13 +224,8 @@ fun LanguageScreen(
     onLanguageChanged: (String) -> Unit = {}
 ) {
     val strings = LocalStrings.current
-    // Map of language code → display info (native name, subtitle)
-    val languages = listOf(
-        Triple("en",  "English",       "English (Malaysia)"),
-        Triple("ms",  "Bahasa Melayu", "Malay"),
-        Triple("zh",  "中文",           "Mandarin Chinese"),
-        Triple("ta",  "தமிழ்",          "Tamil"),
-    )
+    val scope = rememberCoroutineScope()
+    val api = remember { DriverOnboardingApi() }
     var selected by remember { mutableStateOf(currentLanguage) }
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF9F9FF))) {
@@ -247,16 +245,19 @@ fun LanguageScreen(
                 lineHeight = 24.sp
             )
             Spacer(Modifier.height(16.dp))
-            languages.forEach { (code, nativeName, subtitle) ->
-                val isSelected = selected == code
+            SupportedLanguages.all.forEach { language ->
+                val isSelected = selected == language.code
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 10.dp)
                         .clickable {
+                            val code = storeLanguagePreference(language.code)
                             selected = code
-                            saveLanguage(code)
                             onLanguageChanged(code)
+                            scope.launch {
+                                api.updateProfile(DriverProfileUpdateRequest(preferredLanguage = code))
+                            }
                             navigator.goBack()
                         },
                     shape = RoundedCornerShape(12.dp),
@@ -279,8 +280,8 @@ fun LanguageScreen(
                             }
                             Spacer(Modifier.width(12.dp))
                             Column {
-                                Text(nativeName, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF414755))
-                                Text(subtitle, color = Color(0xFF64748B), fontSize = 14.sp)
+                                Text(language.nativeName, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF414755))
+                                Text(language.description, color = Color(0xFF64748B), fontSize = 14.sp)
                             }
                         }
                         Icon(

@@ -44,6 +44,9 @@ class EarningsViewModel : ViewModel() {
     private val _onboardingLink = MutableStateFlow<UiState<PayoutOnboardingLink>>(UiState.Idle)
     val onboardingLink: StateFlow<UiState<PayoutOnboardingLink>> = _onboardingLink.asStateFlow()
 
+    private val _invoiceLink = MutableStateFlow<UiState<InvoiceLink>>(UiState.Idle)
+    val invoiceLink: StateFlow<UiState<InvoiceLink>> = _invoiceLink.asStateFlow()
+
     // Selected time period
     private val _selectedPeriod = MutableStateFlow(EarningsPeriod.THIS_WEEK)
     val selectedPeriod: StateFlow<EarningsPeriod> = _selectedPeriod.asStateFlow()
@@ -157,6 +160,19 @@ class EarningsViewModel : ViewModel() {
 
     fun setSelectedPeriod(period: EarningsPeriod) {
         _selectedPeriod.value = period
+    }
+
+    fun fetchInvoiceUrl(transactionId: String) {
+        viewModelScope.launch {
+            _invoiceLink.value = UiState.Loading
+            repository.getInvoiceUrl(transactionId)
+                .onSuccess { _invoiceLink.value = UiState.Success(it) }
+                .onFailure { _invoiceLink.value = UiState.Error(it.message ?: "Failed to get invoice") }
+        }
+    }
+
+    fun resetInvoiceLink() {
+        _invoiceLink.value = UiState.Idle
     }
 }
 

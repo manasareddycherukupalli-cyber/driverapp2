@@ -20,7 +20,7 @@ object BookingChatApi {
     private val client get() = HttpClientFactory.client
 
     suspend fun getMessages(bookingId: String): Result<ApiResponse<List<BookingChatMessage>>> = runCatching {
-        client.get("/api/chat/$bookingId") {
+        client.get("/api/driver/chat/$bookingId") {
             withAuth()
         }.body()
     }
@@ -30,7 +30,7 @@ object BookingChatApi {
         message: String,
         imageUrl: String? = null
     ): Result<ApiResponse<BookingChatMessage>> = runCatching {
-        client.post("/api/chat/$bookingId") {
+        client.post("/api/driver/chat/$bookingId") {
             withAuth()
             contentType(ContentType.Application.Json)
             setBody(SendBookingChatMessageRequest(message, imageUrl))
@@ -38,7 +38,7 @@ object BookingChatApi {
     }
 
     suspend fun getQuickMessages(bookingId: String): Result<ApiResponse<List<String>>> = runCatching {
-        client.get("/api/chat/$bookingId/quick-messages") {
+        client.get("/api/driver/chat/$bookingId/quick-messages") {
             withAuth()
         }.body()
     }

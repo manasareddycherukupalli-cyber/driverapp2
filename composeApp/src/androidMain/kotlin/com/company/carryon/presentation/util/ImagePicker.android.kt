@@ -20,8 +20,8 @@ import java.io.File
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-private const val MaxUploadImageBytes = 6 * 1024 * 1024
-private const val MaxUploadImageDimensionPx = 2048
+private const val MaxUploadImageBytes = 900 * 1024
+private const val MaxUploadImageDimensionPx = 1280
 private const val ImagePickerLogTag = "[image-picker]"
 
 actual class ImagePickerLauncher(
@@ -45,7 +45,7 @@ actual fun rememberImagePickerLauncher(
         contract = ActivityResultContracts.TakePicture()
     ) { saved ->
         val uri = pendingCaptureUri.value
-        println("$ImagePickerLogTag TakePicture result saved=$saved uri=$uri")
+        println("$ImagePickerLogTag TakePicture result saved=$saved")
         if (!saved || uri == null) {
             pendingCaptureUri.value = null
             latestOnImagePickFailed.value("No photo was saved. Please retake and confirm the photo.")
@@ -53,9 +53,10 @@ actual fun rememberImagePickerLauncher(
         }
         try {
             val bytes = context.contentResolver.openInputStream(uri)?.use { stream ->
-                stream.readBytes().compressedForUpload()
+                val originalBytes = stream.readBytes()
+                originalBytes.compressedForUpload()
             }
-            println("$ImagePickerLogTag captured bytes=${bytes?.size ?: 0}")
+            println("$ImagePickerLogTag captured uploadBytes=${bytes?.size ?: 0}")
             if (bytes == null || bytes.isEmpty()) {
                 latestOnImagePickFailed.value("No photo was saved. Please retake and confirm the photo.")
             } else {
@@ -141,11 +142,12 @@ private fun Context.createCameraImageUri(): Uri {
 }
 
 private fun ByteArray.compressedForUpload(): ByteArray {
-    if (size <= MaxUploadImageBytes) return this
-
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(this, 0, size, bounds)
-    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return this
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+        println("$ImagePickerLogTag compression skipped undecodable originalBytes=$size")
+        return this
+    }
 
     val largestBound = max(bounds.outWidth, bounds.outHeight)
     var sampleSize = 1
@@ -161,7 +163,9 @@ private fun ByteArray.compressedForUpload(): ByteArray {
     ) ?: return this
 
     return try {
-        compressBitmapUnderLimit(bitmap)
+        val compressed = compressBitmapUnderLimit(bitmap)
+        println("$ImagePickerLogTag compressed originalBytes=$size uploadBytes=${compressed.size}")
+        compressed
     } finally {
         bitmap.recycle()
     }
@@ -173,9 +177,9 @@ private fun compressBitmapUnderLimit(source: Bitmap): ByteArray {
 
     try {
         var quality = 85
-        repeat(8) {
+        while (quality >= 45) {
             val bytes = working.toJpegBytes(quality)
-            if (bytes.size <= MaxUploadImageBytes || quality <= 45) {
+            if (bytes.size <= MaxUploadImageBytes) {
                 return bytes
             }
             quality -= 10
@@ -193,9 +197,13 @@ private fun compressBitmapUnderLimit(source: Bitmap): ByteArray {
             working = scaled
             shouldRecycleWorking = true
 
-            val bytes = working.toJpegBytes(75)
-            if (bytes.size <= MaxUploadImageBytes) {
-                return bytes
+            quality = 75
+            while (quality >= 45) {
+                val bytes = working.toJpegBytes(quality)
+                if (bytes.size <= MaxUploadImageBytes) {
+                    return bytes
+                }
+                quality -= 10
             }
         }
 

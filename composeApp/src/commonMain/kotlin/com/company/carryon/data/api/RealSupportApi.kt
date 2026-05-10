@@ -53,12 +53,12 @@ class RealSupportApi : SupportApi {
         response.data ?: throw Exception("Failed to send message")
     }
 
-    override suspend fun triggerSos(driverId: String, latitude: Double, longitude: Double): Result<Boolean> = runCatching {
-        client.post("/api/driver/support/sos") {
+    override suspend fun triggerSos(driverId: String, latitude: Double, longitude: Double): Result<SosResult> = runCatching {
+        val response: ApiResponse<SosResult> = client.post("/api/driver/support/sos") {
             withAuth()
             contentType(ContentType.Application.Json)
             setBody(mapOf("latitude" to latitude, "longitude" to longitude))
-        }
-        true
+        }.body()
+        response.data ?: SosResult()
     }
 }

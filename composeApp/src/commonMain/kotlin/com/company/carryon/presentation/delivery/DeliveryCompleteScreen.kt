@@ -15,10 +15,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Route
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -225,8 +230,8 @@ fun DeliveryCompleteScreen(navigator: AppNavigator, viewModel: DeliveryViewModel
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            DeliveryBottomTab("ROUTE", true) { activeSheet = "ROUTE" }
-            DeliveryBottomTab("EARNINGS", false) { activeSheet = "EARNINGS" }
+            DeliveryBottomTab("ROUTE", true, Icons.Filled.Route) { activeSheet = "ROUTE" }
+            DeliveryBottomTab("EARNINGS", false, Icons.Filled.AccountBalanceWallet) { activeSheet = "EARNINGS" }
             Box(
                 modifier = Modifier
                     .size(52.dp)
@@ -240,10 +245,10 @@ fun DeliveryCompleteScreen(navigator: AppNavigator, viewModel: DeliveryViewModel
             ) {
                 Icon(Icons.Filled.Navigation, contentDescription = "Navigate", tint = Color.White)
             }
-            DeliveryBottomTab("INBOX", false) {
+            DeliveryBottomTab("INBOX", false, Icons.Filled.Inbox) {
                 navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
             }
-            DeliveryBottomTab("ACCOUNT", false) { navigator.switchTab(Screen.Profile) }
+            DeliveryBottomTab("ACCOUNT", false, Icons.Filled.Person) { navigator.navigateTo(Screen.Profile) }
         }
     }
 
@@ -281,14 +286,25 @@ private fun MetricCard(title: String, value: String, unit: String, modifier: Mod
 }
 
 @Composable
-private fun DeliveryBottomTab(label: String, selected: Boolean, onClick: () -> Unit = {}) {
-    Text(
-        text = label,
-        color = if (selected) DoneBlue else DoneText.copy(alpha = 0.55f),
-        fontSize = 10.sp,
-        fontWeight = FontWeight.SemiBold,
+private fun DeliveryBottomTab(label: String, selected: Boolean, icon: ImageVector, onClick: () -> Unit = {}) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable { onClick() }
-    )
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (selected) DoneBlue else DoneText.copy(alpha = 0.45f),
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = label,
+            color = if (selected) DoneBlue else DoneText.copy(alpha = 0.55f),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
 }
 
 @Composable

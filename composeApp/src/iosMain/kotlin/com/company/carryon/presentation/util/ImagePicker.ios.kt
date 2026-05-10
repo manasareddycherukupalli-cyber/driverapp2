@@ -19,7 +19,7 @@ import platform.UIKit.UIImagePickerControllerSourceType
 import platform.UIKit.UINavigationControllerDelegateProtocol
 import platform.darwin.NSObject
 
-private const val MaxUploadImageBytes = 6 * 1024 * 1024
+private const val MaxUploadImageBytes = 900 * 1024
 
 actual class ImagePickerLauncher(
     private val onImagePicked: (ByteArray) -> Unit,
@@ -116,9 +116,10 @@ actual fun rememberImagePickerLauncher(
 private fun UIImage.jpegDataUnderLimit(): NSData? {
     var quality = 0.8
     var data = UIImageJPEGRepresentation(this, quality)
-    while (data != null && data.length > MaxUploadImageBytes.toULong() && quality > 0.45) {
+    while (data != null && data.length > MaxUploadImageBytes.toULong() && quality > 0.35) {
         quality -= 0.1
         data = UIImageJPEGRepresentation(this, quality)
     }
+    println("[image-picker] ios uploadBytes=${data?.length ?: 0uL}")
     return data
 }

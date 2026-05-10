@@ -32,19 +32,15 @@ object HttpClientFactory {
      */
     fun getCurrentAccessToken(): String? {
         return try {
-            var session = SupabaseConfig.client.auth.currentSessionOrNull()
+            val session = SupabaseConfig.client.auth.currentSessionOrNull()
             val token = session?.accessToken
             if (token != null) {
-                println("[Auth] Got fresh token from Supabase session")
-                // Keep stored token in sync with the latest session token
                 saveToken(token)
                 token
             } else {
-                println("[Auth] No Supabase session, falling back to stored token")
                 getToken()
             }
-        } catch (e: Exception) {
-            println("[Auth] Error getting Supabase session: ${e.message}, using stored token")
+        } catch (_: Exception) {
             getToken()
         }
     }
@@ -57,12 +53,14 @@ object HttpClientFactory {
             install(Logging) {
                 logger = object : Logger {
                     override fun log(message: String) {
-                        println("[HTTP] $message")
+                        // Redact Authorization headers and tokens from logs
+                        val redacted = message
+                            .replace(Regex("(?i)(Authorization:\\s*)\\S+"), "$1[REDACTED]")
+                            .replace(Regex("(?i)(Bearer\\s+)\\S+"), "$1[REDACTED]")
+                        println("[HTTP] $redacted")
                     }
                 }
-                // BODY logging can throw parsing issues on some KMP targets for small/empty payloads.
-                // HEADERS keeps visibility without destabilizing response handling.
-                level = LogLevel.HEADERS
+                level = LogLevel.INFO
             }
             install(HttpTimeout) {
                 requestTimeoutMillis = 30_000
@@ -75,17 +73,11 @@ object HttpClientFactory {
             }
             HttpResponseValidator {
                 validateResponse { response ->
-                    println("[HTTP] Response status: ${response.status.value}")
                     if (response.status.value == 401) {
-                        val body = response.bodyAsText()
-                        println("[HTTP] 401 Unauthorized: $body")
-                        // Soft-fail: don't clear token immediately.
-                        // Callers should attempt a one-time session sync/recovery first.
                         throw AuthenticationException("Authentication required. Please log in again.")
                     }
                     if (response.status.value >= 400) {
                         val body = response.bodyAsText()
-                        println("[HTTP] Error response body: $body")
                         val message = try {
                             json.parseToJsonElement(body).jsonObject["message"]?.jsonPrimitive?.content
                                 ?: "Request failed"
@@ -107,9 +99,6 @@ object HttpClientFactory {
 fun HttpRequestBuilder.withAuth() {
     val token = HttpClientFactory.getCurrentAccessToken()
     if (token != null) {
-        println("[HTTP] Adding auth token: ${token.take(20)}...")
         headers.append("Authorization", "Bearer $token")
-    } else {
-        println("[HTTP] WARNING: No auth token available!")
     }
 }

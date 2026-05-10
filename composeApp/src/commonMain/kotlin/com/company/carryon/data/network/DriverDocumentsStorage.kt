@@ -14,16 +14,11 @@ class DriverDocumentsStorage {
     ): Result<String> = runCatching {
         val timestamp = Clock.System.now().toEpochMilliseconds()
         val normalizedExt = extension.lowercase().ifBlank { "jpg" }
-        val session = SupabaseConfig.client.auth.currentSessionOrNull()
-        val ownerSegment = session?.user?.id
-            ?: session?.user?.email
-                ?.lowercase()
-                ?.replace("@", "_")
-                ?.replace(".", "_")
-            ?: driverId
-        val objectPath = "drivers/$ownerSegment/${type.name}_${timestamp}.$normalizedExt"
+        // Use driverId as the canonical owner segment — matches backend validation
+        val objectPath = "$driverId/${type.name}_${timestamp}.$normalizedExt"
         val bucket = SupabaseConfig.client.storage.from("driver-documents")
         bucket.upload(objectPath, bytes)
-        bucket.publicUrl(objectPath)
+        // Return full object path — backend stores paths and generates signed URLs
+        "driver-documents/$objectPath"
     }
 }

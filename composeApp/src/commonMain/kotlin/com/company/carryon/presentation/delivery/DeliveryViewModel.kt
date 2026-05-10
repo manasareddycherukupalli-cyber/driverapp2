@@ -41,6 +41,12 @@ class DeliveryViewModel : ViewModel() {
     private val _photoUploadState = MutableStateFlow<UiState<ProofPhotoUpload>>(UiState.Idle)
     val photoUploadState: StateFlow<UiState<ProofPhotoUpload>> = _photoUploadState.asStateFlow()
 
+    private val _extraChargeProofState = MutableStateFlow<UiState<String>>(UiState.Idle)
+    val extraChargeProofState: StateFlow<UiState<String>> = _extraChargeProofState.asStateFlow()
+
+    private val _extraChargeSubmitState = MutableStateFlow<UiState<BookingExtraCharge>>(UiState.Idle)
+    val extraChargeSubmitState: StateFlow<UiState<BookingExtraCharge>> = _extraChargeSubmitState.asStateFlow()
+
     // Delivery OTP request state
     private val _deliveryOtpState = MutableStateFlow<UiState<DeliveryOtpInfo>>(UiState.Idle)
     val deliveryOtpState: StateFlow<UiState<DeliveryOtpInfo>> = _deliveryOtpState.asStateFlow()
@@ -151,6 +157,11 @@ class DeliveryViewModel : ViewModel() {
             _photoUploadState.value = UiState.Idle
         }
         _proofState.value = UiState.Idle
+    }
+
+    fun resetExtraChargeForm() {
+        _extraChargeProofState.value = UiState.Idle
+        _extraChargeSubmitState.value = UiState.Idle
     }
 
     /** Update delivery status step by step */
@@ -282,6 +293,34 @@ class DeliveryViewModel : ViewModel() {
                 .onFailure { error ->
                     _photoUploadState.value = UiState.Error(error.message ?: "Failed to upload photo")
                 }
+        }
+    }
+
+    fun uploadExtraChargeProof(jobId: String, photoBytes: ByteArray) {
+        _extraChargeProofState.value = UiState.Loading
+        viewModelScope.launch {
+            DriverUploadApi.uploadExtraChargeProof(jobId, photoBytes)
+                .onSuccess { proofPath -> _extraChargeProofState.value = UiState.Success(proofPath) }
+                .onFailure { error -> _extraChargeProofState.value = UiState.Error(error.message ?: "Failed to upload receipt") }
+        }
+    }
+
+    fun submitExtraCharge(jobId: String, type: ExtraChargeType, amountText: String, note: String) {
+        viewModelScope.launch {
+            val amount = amountText.trim().toDoubleOrNull()
+            if (amount == null || amount <= 0.0) {
+                _extraChargeSubmitState.value = UiState.Error("Enter a valid charge amount")
+                return@launch
+            }
+            val proofPath = (_extraChargeProofState.value as? UiState.Success)?.data.orEmpty()
+            if (proofPath.isBlank()) {
+                _extraChargeSubmitState.value = UiState.Error("Upload a receipt before submitting")
+                return@launch
+            }
+            _extraChargeSubmitState.value = UiState.Loading
+            jobRepository.submitExtraCharge(jobId, type, amount, proofPath, note.trim())
+                .onSuccess { _extraChargeSubmitState.value = UiState.Success(it) }
+                .onFailure { _extraChargeSubmitState.value = UiState.Error(it.message ?: "Failed to submit extra charge") }
         }
     }
 

@@ -1,5 +1,6 @@
 package com.company.carryon.data.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 const val DRIVER_ONBOARDING_AGREEMENT_VERSION = "driver-partner-v1.0"
@@ -11,7 +12,7 @@ data class DriverProfileUpdateRequest(
     val photo: String? = null,
     val dateOfBirth: String? = null,
     val gender: String = "",
-    val preferredLanguage: String = "",
+    @SerialName("language") val preferredLanguage: String = "",
     val nationality: DriverNationality? = null,
     val mykadNumber: String? = null,
     val passportNumber: String? = null,

@@ -11,6 +11,7 @@ import com.company.carryon.data.network.SupabaseConfig
 import com.company.carryon.data.network.getToken
 import com.company.carryon.data.network.saveToken
 import com.company.carryon.di.ServiceLocator
+import com.company.carryon.i18n.currentLanguageOrDefault
 import com.company.carryon.presentation.navigation.Screen
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.storage.storage
@@ -144,7 +145,8 @@ class AuthViewModel : ViewModel() {
                             name = driverName,
                             phone = driverPhone,
                             email = driverEmail,
-                            emergencyContact = emergencyContact
+                            emergencyContact = emergencyContact,
+                            preferredLanguage = currentLanguageOrDefault()
                         )
                         repository.register(driver)
                             .onSuccess { registerResponse ->
@@ -196,25 +198,23 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch(exceptionHandler) {
             try {
                 _documentUploadState.value = UiState.Loading
-                println("Starting document upload for type: ${type.name}")
 
                 // 1. Upload image bytes to Supabase Storage
-                val sanitizedEmail = driverEmail.replace("@", "_").replace(".", "_").ifEmpty { "unknown" }
-                val path = "drivers/$sanitizedEmail/${type.name.lowercase()}.jpg"
-                println("Uploading to Supabase Storage: $path")
-                
+                val driverId = _latestAuthResponse.value?.driver?.id
+                    ?: throw IllegalStateException("No active driver session")
+                val timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds()
+                val path = "$driverId/${type.name.lowercase()}_${timestamp}.jpg"
+
                 val bucket = SupabaseConfig.client.storage.from("driver-documents")
                 bucket.upload(path, imageBytes) { upsert = true }
-                val publicUrl = bucket.publicUrl(path)
-                println("Supabase upload successful. URL: $publicUrl")
+                // Store object path, not public URL — backend generates signed URLs
+                val objectPath = "driver-documents/$path"
 
-                // 2. Save document metadata (with real URL) to backend
-                val document = Document(type = type, imageUrl = publicUrl)
-                println("Saving document metadata to backend...")
-                
+                // 2. Save document metadata (with object path) to backend
+                val document = Document(type = type, imageUrl = objectPath)
+
                 repository.uploadDocument(document)
                     .onSuccess { doc ->
-                        println("Backend save successful: ${doc.id}")
                         val current = _uploadedDocuments.value.toMutableList()
                         val existingIndex = current.indexOfFirst { it.type == doc.type }
                         if (existingIndex >= 0) current[existingIndex] = doc
@@ -228,15 +228,12 @@ class AuthViewModel : ViewModel() {
                             response.copy(driver = driver.copy(documents = mergedByType.values.toList()))
                         }
                         _documentUploadState.value = UiState.Success(doc)
-                        println("Updated uploaded documents list. Count: ${_uploadedDocuments.value.size}")
                     }
                     .onFailure { error ->
-                        println("Backend save failed: ${error.message}")
                         error.printStackTrace()
                         _documentUploadState.value = UiState.Error(error.message ?: "Upload failed")
                     }
             } catch (t: Throwable) {
-                println("Document upload exception: ${t.message}")
                 t.printStackTrace()
                 _documentUploadState.value = UiState.Error(t.message ?: "Upload failed")
             }

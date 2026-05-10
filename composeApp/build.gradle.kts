@@ -52,6 +52,7 @@ kotlin {
             implementation(libs.credentials)
             implementation(libs.credentials.play.services)
             implementation(libs.googleid)
+            implementation("androidx.security:security-crypto:1.1.0-alpha06")
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -90,7 +91,7 @@ android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.company.carryon"
+        applicationId = "com.company.carryon.driver"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

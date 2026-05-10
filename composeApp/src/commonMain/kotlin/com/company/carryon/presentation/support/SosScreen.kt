@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,6 +33,7 @@ fun SosScreen(navigator: AppNavigator) {
     val viewModel = remember { SupportViewModel() }
     val sosState by viewModel.sosState.collectAsState()
     var showConfirmDialog by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier
@@ -88,19 +90,33 @@ fun SosScreen(navigator: AppNavigator) {
             )
 
             // Status
-            if (sosState is UiState.Success) {
+            val sosResult = (sosState as? UiState.Success)?.data
+            if (sosResult != null) {
                 Spacer(Modifier.height(24.dp))
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Green100),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        text = strings.emergencyAlertSent,
+                    Column(
                         modifier = Modifier.padding(16.dp),
-                        color = Green500,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center
-                    )
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = strings.emergencyAlertSent,
+                            color = Green500,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
+                        Button(
+                            onClick = { uriHandler.openUri("tel:${sosResult.emergencyNumber.ifBlank { "999" }}") },
+                            colors = ButtonDefaults.buttonColors(containerColor = Red500)
+                        ) {
+                            Icon(Icons.Filled.Phone, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Call ${sosResult.emergencyNumber.ifBlank { "999" }} now")
+                        }
+                    }
                 }
             }
 

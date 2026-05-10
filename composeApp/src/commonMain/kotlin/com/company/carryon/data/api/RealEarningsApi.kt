@@ -53,4 +53,11 @@ class RealEarningsApi : EarningsApi {
         }.body()
         response.data ?: throw Exception(response.message ?: "Failed to start payout setup")
     }
+
+    override suspend fun getInvoiceUrl(transactionId: String): Result<InvoiceLink> = runCatching {
+        val response: ApiResponse<InvoiceLink> = client.get("/api/driver/earnings/transactions/$transactionId/invoice") {
+            withAuth()
+        }.body()
+        response.data ?: throw Exception(response.message ?: "Failed to get invoice")
+    }
 }

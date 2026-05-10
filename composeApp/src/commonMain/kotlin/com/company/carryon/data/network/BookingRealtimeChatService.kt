@@ -1,5 +1,6 @@
 package com.company.carryon.data.network
 
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
@@ -27,6 +28,7 @@ object BookingRealtimeChatService {
         val channelInstance = SupabaseConfig.client.channel("chat-$bookingId")
         val inserts = channelInstance.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "ChatMessage"
+            filter("bookingId", FilterOperator.EQ, bookingId)
         }
 
         channelInstance.subscribe()

@@ -502,7 +502,7 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
                     navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
                 }
             }
-            BottomTab("ACCOUNT", false) { navigator.switchTab(Screen.Profile) }
+            BottomTab("ACCOUNT", false) { navigator.navigateTo(Screen.Profile) }
         }
     }
 

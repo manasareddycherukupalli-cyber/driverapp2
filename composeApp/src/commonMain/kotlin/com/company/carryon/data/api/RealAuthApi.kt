@@ -4,6 +4,7 @@ import com.company.carryon.data.model.*
 import com.company.carryon.data.network.HttpClientFactory
 import com.company.carryon.data.network.currentPushPlatform
 import com.company.carryon.data.network.getOrCreateDeviceId
+import com.company.carryon.i18n.currentLanguageOrDefault
 import com.company.carryon.data.network.withAuth
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -23,7 +24,7 @@ class RealAuthApi : AuthApi {
         val response: AuthResponse = client.post("/api/driver/auth/sync") {
             withAuth()
             contentType(ContentType.Application.Json)
-            setBody(SyncRequest())
+            setBody(SyncRequest(language = currentLanguageOrDefault()))
         }.body()
         response
     }
@@ -35,20 +36,21 @@ class RealAuthApi : AuthApi {
             setBody(RegisterRequest(
                 name = driver.name,
                 phone = driver.phone,
-                emergencyContact = driver.emergencyContact
+                emergencyContact = driver.emergencyContact,
+                language = driver.preferredLanguage.ifBlank { currentLanguageOrDefault() }
             ))
         }.body()
         response
     }
 
     override suspend fun uploadDocument(driverId: String, document: Document): Result<Document> = runCatching {
-        println("[RealAuthApi] Uploading document: type=${document.type}, imageUrl=${document.imageUrl}")
+        println("[RealAuthApi] Uploading document: type=${document.type}")
         val response: ApiResponse<Document> = client.post("/api/driver/documents") {
             withAuth()
             contentType(ContentType.Application.Json)
             setBody(document)
         }.body()
-        println("[RealAuthApi] Upload response: success=${response.success}, data=${response.data}")
+        println("[RealAuthApi] Upload response: success=${response.success}")
         response.data ?: throw Exception(response.message ?: "Upload failed - no data returned")
     }
 

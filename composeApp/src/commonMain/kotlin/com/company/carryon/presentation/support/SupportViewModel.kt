@@ -41,8 +41,8 @@ class SupportViewModel : ViewModel() {
     val createTicketState: StateFlow<UiState<SupportTicket>> = _createTicketState.asStateFlow()
 
     // SOS state
-    private val _sosState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
-    val sosState: StateFlow<UiState<Boolean>> = _sosState.asStateFlow()
+    private val _sosState = MutableStateFlow<UiState<SosResult>>(UiState.Idle)
+    val sosState: StateFlow<UiState<SosResult>> = _sosState.asStateFlow()
 
     init {
         loadHelpArticles()
@@ -141,7 +141,7 @@ class SupportViewModel : ViewModel() {
             val lat = location?.first ?: 0.0
             val lng = location?.second ?: 0.0
             repository.triggerSos(lat, lng)
-                .onSuccess { _sosState.value = UiState.Success(true) }
+                .onSuccess { _sosState.value = UiState.Success(it) }
                 .onFailure { _sosState.value = UiState.Error(it.message ?: "SOS failed") }
         }
     }

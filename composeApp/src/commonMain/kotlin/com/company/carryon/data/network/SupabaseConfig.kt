@@ -26,8 +26,10 @@ object SupabaseConfig {
 
         install(Auth) {
             flowType = FlowType.IMPLICIT
-            scheme = DEEP_LINK_SCHEME
-            host = "login-callback"
+            // Keep OTP email auth free of redirect_to. A global scheme/host here makes
+            // supabase-kt attach redirect_to to OTP calls, which fails validation in
+            // projects that don't allow this deep-link URL for email OTP.
+            // OAuth can still pass an explicit redirect URL at call sites if needed.
         }
         install(ComposeAuth) {
             googleNativeLogin(serverClientId = GOOGLE_WEB_CLIENT_ID)

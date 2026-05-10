@@ -337,7 +337,7 @@ fun InTransitScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewMode
             DeliveryBottomTab("INBOX", false) {
                 navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
             }
-            DeliveryBottomTab("ACCOUNT", false) { navigator.switchTab(Screen.Profile) }
+            DeliveryBottomTab("ACCOUNT", false) { navigator.navigateTo(Screen.Profile) }
         }
     }
 

@@ -57,11 +57,8 @@ import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.util.toImageBitmap
-import drive_app.composeapp.generated.resources.Res
-import drive_app.composeapp.generated.resources.edit_profile_avatar
 import io.ktor.client.call.body
 import io.ktor.client.request.get
-import org.jetbrains.compose.resources.painterResource
 
 internal val EditBg = Color(0xFFF9F9FF)
 internal val EditBlue = Color(0xFF2F80ED)
@@ -75,11 +72,10 @@ fun EditProfileScreen(navigator: AppNavigator) {
     val driver by viewModel.currentDriver.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
     val profilePhotoUrl = remember(driver) {
-        driver?.profileImageUrl?.takeIf { it.isNotBlank() }
-            ?: driver?.documents
-                ?.firstOrNull { it.type == DocumentType.PROFILE_PHOTO }
-                ?.imageUrl
-                ?.takeIf { it.isNotBlank() }
+        driver?.documents
+            ?.firstOrNull { it.type == DocumentType.SELFIE }
+            ?.imageUrl
+            ?.takeIf { it.isNotBlank() }
     }
     var profilePhotoBytes by remember(profilePhotoUrl) { mutableStateOf<ByteArray?>(null) }
     val profilePhotoBitmap = remember(profilePhotoBytes) { profilePhotoBytes?.toImageBitmap() }
@@ -159,13 +155,6 @@ fun EditProfileScreen(navigator: AppNavigator) {
                         if (profilePhotoBitmap != null) {
                             Image(
                                 bitmap = profilePhotoBitmap,
-                                contentDescription = "Profile Photo",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Image(
-                                painter = painterResource(Res.drawable.edit_profile_avatar),
                                 contentDescription = "Profile Photo",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop

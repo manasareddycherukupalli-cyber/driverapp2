@@ -213,7 +213,7 @@ private fun BalanceCard(balance: Double?, onWithdraw: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("AVAILABLE BALANCE", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 Text(
-                    balance?.let { "$${formatMoney(it)}" } ?: "--",
+                    balance?.let { "RM ${formatMoney(it)}" } ?: "--",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 33.sp / 1.5f
@@ -249,7 +249,7 @@ private fun WeeklySection(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    netProfit?.let { "+$${formatMoney(it)}" } ?: "--",
+                    netProfit?.let { "+RM ${formatMoney(it)}" } ?: "--",
                     color = BrandBlue,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
@@ -375,7 +375,7 @@ private fun TripCard(trip: EarningsTripUi) {
             }
 
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("+$${formatMoney(trip.amount)}", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 18.sp / 1.05f)
+                Text("+RM ${formatMoney(trip.amount)}", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 18.sp / 1.05f)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))

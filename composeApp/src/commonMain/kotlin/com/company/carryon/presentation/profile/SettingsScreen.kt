@@ -65,7 +65,7 @@ fun SettingsScreen(
     ) {
         DriveAppTopBar(
             title = "Profile",
-            onBackClick = { navigator.switchTab(Screen.Home) },
+            onBackClick = { navigator.goBack() },
             leadingIcon = Icons.Filled.Menu,
             onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
             showTitle = false

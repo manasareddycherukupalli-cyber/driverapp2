@@ -1,9 +1,12 @@
 package com.company.carryon
 
 import androidx.compose.runtime.*
-import com.company.carryon.data.network.getLanguage
+import com.company.carryon.i18n.currentLanguageOrDefault
+import com.company.carryon.i18n.hasStoredLanguagePreference
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.i18n.getStringsForLanguage
+import com.company.carryon.i18n.storeLanguagePreference
+import com.company.carryon.presentation.components.LanguageSelectionDialog
 import com.company.carryon.presentation.navigation.AppNavHost
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
@@ -16,7 +19,8 @@ import com.company.carryon.presentation.theme.DriveAppTheme
 @Composable
 fun App() {
     val navigator = remember { AppNavigator() }
-    var currentLanguage by remember { mutableStateOf(getLanguage() ?: "en") }
+    var currentLanguage by remember { mutableStateOf(currentLanguageOrDefault()) }
+    var showLanguageDialog by remember { mutableStateOf(!hasStoredLanguagePreference()) }
 
     LaunchedEffect(Unit) {
         navigator.navigateAndClearStack(Screen.Splash)
@@ -31,6 +35,15 @@ fun App() {
                 currentLanguage = currentLanguage,
                 onLanguageChanged = { currentLanguage = it }
             )
+            if (showLanguageDialog) {
+                LanguageSelectionDialog(
+                    currentLanguage = currentLanguage,
+                    onLanguageSelected = { code ->
+                        currentLanguage = storeLanguagePreference(code)
+                        showLanguageDialog = false
+                    }
+                )
+            }
         }
     }
 }

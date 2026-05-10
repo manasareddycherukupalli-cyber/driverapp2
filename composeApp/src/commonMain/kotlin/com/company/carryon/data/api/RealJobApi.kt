@@ -152,6 +152,28 @@ class RealJobApi : JobApi {
         true
     }
 
+    override suspend fun submitExtraCharge(
+        jobId: String,
+        type: ExtraChargeType,
+        amount: Double,
+        proofPath: String,
+        note: String
+    ): Result<BookingExtraCharge> = runCatching {
+        val response: ApiResponse<BookingExtraCharge> = client.post("/api/driver/jobs/$jobId/extra-charges") {
+            withAuth()
+            contentType(ContentType.Application.Json)
+            setBody(
+                mapOf(
+                    "type" to type.name,
+                    "amount" to amount,
+                    "proofPath" to proofPath,
+                    "note" to note
+                )
+            )
+        }.body()
+        response.data ?: throw Exception(response.message ?: "Failed to submit extra charge")
+    }
+
     override suspend fun getDemandZones(latitude: Double, longitude: Double, radiusKm: Double): Result<DemandZonesResponse> = runCatching {
         val response: ApiResponse<DemandZonesResponse> = client.get("/api/v1/driver/demand-zones") {
             withAuth()

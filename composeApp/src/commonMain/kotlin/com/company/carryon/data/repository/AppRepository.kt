@@ -168,6 +168,13 @@ interface JobRepository {
         payload: DeliveryLifecycleCommandPayload = DeliveryLifecycleCommandPayload()
     ): Result<DeliveryLifecycleResult>
     suspend fun cancelJob(jobId: String): Result<Boolean>
+    suspend fun submitExtraCharge(
+        jobId: String,
+        type: ExtraChargeType,
+        amount: Double,
+        proofPath: String,
+        note: String = ""
+    ): Result<BookingExtraCharge>
 }
 
 class JobRepositoryImpl(private val api: JobApi) : JobRepository {
@@ -189,6 +196,13 @@ class JobRepositoryImpl(private val api: JobApi) : JobRepository {
         payload: DeliveryLifecycleCommandPayload
     ) = api.executeLifecycleCommand(jobId, command, payload)
     override suspend fun cancelJob(jobId: String) = api.cancelJob(jobId)
+    override suspend fun submitExtraCharge(
+        jobId: String,
+        type: ExtraChargeType,
+        amount: Double,
+        proofPath: String,
+        note: String
+    ) = api.submitExtraCharge(jobId, type, amount, proofPath, note)
 }
 
 // ============================================================
@@ -202,6 +216,7 @@ interface EarningsRepository {
     suspend fun requestWithdrawal(amount: Double): Result<Transaction>
     suspend fun getPayoutStatus(): Result<PayoutStatus>
     suspend fun createPayoutOnboardingLink(): Result<PayoutOnboardingLink>
+    suspend fun getInvoiceUrl(transactionId: String): Result<InvoiceLink>
 }
 
 class EarningsRepositoryImpl(private val api: EarningsApi) : EarningsRepository {
@@ -211,6 +226,7 @@ class EarningsRepositoryImpl(private val api: EarningsApi) : EarningsRepository 
     override suspend fun requestWithdrawal(amount: Double) = api.requestWithdrawal("", amount)
     override suspend fun getPayoutStatus() = api.getPayoutStatus()
     override suspend fun createPayoutOnboardingLink() = api.createPayoutOnboardingLink()
+    override suspend fun getInvoiceUrl(transactionId: String) = api.getInvoiceUrl(transactionId)
 }
 
 // ============================================================
@@ -237,7 +253,7 @@ interface SupportRepository {
     suspend fun createTicket(ticket: SupportTicket): Result<SupportTicket>
     suspend fun getMessages(ticketId: String): Result<List<ChatMessage>>
     suspend fun sendMessage(ticketId: String, message: ChatMessage): Result<ChatMessage>
-    suspend fun triggerSos(latitude: Double, longitude: Double): Result<Boolean>
+    suspend fun triggerSos(latitude: Double, longitude: Double): Result<SosResult>
 }
 
 class SupportRepositoryImpl(private val api: SupportApi) : SupportRepository {

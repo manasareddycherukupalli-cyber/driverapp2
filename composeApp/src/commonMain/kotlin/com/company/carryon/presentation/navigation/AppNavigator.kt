@@ -47,6 +47,7 @@ sealed interface Screen {
     data object MapNavigation : Screen
     data object Wallet : Screen
     data object TransactionHistory : Screen
+    data object TransactionDetail : Screen
     data object Ratings : Screen
     data object EditProfile : Screen
     data object ChangePassword : Screen
@@ -112,6 +113,7 @@ class AppNavigator {
             selectedJobIdState = value
             syncDeliveryResumeState()
         }
+    var selectedTransactionId by mutableStateOf<String?>(null)
     var selectedTicketId by mutableStateOf<String?>(null)
     var selectedChatBookingId by mutableStateOf<String?>(null)
     var selectedChatCustomerName by mutableStateOf("")

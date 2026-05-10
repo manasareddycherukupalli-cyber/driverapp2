@@ -118,6 +118,7 @@ fun AppNavHost(
                     Screen.MapNavigation -> MapScreen(navigator, deliveryViewModel)
                     Screen.Wallet -> WalletScreen(navigator)
                     Screen.TransactionHistory -> WalletScreen(navigator)
+                    Screen.TransactionDetail -> TransactionDetailScreen(navigator)
                     Screen.Ratings -> RatingsScreen(navigator)
                     Screen.EditProfile -> EditProfileScreen(navigator)
                     Screen.ChangePassword -> ChangePasswordScreen(navigator)
