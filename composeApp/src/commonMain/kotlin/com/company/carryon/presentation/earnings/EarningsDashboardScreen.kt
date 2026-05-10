@@ -62,88 +62,94 @@ fun EarningsDashboardScreen(navigator: AppNavigator) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         DriveAppTopBar(
             title = "Earning",
             onBackClick = { navigator.switchTab(Screen.Home) },
             leadingIcon = Icons.Filled.Menu,
-            onNotificationClick = { navigator.navigateTo(Screen.Notifications) }
+            onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+            showTitle = false
         )
 
-        TabSelector(
-            selectedPeriod = dashboardUi.selectedPeriod,
-            onTodayClick = { viewModel.setSelectedPeriod(EarningsPeriod.TODAY) },
-            onWeeklyClick = { viewModel.setSelectedPeriod(EarningsPeriod.THIS_WEEK) }
-        )
-
-        BalanceCard(
-            balance = dashboardUi.displayBalance,
-            onWithdraw = { navigator.navigateTo(Screen.Wallet) }
-        )
-
-        WeeklySection(
-            weekRangeLabel = dashboardUi.weekRangeLabel,
-            netProfit = dashboardUi.weeklyAmount,
-            chart = dashboardUi.chart
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            StatChip(
-                label = "Deliveries",
-                value = dashboardUi.deliveriesCount?.toString() ?: "--",
-                icon = { Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(16.dp)) },
-                modifier = Modifier.weight(1f)
-            )
-            StatChip(
-                label = "Active Hours",
-                value = dashboardUi.activeHours?.let { "${formatSingleDecimal(it)}h" } ?: "--",
-                icon = { Icon(Icons.Filled.Schedule, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(16.dp)) },
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text("Recent Trips", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 34.sp / 1.4f)
-            Text(
-                "View All",
-                color = BrandBlue,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                modifier = Modifier.clickable { navigator.navigateTo(Screen.Wallet) }
+            TabSelector(
+                selectedPeriod = dashboardUi.selectedPeriod,
+                onTodayClick = { viewModel.setSelectedPeriod(EarningsPeriod.TODAY) },
+                onWeeklyClick = { viewModel.setSelectedPeriod(EarningsPeriod.THIS_WEEK) }
             )
-        }
 
-        when {
-            dashboardUi.trips.isNotEmpty() -> dashboardUi.trips.forEach { trip ->
-                TripCard(trip = trip)
+            BalanceCard(
+                balance = dashboardUi.displayBalance,
+                onWithdraw = { navigator.navigateTo(Screen.Wallet) }
+            )
+
+            WeeklySection(
+                weekRangeLabel = dashboardUi.weekRangeLabel,
+                netProfit = dashboardUi.weeklyAmount,
+                chart = dashboardUi.chart
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                StatChip(
+                    label = "Deliveries",
+                    value = dashboardUi.deliveriesCount?.toString() ?: "--",
+                    icon = { Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(16.dp)) },
+                    modifier = Modifier.weight(1f)
+                )
+                StatChip(
+                    label = "Active Hours",
+                    value = dashboardUi.activeHours?.let { "${formatSingleDecimal(it)}h" } ?: "--",
+                    icon = { Icon(Icons.Filled.Schedule, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(16.dp)) },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
-            dashboardUi.isLoading -> LoadingCard("Loading recent trips...")
-            else -> EmptyCard("No completed trips yet")
-        }
-
-        dashboardUi.errorMessage?.let { message ->
-            MessageCard(
-                message = message,
-                actionLabel = "Retry",
-                onAction = { viewModel.loadAll() }
-            )
-        }
-
-        if (dashboardUi.isLoading) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = BrandBlue, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Recent Trips", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 34.sp / 1.4f)
+                Text(
+                    "View All",
+                    color = BrandBlue,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.clickable { navigator.navigateTo(Screen.Wallet) }
+                )
             }
-        }
 
-        Spacer(Modifier.height(12.dp))
+            when {
+                dashboardUi.trips.isNotEmpty() -> dashboardUi.trips.forEach { trip ->
+                    TripCard(trip = trip)
+                }
+
+                dashboardUi.isLoading -> LoadingCard("Loading recent trips...")
+                else -> EmptyCard("No completed trips yet")
+            }
+
+            dashboardUi.errorMessage?.let { message ->
+                MessageCard(
+                    message = message,
+                    actionLabel = "Retry",
+                    onAction = { viewModel.loadAll() }
+                )
+            }
+
+            if (dashboardUi.isLoading) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = BrandBlue, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+        }
     }
 }
 

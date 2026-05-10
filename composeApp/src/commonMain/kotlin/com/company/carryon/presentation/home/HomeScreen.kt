@@ -285,7 +285,9 @@ private fun FinalHomeDashboard(
         DriveAppTopBar(
             title = strings.dispatch,
             onNotificationClick = onProfileClick,
-            showTitle = false
+            showTitle = false,
+            containerPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 2.dp),
+            containerSpacing = 2.dp
         )
 
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = White), modifier = Modifier.fillMaxWidth()) {
