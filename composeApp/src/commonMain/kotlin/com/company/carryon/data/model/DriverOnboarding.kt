@@ -13,6 +13,7 @@ data class DriverProfileUpdateRequest(
     val dateOfBirth: String? = null,
     val gender: String = "",
     @SerialName("language") val preferredLanguage: String = "",
+    @Serializable(with = NullableDriverNationalitySerializer::class)
     val nationality: DriverNationality? = null,
     val mykadNumber: String? = null,
     val passportNumber: String? = null,
@@ -20,6 +21,7 @@ data class DriverProfileUpdateRequest(
     val plksNumber: String? = null,
     val plksExpiry: String? = null,
     val driversLicenseNumber: String = "",
+    @Serializable(with = NullableLicenseClassSerializer::class)
     val licenseClass: LicenseClass? = null,
     val licenseExpiry: String? = null,
     val hasGDL: Boolean = false,
@@ -28,6 +30,7 @@ data class DriverProfileUpdateRequest(
     val addressLine2: String = "",
     val city: String = "",
     val postcode: String = "",
+    @Serializable(with = NullableMalaysianStateSerializer::class)
     val state: MalaysianState? = null,
     val workingStates: List<MalaysianState> = emptyList(),
     val emergencyContactName: String = "",
@@ -56,6 +59,7 @@ data class DriverVehicleUpsertRequest(
     val color: String = "",
     val chassisNumber: String = "",
     val engineNumber: String = "",
+    @Serializable(with = NullableVehicleOwnershipSerializer::class)
     val ownership: VehicleOwnership? = null,
     val ownerName: String? = null,
     val roadTaxExpiry: String? = null,
@@ -64,6 +68,7 @@ data class DriverVehicleUpsertRequest(
     val apadPermitExpiry: String? = null,
     val insurerName: String? = null,
     val insurancePolicyNumber: String? = null,
+    @Serializable(with = NullableInsuranceCoverageTypeSerializer::class)
     val insuranceCoverageType: InsuranceCoverageType? = null,
     val insuranceExpiry: String? = null,
     val hasCommercialCover: Boolean = false
@@ -74,6 +79,15 @@ data class DriverDocumentSubmissionRequest(
     val imageUrl: String = "",
     val type: DocumentType = DocumentType.DRIVERS_LICENSE,
     val expiryDate: String? = null
+)
+
+@Serializable
+data class DriverOnboardingSubmissionRequest(
+    val profile: DriverProfileUpdateRequest,
+    val vehicle: DriverVehicleUpsertRequest,
+    val documents: List<DriverDocumentSubmissionRequest> = emptyList(),
+    val agreementAccepted: Boolean,
+    val agreementVersion: String = DRIVER_ONBOARDING_AGREEMENT_VERSION
 )
 
 @Serializable
@@ -93,6 +107,7 @@ data class UploadedDocumentAsset(
 @Serializable
 data class DriverOnboardingDraft(
     val phone: String = "",
+    @Serializable(with = NullableDriverNationalitySerializer::class)
     val nationality: DriverNationality? = null,
     val mykadNumber: String = "",
     val passportNumber: String = "",
@@ -107,11 +122,13 @@ data class DriverOnboardingDraft(
     val addressLine2: String = "",
     val city: String = "",
     val postcode: String = "",
+    @Serializable(with = NullableMalaysianStateSerializer::class)
     val state: MalaysianState? = null,
     val emergencyContactName: String = "",
     val emergencyContactRelation: String = "",
     val emergencyContactPhone: String = "",
     val driversLicenseNumber: String = "",
+    @Serializable(with = NullableLicenseClassSerializer::class)
     val licenseClass: LicenseClass? = null,
     val licenseExpiry: String = "",
     val driversLicenseFrontUrl: String = "",
@@ -119,6 +136,7 @@ data class DriverOnboardingDraft(
     val hasGDL: Boolean = false,
     val gdlExpiry: String = "",
     val gdlUrl: String = "",
+    @Serializable(with = NullableVehicleTypeSerializer::class)
     val vehicleType: VehicleType? = null,
     val vehicleMake: String = "",
     val vehicleModel: String = "",
@@ -127,6 +145,7 @@ data class DriverOnboardingDraft(
     val vehicleColor: String = "",
     val chassisNumber: String = "",
     val engineNumber: String = "",
+    @Serializable(with = NullableVehicleOwnershipSerializer::class)
     val vehicleOwnership: VehicleOwnership? = null,
     val ownerName: String = "",
     val vehicleRegistrationUrl: String = "",
@@ -144,6 +163,7 @@ data class DriverOnboardingDraft(
     val vehicleInteriorUrl: String = "",
     val insurerName: String = "",
     val insurancePolicyNumber: String = "",
+    @Serializable(with = NullableInsuranceCoverageTypeSerializer::class)
     val insuranceCoverageType: InsuranceCoverageType? = null,
     val insuranceExpiry: String = "",
     val insuranceUrl: String = "",

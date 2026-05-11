@@ -14,9 +14,8 @@ import com.company.carryon.data.model.DeliveryJob
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.repository.JobRepository
 import com.company.carryon.di.ServiceLocator
+import com.company.carryon.data.network.AuthSessionManager
 import com.company.carryon.data.network.SupabaseConfig
-import com.company.carryon.data.network.getToken
-import com.company.carryon.data.network.saveToken
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.navigation.mapJobStatusToResumeScreen
@@ -78,10 +77,10 @@ fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
 
         if (session != null) {
             // Save the fresh access token for API calls
-            saveToken(session.accessToken)
+            AuthSessionManager.storeAccessToken(session.accessToken)
             // Has valid session — sync driver and route based on profile completeness
             authViewModel.syncDriverForSession()
-        } else if (getToken() != null) {
+        } else if (AuthSessionManager.currentAccessToken() != null) {
             // Fallback: stored token exists but no Supabase session.
             // Try to sync with the stored token — if it's still valid, the API call will succeed.
             authViewModel.syncDriverForSession()
@@ -114,8 +113,9 @@ fun SplashScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             }
             is UiState.Error -> {
                 navigator.clearPersistedDeliveryState()
-                // Session exists but sync failed — go to onboarding to re-auth
-                navigator.navigateAndClearStack(Screen.Onboarding)
+                // Existing session/token could not be refreshed. Send returning drivers
+                // directly to sign-in; their local onboarding draft is restored after OTP.
+                navigator.navigateAndClearStack(Screen.Login)
             }
             else -> {} // Loading or Idle — wait
         }

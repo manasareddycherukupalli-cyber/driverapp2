@@ -52,7 +52,6 @@ kotlin {
             implementation(libs.credentials)
             implementation(libs.credentials.play.services)
             implementation(libs.googleid)
-            implementation("androidx.security:security-crypto:1.1.0-alpha06")
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

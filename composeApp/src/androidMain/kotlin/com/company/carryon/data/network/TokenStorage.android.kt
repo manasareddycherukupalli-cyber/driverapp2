@@ -2,11 +2,22 @@ package com.company.carryon.data.network
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import java.security.KeyStore
+import java.security.SecureRandom
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
 private const val SECURE_PREFS_NAME = "driver_secure_prefs"
 private const val PLAIN_PREFS_NAME = "driver_app_prefs"
+private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+private const val KEYSTORE_ALIAS = "carryon_driver_token_key"
+private const val GCM_TAG_LENGTH_BITS = 128
+private const val GCM_IV_LENGTH_BYTES = 12
 private const val KEY_TOKEN = "jwt_token"
 private const val KEY_LANGUAGE = "user_language"
 private const val KEY_DELIVERY_RESUME_SCREEN = "delivery_resume_screen"
@@ -20,16 +31,7 @@ private var plainPrefs: SharedPreferences? = null
 
 fun initTokenStorage(context: Context) {
     if (securePrefs == null) {
-        val masterKey = MasterKey.Builder(context.applicationContext)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        securePrefs = EncryptedSharedPreferences.create(
-            context.applicationContext,
-            SECURE_PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        securePrefs = context.applicationContext.getSharedPreferences(SECURE_PREFS_NAME, Context.MODE_PRIVATE)
     }
     if (plainPrefs == null) {
         plainPrefs = context.applicationContext.getSharedPreferences(PLAIN_PREFS_NAME, Context.MODE_PRIVATE)
@@ -42,17 +44,17 @@ private fun migrateFromPlainPrefs() {
     val oldPrefs = plainPrefs ?: return
     val oldToken = oldPrefs.getString(KEY_TOKEN, null)
     if (oldToken != null) {
-        securePrefs?.edit()?.putString(KEY_TOKEN, oldToken)?.commit()
+        putEncrypted(KEY_TOKEN, oldToken)
         oldPrefs.edit().remove(KEY_TOKEN).commit()
     }
 }
 
 actual fun saveToken(token: String) {
-    securePrefs?.edit()?.putString(KEY_TOKEN, token)?.apply()
+    putEncrypted(KEY_TOKEN, token)
 }
 
 actual fun getToken(): String? {
-    return securePrefs?.getString(KEY_TOKEN, null)
+    return getEncrypted(KEY_TOKEN)
 }
 
 actual fun clearToken() {
@@ -102,11 +104,11 @@ actual fun clearOnboardingDraft(key: String) {
 }
 
 actual fun savePushToken(token: String) {
-    securePrefs?.edit()?.putString(KEY_PUSH_TOKEN, token)?.apply()
+    putEncrypted(KEY_PUSH_TOKEN, token)
 }
 
 actual fun getPushToken(): String? {
-    return securePrefs?.getString(KEY_PUSH_TOKEN, null)
+    return getEncrypted(KEY_PUSH_TOKEN)
 }
 
 actual fun clearPushToken() {
@@ -134,4 +136,60 @@ actual fun consumePendingIncomingJob(): Boolean {
         prefs.edit().remove(KEY_PENDING_INCOMING_JOB).apply()
     }
     return pending
+}
+
+private fun putEncrypted(key: String, value: String) {
+    val prefs = securePrefs ?: return
+    runCatching {
+        prefs.edit().putString(key, encrypt(value)).apply()
+    }.onFailure {
+        prefs.edit().remove(key).apply()
+    }
+}
+
+private fun getEncrypted(key: String): String? {
+    val prefs = securePrefs ?: return null
+    val encrypted = prefs.getString(key, null) ?: return null
+    return runCatching { decrypt(encrypted) }
+        .onFailure { prefs.edit().remove(key).apply() }
+        .getOrNull()
+}
+
+private fun encrypt(value: String): String {
+    val iv = ByteArray(GCM_IV_LENGTH_BYTES)
+    SecureRandom().nextBytes(iv)
+    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+    cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey(), GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+    val ciphertext = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
+    return "${Base64.encodeToString(iv, Base64.NO_WRAP)}:${Base64.encodeToString(ciphertext, Base64.NO_WRAP)}"
+}
+
+private fun decrypt(value: String): String {
+    val parts = value.split(':', limit = 2)
+    require(parts.size == 2) { "Invalid encrypted value" }
+    val iv = Base64.decode(parts[0], Base64.NO_WRAP)
+    val ciphertext = Base64.decode(parts[1], Base64.NO_WRAP)
+    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+    cipher.init(Cipher.DECRYPT_MODE, getOrCreateSecretKey(), GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+    return cipher.doFinal(ciphertext).toString(Charsets.UTF_8)
+}
+
+private fun getOrCreateSecretKey(): SecretKey {
+    val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+    (keyStore.getEntry(KEYSTORE_ALIAS, null) as? KeyStore.SecretKeyEntry)?.let {
+        return it.secretKey
+    }
+
+    val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
+    val spec = KeyGenParameterSpec.Builder(
+        KEYSTORE_ALIAS,
+        KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+    )
+        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+        .setRandomizedEncryptionRequired(true)
+        .build()
+
+    generator.init(spec)
+    return generator.generateKey()
 }

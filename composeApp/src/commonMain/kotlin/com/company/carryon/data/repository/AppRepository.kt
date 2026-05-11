@@ -2,10 +2,8 @@ package com.company.carryon.data.repository
 
 import com.company.carryon.data.api.*
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.AuthSessionManager
 import com.company.carryon.data.network.clearPushToken
-import com.company.carryon.data.network.clearToken
-import com.company.carryon.data.network.getToken
-import com.company.carryon.data.network.saveToken
 import com.company.carryon.data.network.SupabaseConfig
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.flow.Flow
@@ -40,7 +38,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
     override val isLoggedIn: Flow<Boolean> = _isLoggedIn.asStateFlow()
 
     override fun checkExistingSession() {
-        val token = getToken()
+        val token = AuthSessionManager.currentAccessToken()
         if (token != null) {
             _isLoggedIn.value = true
         }
@@ -134,7 +132,7 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
             runCatching { api.deletePushToken(driverId) }
         }
         clearPushToken()
-        clearToken()
+        AuthSessionManager.clearAccessToken()
         try {
             SupabaseConfig.client.auth.signOut()
         } catch (_: Exception) {

@@ -5,16 +5,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.company.carryon.data.api.DriverOnboardingApi
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.AuthSessionManager
 import com.company.carryon.data.network.hasLocationPermission
 import com.company.carryon.data.network.SupabaseConfig
-import com.company.carryon.data.network.getToken
-import com.company.carryon.data.network.saveToken
+import com.company.carryon.data.network.mapUploadErrorMessage
 import com.company.carryon.di.ServiceLocator
 import com.company.carryon.i18n.currentLanguageOrDefault
 import com.company.carryon.presentation.navigation.Screen
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -24,6 +24,7 @@ enum class AuthFlowType { LOGIN, SIGNUP }
 class AuthViewModel : ViewModel() {
 
     private val repository = ServiceLocator.authRepository
+    private val documentApi = DriverOnboardingApi()
 
     // Global exception handler for coroutines to prevent unhandled crashes on iOS
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
@@ -96,11 +97,12 @@ class AuthViewModel : ViewModel() {
                         session = SupabaseConfig.client.auth.currentSessionOrNull()
                     } catch (_: Exception) {
                         // Refresh failed — no valid session
+                        clearStaleAuthSessionForOtp()
                     }
                 }
 
                 if (session != null) {
-                    saveToken(session.accessToken)
+                    AuthSessionManager.storeAccessToken(session.accessToken)
                     _hasValidSession.value = true
                 }
             } catch (_: Exception) {
@@ -133,7 +135,7 @@ class AuthViewModel : ViewModel() {
      * For SIGNUP flow, also registers the driver details (name, phone) collected on the registration screen.
      */
     fun onSupabaseTokenReceived(token: String) {
-        saveToken(token)
+        AuthSessionManager.storeAccessToken(token)
         _hasValidSession.value = true
         viewModelScope.launch {
             _otpVerifyState.value = UiState.Loading
@@ -193,27 +195,13 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    /** Upload a driver document — uploads image to Supabase Storage, then saves metadata to backend */
+    /** Upload a driver document through the backend so private storage failures are observable server-side. */
     fun uploadDocument(type: DocumentType, imageBytes: ByteArray) {
         viewModelScope.launch(exceptionHandler) {
             try {
                 _documentUploadState.value = UiState.Loading
 
-                // 1. Upload image bytes to Supabase Storage
-                val driverId = _latestAuthResponse.value?.driver?.id
-                    ?: throw IllegalStateException("No active driver session")
-                val timestamp = kotlin.time.Clock.System.now().toEpochMilliseconds()
-                val path = "$driverId/${type.name.lowercase()}_${timestamp}.jpg"
-
-                val bucket = SupabaseConfig.client.storage.from("driver-documents")
-                bucket.upload(path, imageBytes) { upsert = true }
-                // Store object path, not public URL — backend generates signed URLs
-                val objectPath = "driver-documents/$path"
-
-                // 2. Save document metadata (with object path) to backend
-                val document = Document(type = type, imageUrl = objectPath)
-
-                repository.uploadDocument(document)
+                documentApi.uploadDocument(type, imageBytes)
                     .onSuccess { doc ->
                         val current = _uploadedDocuments.value.toMutableList()
                         val existingIndex = current.indexOfFirst { it.type == doc.type }
@@ -230,12 +218,14 @@ class AuthViewModel : ViewModel() {
                         _documentUploadState.value = UiState.Success(doc)
                     }
                     .onFailure { error ->
-                        error.printStackTrace()
-                        _documentUploadState.value = UiState.Error(error.message ?: "Upload failed")
+                        _documentUploadState.value = UiState.Error(
+                            mapUploadErrorMessage(error, "Failed to sync document. Please try again.")
+                        )
                     }
             } catch (t: Throwable) {
-                t.printStackTrace()
-                _documentUploadState.value = UiState.Error(t.message ?: "Upload failed")
+                _documentUploadState.value = UiState.Error(
+                    mapUploadErrorMessage(t, "Failed to upload document. Please try again.")
+                )
             }
         }
     }
@@ -430,6 +420,7 @@ class AuthViewModel : ViewModel() {
                     _sessionSyncState.value = UiState.Success(response)
                 }
                 .onFailure {
+                    clearStaleAuthSessionForOtp()
                     _sessionSyncState.value = UiState.Error(it.message ?: "Sync failed")
                 }
         }

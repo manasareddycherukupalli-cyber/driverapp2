@@ -49,16 +49,6 @@ private val RegBlue  = Color(0xFF2F80ED)
 private val RegBlack = Color(0xFF16161E)
 private val RegGray  = Color(0xFF828282)
 
-private fun mapAuthErrorMessage(error: Throwable): String {
-    val message = error.message.orEmpty()
-    return when {
-        message.contains("Request timeout", ignoreCase = true) ||
-            message.contains("request_timeout", ignoreCase = true) ->
-            "Request timed out. Please check your internet and try again."
-        else -> message.ifBlank { "Failed to send OTP" }
-    }
-}
-
 /**
  * RegistrationScreen — Sign Up screen using the same Figma
  * design tokens and component patterns as LoginScreen (node 143:3000).
@@ -97,7 +87,8 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         }
     }
 
-    val signUpEnabled = name.isNotBlank() && email.isNotBlank()
+    val normalizedEmail = normalizeEmailInput(email)
+    val signUpEnabled = name.isNotBlank() && isValidEmailInput(email)
 
     // Listen for session changes (handles iOS OAuth callback)
     LaunchedEffect(Unit) {
@@ -247,14 +238,15 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                 isLoading = true
                 authViewModel.authFlowType = AuthFlowType.SIGNUP
                 authViewModel.driverName = name
-                authViewModel.driverEmail = email
+                authViewModel.driverEmail = normalizedEmail
                 authViewModel.driverPhone = phone
                 coroutineScope.launch {
                     try {
+                        clearStaleAuthSessionForOtp()
                         SupabaseConfig.client.auth.signInWith(OTP) {
-                            this.email = email
+                            this.email = normalizedEmail
                         }
-                        authViewModel.onOtpSent(email)
+                        authViewModel.onOtpSent(normalizedEmail)
                         navigator.navigateTo(Screen.OtpVerification)
                     } catch (e: Exception) {
                         errorMessage = mapAuthErrorMessage(e)

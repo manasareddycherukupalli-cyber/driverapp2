@@ -50,19 +50,6 @@ private val DesignBlue  = Color(0xFF2F80ED)
 private val DesignBlack = Color(0xFF16161E)
 private val DesignGray  = Color(0xFF828282)
 
-private fun mapAuthErrorMessage(error: Throwable): String {
-    val message = error.message.orEmpty()
-    return when {
-        message.contains("Unable to resolve host", ignoreCase = true) ||
-            message.contains("No address associated with hostname", ignoreCase = true) ->
-            "Cannot reach auth server (DNS/network issue). If using emulator, verify internet and set Android Private DNS to Automatic/Off."
-        message.contains("Request timeout", ignoreCase = true) ||
-            message.contains("request_timeout", ignoreCase = true) ->
-            "Request timed out. Please check your internet and try again."
-        else -> message.ifBlank { "Failed to send OTP" }
-    }
-}
-
 /**
  * LoginScreen — pixel-accurate recreation of the Figma
  * "SIGN IN [In Active]" screen (node 1:258).
@@ -75,6 +62,7 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     var errorMessage    by remember { mutableStateOf<String?>(null) }
     var awaitingGoogleAuth by remember { mutableStateOf(false) }
     val coroutineScope  = rememberCoroutineScope()
+    val normalizedEmail = normalizeEmailInput(email)
 
     val otpSendState by authViewModel.otpSendState.collectAsState()
     val otpVerifyState by authViewModel.otpVerifyState.collectAsState()
@@ -240,14 +228,15 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             onClick = {
                 errorMessage = null
                 authViewModel.authFlowType = AuthFlowType.LOGIN
-                authViewModel.driverEmail = email
+                authViewModel.driverEmail = normalizedEmail
                 authViewModel.setOtpLoading()
                 coroutineScope.launch {
                     try {
+                        clearStaleAuthSessionForOtp()
                         SupabaseConfig.client.auth.signInWith(OTP) {
-                            this.email = email
+                            this.email = normalizedEmail
                         }
-                        authViewModel.onOtpSent(email)
+                        authViewModel.onOtpSent(normalizedEmail)
                     } catch (e: Exception) {
                         authViewModel.onOtpSendError(mapAuthErrorMessage(e))
                     }
@@ -257,7 +246,7 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                 .fillMaxWidth()
                 .height(60.dp),
             shape     = RoundedCornerShape(10.dp),
-            enabled   = email.isNotBlank() && !isLoading,
+            enabled   = isValidEmailInput(email) && !isLoading,
             colors    = ButtonDefaults.buttonColors(
                 containerColor = DesignBlue,
                 disabledContainerColor = Color(0xFFE0E0E0)

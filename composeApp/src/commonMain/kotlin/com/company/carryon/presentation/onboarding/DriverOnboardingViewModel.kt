@@ -5,9 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.Document
 import com.company.carryon.data.model.DocumentType
 import com.company.carryon.data.model.Driver
-import com.company.carryon.data.model.DriverDocumentSubmissionRequest
 import com.company.carryon.data.model.DriverNationality
+import com.company.carryon.data.model.DriverDocumentSubmissionRequest
 import com.company.carryon.data.model.DriverOnboardingDraft
+import com.company.carryon.data.model.DriverOnboardingSubmissionRequest
 import com.company.carryon.data.model.DriverProfileUpdateRequest
 import com.company.carryon.data.model.DriverVerificationStatusPayload
 import com.company.carryon.data.model.DriverVehicleUpsertRequest
@@ -17,18 +18,25 @@ import com.company.carryon.data.model.MalaysianState
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.UploadedDocumentAsset
 import com.company.carryon.data.model.ValidationMessage
+import com.company.carryon.data.model.VerificationStatus
 import com.company.carryon.data.model.VehicleDetails
 import com.company.carryon.data.model.VehicleOwnership
 import com.company.carryon.data.model.VehicleType
 import com.company.carryon.data.network.HttpClientFactory
 import com.company.carryon.data.network.clearOnboardingDraft
 import com.company.carryon.data.network.getOnboardingDraft
+import com.company.carryon.data.network.mapUploadErrorMessage
 import com.company.carryon.data.network.saveOnboardingDraft
 import com.company.carryon.di.ServiceLocator
 import com.company.carryon.presentation.auth.AuthViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -40,9 +48,11 @@ import kotlin.time.Clock
 class DriverOnboardingViewModel(
     private val authViewModel: AuthViewModel
 ) : ViewModel() {
+    sealed interface VerificationNavigationEvent {
+        data object NavigateToDashboard : VerificationNavigationEvent
+    }
 
     private val api = ServiceLocator.driverOnboardingApi
-    private val storage = ServiceLocator.driverDocumentsStorage
     private val authRepository = ServiceLocator.authRepository
     private val json = HttpClientFactory.json
 
@@ -61,11 +71,14 @@ class DriverOnboardingViewModel(
     private val _verificationState =
         MutableStateFlow<UiState<DriverVerificationStatusPayload>>(UiState.Idle)
     val verificationState: StateFlow<UiState<DriverVerificationStatusPayload>> = _verificationState.asStateFlow()
+    private val _verificationNavigationEvents = MutableSharedFlow<VerificationNavigationEvent>(extraBufferCapacity = 1)
+    val verificationNavigationEvents: SharedFlow<VerificationNavigationEvent> = _verificationNavigationEvents.asSharedFlow()
 
     private val _serverDocuments = MutableStateFlow<Map<DocumentType, Document>>(emptyMap())
     val serverDocuments: StateFlow<Map<DocumentType, Document>> = _serverDocuments.asStateFlow()
 
     private var initializedDriverId: String? = null
+    private var verificationMonitorJob: Job? = null
 
     fun initialize(force: Boolean = false) {
         val driverId = currentDriverId() ?: return
@@ -335,53 +348,54 @@ class DriverOnboardingViewModel(
     }
 
     fun uploadDocument(type: DocumentType, bytes: ByteArray, expiryDate: String? = null) {
-        val driverId = currentDriverId() ?: return
+        currentDriverId() ?: return
         viewModelScope.launch {
             _documentUploadState.value = UiState.Loading
-            storage.uploadDocument(driverId, type, bytes)
-                .onSuccess { url ->
-                    val draftWithDocument = applyUploadedDocument(_draftState.value, type, url, expiryDate)
+            api.uploadDocument(type, bytes, expiryDate)
+                .onSuccess { document ->
+                    _serverDocuments.value = _serverDocuments.value.toMutableMap().apply {
+                        put(document.type, document)
+                    }
+                    val draftWithDocument = applyUploadedDocument(
+                        _draftState.value,
+                        type,
+                        document.imageUrl,
+                        document.expiryDate ?: expiryDate
+                    )
                     val updatedDraft = draftWithDocument.copy(
                         completedSteps = computeCompletedSteps(draftWithDocument)
                     )
                     _draftState.value = updatedDraft
                     persistDraft(updatedDraft)
-
-                    api.submitDocument(
-                        DriverDocumentSubmissionRequest(
-                            imageUrl = url,
-                            type = type,
-                            expiryDate = expiryDate?.takeIf { it.isNotBlank() }
-                        )
-                    ).onSuccess { document ->
-                        _serverDocuments.value = _serverDocuments.value.toMutableMap().apply {
-                            put(document.type, document)
-                        }
-                        _documentUploadState.value = UiState.Success(type)
-                    }.onFailure {
-                        _documentUploadState.value = UiState.Error(
-                            it.message ?: "Uploaded ${type.displayName}, but failed to sync it to the admin panel."
-                        )
-                    }
+                    _documentUploadState.value = UiState.Success(type)
                 }
                 .onFailure {
-                    _documentUploadState.value = UiState.Error(it.message ?: "Failed to upload ${type.displayName}.")
+                    _documentUploadState.value = UiState.Error(
+                        mapUploadErrorMessage(it, "Failed to upload ${type.displayName}.")
+                    )
                 }
         }
     }
 
-    fun refreshVerificationStatus() {
+    fun refreshVerificationStatus(silent: Boolean = false) {
         viewModelScope.launch {
-            _verificationState.value = UiState.Loading
-            api.getVerificationStatus()
-                .onSuccess {
-                    _serverDocuments.value = it.documents.associateBy { document -> document.type }
-                    _verificationState.value = UiState.Success(it)
-                }
-                .onFailure {
-                    _verificationState.value = UiState.Error(it.message ?: "Failed to load verification status.")
-                }
+            fetchVerificationStatus(silent)
         }
+    }
+
+    fun startVerificationMonitor() {
+        if (verificationMonitorJob?.isActive == true) return
+        verificationMonitorJob = viewModelScope.launch {
+            while (true) {
+                fetchVerificationStatus(silent = true)
+                delay(15_000)
+            }
+        }
+    }
+
+    fun stopVerificationMonitor() {
+        verificationMonitorJob?.cancel()
+        verificationMonitorJob = null
     }
 
     fun logout() {
@@ -411,9 +425,14 @@ class DriverOnboardingViewModel(
             val documentRequests = buildDocumentRequests(draft)
 
             val result = runCatching {
-                api.updateProfile(profileRequest).getOrThrow()
-                api.updateVehicle(vehicleRequest).getOrThrow()
-                documentRequests.forEach { api.submitDocument(it).getOrThrow() }
+                api.submitOnboarding(
+                    DriverOnboardingSubmissionRequest(
+                        profile = profileRequest,
+                        vehicle = vehicleRequest,
+                        documents = documentRequests,
+                        agreementAccepted = draft.agreementAccepted
+                    )
+                ).getOrThrow()
                 api.getVerificationStatus().getOrThrow()
             }
 
@@ -435,8 +454,38 @@ class DriverOnboardingViewModel(
 
     fun serverDocument(type: DocumentType): Document? = _serverDocuments.value[type]
 
+    override fun onCleared() {
+        stopVerificationMonitor()
+        super.onCleared()
+    }
+
     private fun currentDriverId(): String? {
         return authViewModel.latestAuthResponse.value?.driver?.id?.takeIf { it.isNotBlank() }
+    }
+
+    private suspend fun fetchVerificationStatus(silent: Boolean) {
+        if (!silent) {
+            _verificationState.value = UiState.Loading
+        }
+        api.getVerificationStatus()
+            .onSuccess { payload ->
+                _serverDocuments.value = payload.documents.associateBy { document -> document.type }
+                _verificationState.value = UiState.Success(payload)
+                when (payload.verificationStatus) {
+                    VerificationStatus.APPROVED -> {
+                        _verificationNavigationEvents.tryEmit(VerificationNavigationEvent.NavigateToDashboard)
+                        stopVerificationMonitor()
+                    }
+                    VerificationStatus.REJECTED -> stopVerificationMonitor()
+                    VerificationStatus.PENDING,
+                    VerificationStatus.IN_REVIEW -> Unit
+                }
+            }
+            .onFailure {
+                if (!silent) {
+                    _verificationState.value = UiState.Error(it.message ?: "Failed to load verification status.")
+                }
+            }
     }
 
     private fun loadLocalDraft(driverId: String): DriverOnboardingDraft? {
@@ -744,7 +793,7 @@ class DriverOnboardingViewModel(
         const val TOTAL_STEPS = 13
 
         val states = MalaysianState.entries
-        val vehicleTypes = VehicleType.entries
+        val vehicleTypes = VehicleType.entries.filterNot { it == VehicleType.VAN || it == VehicleType.TRUCK }
         val licenseClasses = LicenseClass.entries
         val ownershipTypes = VehicleOwnership.entries
         val insuranceCoverageTypes = InsuranceCoverageType.entries

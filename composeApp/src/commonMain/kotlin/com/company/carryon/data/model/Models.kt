@@ -20,12 +20,14 @@ data class Driver(
     val dateOfBirth: String = "",
     val gender: String = "",
     @SerialName("language") val preferredLanguage: String = "",
+    @Serializable(with = NullableDriverNationalitySerializer::class)
     val nationality: DriverNationality? = null,
     val mykadNumber: String = "",
     val passportNumber: String = "",
     val passportExpiry: String? = null,
     val plksNumber: String = "",
     val plksExpiry: String? = null,
+    @Serializable(with = NullableLicenseClassSerializer::class)
     val licenseClass: LicenseClass? = null,
     val licenseExpiry: String? = null,
     val hasGDL: Boolean = false,
@@ -34,6 +36,7 @@ data class Driver(
     val addressLine2: String = "",
     val city: String = "",
     val postcode: String = "",
+    @Serializable(with = NullableMalaysianStateSerializer::class)
     val state: MalaysianState? = null,
     val workingStates: List<MalaysianState> = emptyList(),
     val emergencyContactName: String = "",
@@ -109,6 +112,7 @@ data class VehicleDetails(
     val color: String = "",
     val chassisNumber: String = "",
     val engineNumber: String = "",
+    @Serializable(with = NullableVehicleOwnershipSerializer::class)
     val ownership: VehicleOwnership? = null,
     val ownerName: String = "",
     val roadTaxExpiry: String? = null,
@@ -117,6 +121,7 @@ data class VehicleDetails(
     val apadPermitExpiry: String? = null,
     val insurerName: String = "",
     val insurancePolicyNumber: String = "",
+    @Serializable(with = NullableInsuranceCoverageTypeSerializer::class)
     val insuranceCoverageType: InsuranceCoverageType? = null,
     val insuranceExpiry: String? = null,
     val hasCommercialCover: Boolean = false

@@ -11,21 +11,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -37,6 +32,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -73,7 +69,23 @@ fun DriverVerificationStatusScreen(
 
     LaunchedEffect(Unit) {
         viewModel.initialize()
-        viewModel.refreshVerificationStatus()
+        viewModel.startVerificationMonitor()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.stopVerificationMonitor()
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.verificationNavigationEvents.collect { event ->
+            when (event) {
+                DriverOnboardingViewModel.VerificationNavigationEvent.NavigateToDashboard -> {
+                    navigator.navigateAndClearStack(Screen.Home)
+                }
+            }
+        }
     }
 
     when (val state = verificationState) {
@@ -99,116 +111,21 @@ fun DriverVerificationStatusScreen(
         is UiState.Success -> {
             val payload = state.data
             when (payload.verificationStatus) {
-                VerificationStatus.APPROVED -> ApprovedVerificationScreen(navigator)
+                VerificationStatus.APPROVED -> Box(
+                    modifier = Modifier.fillMaxSize().background(VerifyBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = VerifyBlue)
+                }
                 VerificationStatus.REJECTED -> FailedVerificationScreen(
                     navigator = navigator,
                     documents = payload.documents
                 )
                 VerificationStatus.PENDING,
                 VerificationStatus.IN_REVIEW -> PendingVerificationScreen(
-                    navigator = navigator,
                     onRefresh = { viewModel.refreshVerificationStatus() }
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ApprovedVerificationScreen(navigator: AppNavigator) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(VerifyBg)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 18.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        VerificationHeader()
-
-        Spacer(Modifier.height(6.dp))
-        Box(
-            modifier = Modifier
-                .size(92.dp)
-                .background(Color.White, CircleShape)
-                .padding(10.dp)
-                .align(Alignment.CenterHorizontally),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(VerifyBlue, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(34.dp))
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .background(SoftBlueStrong, RoundedCornerShape(999.dp))
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Text("APPLICATION APPROVED", color = VerifyBlue, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        }
-
-        Text(
-            "verification Status",
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            color = VerifyText,
-            fontWeight = FontWeight.Bold,
-            fontSize = 35.sp / 2
-        )
-        Text(
-            "Congratulations! Your account is now active and you can start accepting jobs.",
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            color = VerifyMuted,
-            textAlign = TextAlign.Center,
-            lineHeight = 24.sp / 1.3f
-        )
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = SoftBlue),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("NEXT STEP", color = VerifyBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text("Complete Your First Delivery", color = VerifyText, fontWeight = FontWeight.Bold, fontSize = 30.sp / 2)
-                Text(
-                    "Access your navigation dashboard to view available routes in your current zone.",
-                    color = VerifyMuted,
-                    lineHeight = 20.sp / 1.3f
-                )
-            }
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            InfoStatCard(
-                modifier = Modifier.weight(1f),
-                icon = { Icon(Icons.Filled.Shield, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(18.dp)) },
-                subtitle = "Profile Level",
-                title = "Certified\nPartner"
-            )
-            InfoStatCard(
-                modifier = Modifier.weight(1f),
-                icon = { Icon(Icons.Filled.Place, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(18.dp)) },
-                subtitle = "Active Zone",
-                title = "Global Reach"
-            )
-        }
-
-        Spacer(Modifier.height(6.dp))
-        Button(
-            onClick = { navigator.navigateAndClearStack(Screen.Home) },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue)
-        ) {
-            Text("Go to Dashboard", fontWeight = FontWeight.Bold)
-            Spacer(Modifier.width(8.dp))
-            Icon(Icons.Filled.ArrowForward, contentDescription = null)
         }
     }
 }
@@ -319,7 +236,6 @@ private fun FailedVerificationScreen(
 
 @Composable
 private fun PendingVerificationScreen(
-    navigator: AppNavigator,
     onRefresh: () -> Unit
 ) {
     Column(
@@ -339,9 +255,6 @@ private fun PendingVerificationScreen(
         )
         Button(onClick = onRefresh, colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue)) {
             Text("Refresh status")
-        }
-        OutlinedButton(onClick = { navigator.navigateAndClearStack(Screen.Home) }) {
-            Text("Go to dashboard")
         }
     }
 }
@@ -372,26 +285,6 @@ private fun VerificationHeader() {
                     modifier = Modifier.size(16.dp)
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun InfoStatCard(
-    modifier: Modifier = Modifier,
-    icon: @Composable () -> Unit,
-    subtitle: String,
-    title: String
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            icon()
-            Text(subtitle, color = VerifyMuted, fontSize = 12.sp)
-            Text(title, color = VerifyText, fontWeight = FontWeight.Bold, lineHeight = 18.sp)
         }
     }
 }

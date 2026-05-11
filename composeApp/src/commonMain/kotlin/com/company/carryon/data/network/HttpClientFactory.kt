@@ -1,6 +1,5 @@
 package com.company.carryon.data.network
 
-import io.github.jan.supabase.auth.auth
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -26,23 +25,11 @@ object HttpClientFactory {
     }
 
     /**
-     * Gets the current valid access token from Supabase.
-     * Supabase SDK handles token refresh automatically.
-     * Falls back to stored token if no active session.
+     * Gets the current access token through the auth session module.
+     * Request builders should not know about Supabase session/storage fallbacks.
      */
     fun getCurrentAccessToken(): String? {
-        return try {
-            val session = SupabaseConfig.client.auth.currentSessionOrNull()
-            val token = session?.accessToken
-            if (token != null) {
-                saveToken(token)
-                token
-            } else {
-                getToken()
-            }
-        } catch (_: Exception) {
-            getToken()
-        }
+        return AuthSessionManager.currentAccessToken()
     }
 
     val client: HttpClient by lazy {
@@ -98,7 +85,8 @@ object HttpClientFactory {
  */
 fun HttpRequestBuilder.withAuth() {
     val token = HttpClientFactory.getCurrentAccessToken()
-    if (token != null) {
-        headers.append("Authorization", "Bearer $token")
+    if (token.isNullOrBlank()) {
+        throw AuthenticationException("Authentication required. Please log in again.")
     }
+    headers.append("Authorization", "Bearer $token")
 }

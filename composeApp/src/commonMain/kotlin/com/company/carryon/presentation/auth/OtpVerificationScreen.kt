@@ -153,11 +153,12 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                         errorMessage = null
                         coroutineScope.launch {
                             try {
+                                clearStaleAuthSessionForOtp()
                                 SupabaseConfig.client.auth.signInWith(OTP) {
-                                    email = authViewModel.driverEmail
+                                    email = normalizeEmailInput(authViewModel.driverEmail)
                                 }
                             } catch (e: Exception) {
-                                errorMessage = e.message ?: "Failed to resend code"
+                                errorMessage = mapAuthErrorMessage(e)
                             }
                         }
                     }
@@ -191,7 +192,7 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                         // Use the OTP provider's verifyEmailOtp method
                         SupabaseConfig.client.auth.verifyEmailOtp(
                             type = OtpType.Email.EMAIL,
-                            email = authViewModel.driverEmail,
+                            email = normalizeEmailInput(authViewModel.driverEmail),
                             token = otp
                         )
                         // Get the session after successful verification
@@ -218,11 +219,7 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                             isVerifying = false
                         }
                     } catch (e: Exception) {
-                        val msg = e.message ?: "OTP verification failed"
-                        // Log the full error for debugging
-                        println("OTP Verification Error: $msg")
-                        println("Email used: ${authViewModel.driverEmail}")
-                        errorMessage = msg
+                        errorMessage = mapAuthErrorMessage(e)
                         isVerifying = false
                     }
                 }
