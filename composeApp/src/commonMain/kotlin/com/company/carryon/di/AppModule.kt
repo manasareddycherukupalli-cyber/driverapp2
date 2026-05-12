@@ -21,4 +21,5 @@ object ServiceLocator {
     val ratingsRepository: RatingsRepository by lazy { RatingsRepositoryImpl(ratingsApi) }
     val supportRepository: SupportRepository by lazy { SupportRepositoryImpl(supportApi) }
     val notificationsRepository: NotificationsRepository by lazy { NotificationsRepositoryImpl(notificationsApi) }
+    val serviceAreaRepository: ServiceAreaRepository by lazy { ServiceAreaRepositoryImpl() }
 }

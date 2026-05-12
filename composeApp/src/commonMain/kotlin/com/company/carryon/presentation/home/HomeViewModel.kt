@@ -6,6 +6,7 @@ import com.company.carryon.data.model.*
 import com.company.carryon.data.network.AuthenticationException
 import com.company.carryon.data.network.IncomingJobSignal
 import com.company.carryon.data.network.LocationApi
+import kotlin.math.*
 import com.company.carryon.data.network.RealtimeJobService
 import com.company.carryon.data.network.consumePendingIncomingJob
 import com.company.carryon.data.network.getLastKnownLocation
@@ -158,6 +159,19 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             val newStatus = !_isOnline.value
             isTogglingOnline = true
+
+            // Pre-check: verify driver is inside a service area before going online
+            if (newStatus) {
+                val loc = getLastKnownLocation()
+                if (loc != null) {
+                    if (!ServiceLocator.serviceAreaRepository.isInServiceArea(loc.first, loc.second)) {
+                        _toastError.tryEmit("You're outside the service area. Move to an active region to go online.")
+                        isTogglingOnline = false
+                        return@launch
+                    }
+                }
+            }
+
             authRepository.toggleOnline(newStatus)
                 .onSuccess {
                     _isOnline.value = newStatus

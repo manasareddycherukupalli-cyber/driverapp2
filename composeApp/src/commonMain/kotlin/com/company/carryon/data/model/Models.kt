@@ -680,3 +680,12 @@ data class RouteResult(val distance: Double = 0.0, val duration: Int = 0, val ge
 
 @Serializable
 data class CalculateRouteRequest(val originLat: Double, val originLng: Double, val destLat: Double, val destLng: Double)
+
+@Serializable
+data class ServiceArea(
+    val id: String = "",
+    val name: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val radiusKm: Double = 0.0
+)

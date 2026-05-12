@@ -4,6 +4,7 @@ import com.company.carryon.data.model.ApiResponse
 import com.company.carryon.data.model.CalculateRouteRequest
 import com.company.carryon.data.model.MapConfig
 import com.company.carryon.data.model.RouteResult
+import com.company.carryon.data.model.ServiceArea
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -48,5 +49,12 @@ object LocationApi {
             parameter("lng", lng)
         }.body<ApiResponse<Map<String, String>>>()
         response.data?.get("address") ?: ""
+    }
+
+    suspend fun getServiceAreas(): Result<List<ServiceArea>> = runCatching {
+        val response = client.get("/api/location/service-areas") {
+            withAuth()
+        }.body<ApiResponse<List<ServiceArea>>>()
+        response.data ?: emptyList()
     }
 }
