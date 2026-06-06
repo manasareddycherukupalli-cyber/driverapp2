@@ -21,7 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DeliveryJob
@@ -72,6 +73,8 @@ import com.company.carryon.presentation.components.MapMarker
 import com.company.carryon.presentation.components.MapViewComposable
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.util.senderPhoneForPickup
+import com.company.carryon.presentation.util.telUriFor
 
 private val ArriveBlue = Color(0xFF2F80ED)
 private val ArriveSoft = Color(0x4DA6D2F3)
@@ -158,6 +161,7 @@ private fun ActiveDeliveryContent(
     val isCancelling = cancelState is UiState.Loading
     var activeSheet by remember { mutableStateOf<String?>(null) }
     val uriHandler = LocalUriHandler.current
+    val senderTelUri = telUriFor(job.senderPhoneForPickup())
 
     LaunchedEffect(canCancelJob) {
         if (!canCancelJob) {
@@ -291,30 +295,30 @@ private fun ActiveDeliveryContent(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
                             Text("ORDER ID", fontSize = 10.sp, color = ArriveBlack.copy(alpha = 0.55f), fontWeight = FontWeight.SemiBold)
-                            Text("#${job.id.takeLast(8).uppercase()}", fontSize = 22.sp, color = ArriveBlack, fontWeight = FontWeight.ExtraBold)
+                            Text("#${job.id.takeLast(8).uppercase()}", fontSize = 22.sp, color = ArriveBlack, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         Column {
                             Text("TYPE", fontSize = 10.sp, color = ArriveBlack.copy(alpha = 0.55f), fontWeight = FontWeight.SemiBold)
-                            Text("${job.packageType} (${job.packageSize.displayName})", fontSize = 18.sp, color = ArriveBlack, fontWeight = FontWeight.Bold)
+                            Text("${job.packageType} (${job.packageSize.displayName})", fontSize = 18.sp, color = ArriveBlack, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
                             Text("SENDER", fontSize = 10.sp, color = ArriveBlack.copy(alpha = 0.55f), fontWeight = FontWeight.SemiBold)
-                            Text(job.pickup.contactName ?: job.customerName.ifBlank { "--" }, fontSize = 16.sp, color = ArriveBlack, fontWeight = FontWeight.Bold)
+                            Text(job.pickup.contactName ?: job.customerName.ifBlank { "--" }, fontSize = 16.sp, color = ArriveBlack, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         Box(
                             modifier = Modifier
                                 .background(ArriveWhite, RoundedCornerShape(999.dp))
-                                .clickable {
-                                    navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
+                                .clickable(enabled = senderTelUri != null) {
+                                    senderTelUri?.let(uriHandler::openUri)
                                 }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.ChatBubbleOutline, contentDescription = null, tint = ArriveBlue, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Filled.Call, contentDescription = null, tint = ArriveBlue, modifier = Modifier.size(14.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("Chat", color = ArriveBlue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                Text("Call", color = ArriveBlue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                             }
                         }
                     }
@@ -478,7 +482,9 @@ private fun DeliveryEarningsSheet(earnings: Double, orderId: String, blue: Color
             "RM ${earnings.toInt()}",
             fontSize = 36.sp,
             fontWeight = FontWeight.ExtraBold,
-            color = blue
+            color = blue,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Text("Order #${orderId.takeLast(8).uppercase()}", color = black.copy(alpha = 0.5f), fontSize = 13.sp)
         Text(

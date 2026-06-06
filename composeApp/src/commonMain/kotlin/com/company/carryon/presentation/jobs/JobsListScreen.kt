@@ -198,7 +198,9 @@ private fun PastJobCard(job: DeliveryJob, onClick: () -> Unit) {
                             job.displayOrderId.let { if (it.isNotBlank()) if (it.startsWith("#")) it else "#$it" else "#${job.id.takeLast(8).uppercase()}" },
                             color = JobsBlue,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         if (job.isSettlementEligible) {
                             val date = job.completedAt ?: job.deliveredAt ?: ""

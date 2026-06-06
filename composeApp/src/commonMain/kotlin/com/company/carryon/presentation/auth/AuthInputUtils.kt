@@ -5,6 +5,7 @@ import com.company.carryon.data.network.SupabaseConfig
 import io.github.jan.supabase.auth.auth
 
 private val EmailRegex = Regex("^[A-Za-z0-9._%+\\-']+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$")
+private val PhoneRegex = Regex("^\\+?\\d[\\d\\s().-]{7,18}$")
 
 fun normalizeEmailInput(value: String): String {
     return value
@@ -18,6 +19,21 @@ fun normalizeEmailInput(value: String): String {
 
 fun isValidEmailInput(value: String): Boolean {
     return EmailRegex.matches(normalizeEmailInput(value))
+}
+
+fun normalizePhoneInput(value: String): String {
+    return value
+        .trim()
+        .replace(Regex("\\s+"), "")
+        .replace("\u200B", "")
+        .replace("\u200C", "")
+        .replace("\u200D", "")
+}
+
+fun isValidPhoneInput(value: String): Boolean {
+    val normalized = normalizePhoneInput(value)
+    val digits = normalized.filter { it.isDigit() }
+    return PhoneRegex.matches(normalized) && digits.length in 8..15
 }
 
 suspend fun clearStaleAuthSessionForOtp() {
@@ -38,7 +54,7 @@ fun mapAuthErrorMessage(error: Throwable): String {
             message.contains("validation_failed", ignoreCase = true) ||
             message.contains("/auth/v1/otp", ignoreCase = true) ||
             message.contains("Headers:", ignoreCase = true) ->
-            "Enter a valid email address and try again."
+            "Enter a valid phone number and try again."
         message.contains("expired", ignoreCase = true) ||
             message.contains("JWT", ignoreCase = true) ->
             "Your session expired. Please request a new code."

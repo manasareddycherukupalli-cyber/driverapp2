@@ -16,9 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DocumentStatus
+import com.company.carryon.data.model.UiState
 import com.company.carryon.data.network.getLanguage
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.i18n.getLanguageDisplayName
@@ -37,6 +39,14 @@ fun SettingsScreen(
     val driver by viewModel.currentDriver.collectAsState()
 
     var useMiles by remember { mutableStateOf(true) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val deleteAccountState by viewModel.deleteAccountState.collectAsState()
+
+    LaunchedEffect(deleteAccountState) {
+        if (deleteAccountState is UiState.Success) {
+            navigator.navigateAndClearStack(Screen.Login)
+        }
+    }
 
     val sectionBg = Color(0x33A6D2F3)
     val blue = Color(0xFF2F80ED)
@@ -85,7 +95,7 @@ fun SettingsScreen(
                     AvatarCircle(initials = driverInitials, size = 72.dp)
                     Spacer(Modifier.width(16.dp))
                     Column {
-                        Text(driver?.name?.ifBlank { "--" } ?: "--", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                        Text(driver?.name?.ifBlank { "--" } ?: "--", fontWeight = FontWeight.Bold, fontSize = 22.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(strings.premiumLogistics, color = textMuted, fontSize = 14.sp)
                         Text(strings.partner, color = textMuted, fontSize = 14.sp)
                     }
@@ -105,7 +115,7 @@ fun SettingsScreen(
                 ) {
                     val rating = driver?.rating
                     val ratingText = if (rating != null) ((rating * 100.0).toInt() / 100.0).toString() else "--"
-                    Text(ratingText, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp)
+                    Text(ratingText, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(strings.lifetimeRating, color = Color(0xCCFFFFFF), fontSize = 10.sp, letterSpacing = 1.sp)
                 }
             }
@@ -174,6 +184,53 @@ fun SettingsScreen(
                 Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = Color.White)
                 Spacer(Modifier.width(8.dp))
                 Text(strings.logOut, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
+
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE53935)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE53935))
+            ) {
+                Icon(Icons.Filled.DeleteOutline, contentDescription = null, tint = Color(0xFFE53935))
+                Spacer(Modifier.width(8.dp))
+                Text(strings.deleteAccount, color = Color(0xFFE53935), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
+
+            if (showDeleteDialog) {
+                val isDeleting = deleteAccountState is UiState.Loading
+                AlertDialog(
+                    onDismissRequest = { if (!isDeleting) showDeleteDialog = false },
+                    title = { Text(strings.deleteAccount) },
+                    text = {
+                        if (isDeleting) {
+                            CircularProgressIndicator()
+                        } else {
+                            Text(
+                                if (deleteAccountState is UiState.Error) (deleteAccountState as UiState.Error).message
+                                else strings.deleteAccountWarning
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = { viewModel.deleteAccount() },
+                            enabled = !isDeleting
+                        ) {
+                            Text(strings.deleteAccount, color = Color(0xFFE53935))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showDeleteDialog = false },
+                            enabled = !isDeleting
+                        ) {
+                            Text(strings.cancel)
+                        }
+                    }
+                )
             }
 
             Spacer(Modifier.height(12.dp))

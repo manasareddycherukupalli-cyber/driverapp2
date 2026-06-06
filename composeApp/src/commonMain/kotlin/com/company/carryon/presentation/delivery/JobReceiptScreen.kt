@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.LatLng
@@ -187,7 +188,9 @@ fun JobReceiptScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
                         "#${job.id.takeLast(8).uppercase()}",
                         color = ReceiptBlue,
                         fontWeight = FontWeight.ExtraBold,
-                        fontSize = 22.sp
+                        fontSize = 22.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     val dateStr = job.completedAt ?: job.deliveredAt
                     if (!dateStr.isNullOrBlank()) {

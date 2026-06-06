@@ -23,7 +23,7 @@ object ZhDriverStrings : DriverStrings {
     override val emailAddress = "电子邮件地址"
     override val enterYourEmail = "请输入您的电子邮件"
     override val sendVerificationCode = "发送验证码"
-    override val otpHint = "我们将向您的电子邮件发送验证码"
+    override val otpHint = "我们将向您的电话号码发送验证码"
     override val dontHaveAccount = "还没有账户？"
     override val signUpLink = "注册"
     override val networkError = "网络错误，请检查您的连接。"
@@ -32,7 +32,7 @@ object ZhDriverStrings : DriverStrings {
 
     // ── Auth — OTP ───────────────────────────────────────────────
     override val enterTheCode = "输入验证码"
-    override val verificationCodeSentToEmail = "验证码已发送至您的电子邮件"
+    override val verificationCodeSentToEmail = "验证码已发送至您的电话号码"
     override val dontReceiveCode = "没有收到验证码？"
     override val resendAgain = "重新发送"
     override val resendTimer: (Int) -> String = { "${it}秒后重新发送" }

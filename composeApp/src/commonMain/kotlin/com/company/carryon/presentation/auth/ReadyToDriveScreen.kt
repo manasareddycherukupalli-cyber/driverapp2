@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.presentation.navigation.AppNavigator
@@ -53,7 +54,7 @@ fun ReadyToDriveScreen(navigator: AppNavigator) {
             }
         }
         Text("Step 3 of 3", fontSize = 12.sp, color = Color(0x99000000))
-        Text("You are Ready to Drive", fontWeight = FontWeight.ExtraBold, fontSize = 34.sp)
+        Text("You are Ready to Drive", fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
 
         Box(
             modifier = Modifier.fillMaxWidth().height(240.dp).background(Color(0xFFD7DCE8), RoundedCornerShape(8.dp)),

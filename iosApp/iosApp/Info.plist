@@ -4,6 +4,8 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>CFBundleDisplayName</key>
+	<string>CarryOn Driver</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Required to upload your driver documents for verification.</string>
 	<key>NSCameraUsageDescription</key>

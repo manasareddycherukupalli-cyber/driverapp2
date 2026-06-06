@@ -6,6 +6,16 @@ import com.company.carryon.data.network.withAuth
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.serialization.Serializable
+
+@Serializable
+private data class DriverIntakeTicketRequest(
+    val issueId: String,
+    val bookingId: String? = null,
+    val details: String = "",
+    val answers: Map<String, String> = emptyMap(),
+    val displayPath: List<String> = emptyList()
+)
 
 class RealSupportApi : SupportApi {
     private val client = HttpClientFactory.client
@@ -22,6 +32,27 @@ class RealSupportApi : SupportApi {
             withAuth()
         }.body()
         response.data ?: emptyList()
+    }
+
+    override suspend fun getIntakeOptions(): Result<List<SupportIssueOption>> = runCatching {
+        val response: ApiResponse<List<SupportIssueOption>> = client.get("/api/driver/support/intake/options") {
+            withAuth()
+        }.body()
+        response.data ?: emptyList()
+    }
+
+    override suspend fun createIntakeTicket(
+        issueId: String,
+        bookingId: String?,
+        details: String,
+        displayPath: List<String>
+    ): Result<SupportTicket> = runCatching {
+        val response: ApiResponse<SupportTicket> = client.post("/api/driver/support/intake/tickets") {
+            withAuth()
+            contentType(ContentType.Application.Json)
+            setBody(DriverIntakeTicketRequest(issueId = issueId, bookingId = bookingId, details = details, displayPath = displayPath))
+        }.body()
+        response.data ?: throw Exception("Failed to create ticket")
     }
 
     override suspend fun createTicket(ticket: SupportTicket): Result<SupportTicket> = runCatching {

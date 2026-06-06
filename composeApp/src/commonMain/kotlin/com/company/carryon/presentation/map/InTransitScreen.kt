@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Person
@@ -59,6 +59,7 @@ import com.company.carryon.presentation.components.MarkerColor
 import com.company.carryon.presentation.delivery.DeliveryViewModel
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.util.telUriFor
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -119,6 +120,7 @@ fun InTransitScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewMode
     val recipient = destination.contactName?.takeIf { it.isNotBlank() }
         ?: job.customerName.takeIf { it.isNotBlank() }
         ?: "--"
+    val recipientTelUri = telUriFor(destination.contactPhone ?: job.customerPhone)
     val distanceKm = job.distance.takeIf { it > 0 }?.let { formatOneDecimal(it) } ?: "--"
     val etaLabel = if (etaMinutes > 0) etaMinutes.toString() else job.displayDurationMinutes.takeIf { it > 0 }?.toString() ?: "--"
     val liveLabel = job.displayOrderId.takeIf { it.isNotBlank() } ?: "#${job.id.takeLast(8).uppercase()}"
@@ -258,8 +260,16 @@ fun InTransitScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewMode
                                 Text(recipient, color = ITBlue, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                             }
                         }
-                        Box(modifier = Modifier.size(34.dp).background(ITWhite, CircleShape), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Filled.ChatBubbleOutline, contentDescription = null, tint = ITBlue, modifier = Modifier.size(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .background(ITWhite, CircleShape)
+                                .clickable(enabled = recipientTelUri != null) {
+                                    recipientTelUri?.let(uriHandler::openUri)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Call, contentDescription = "Call recipient", tint = ITBlue, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -409,7 +419,7 @@ private fun DeliveryEarningsSheet(earnings: Double, orderId: String, blue: Color
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("Job Earnings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
-        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = blue)
+        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = blue, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text("Order #${orderId.takeLast(8).uppercase()}", color = black.copy(alpha = 0.5f), fontSize = 13.sp)
         Text("Final amount confirmed after delivery completion.", fontSize = 12.sp, color = black.copy(alpha = 0.4f))
         Spacer(Modifier.height(16.dp))

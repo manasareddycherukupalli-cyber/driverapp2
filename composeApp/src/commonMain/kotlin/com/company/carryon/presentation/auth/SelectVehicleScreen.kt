@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.presentation.components.DriveAppTopBar
@@ -67,7 +68,7 @@ fun SelectVehicleScreen(navigator: AppNavigator) {
             }
 
             Spacer(Modifier.height(6.dp))
-            Text("Select your vehicle", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Select your vehicle", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("Choose the primary vehicle type you will be operating to receive relevant load matches.", color = Color(0xFF414755), fontSize = 14.sp)
 
             VehicleChoice("53' Dry Van", "Standard enclosed trailer for general freight cargo.", selected == "53' Dry Van") { selected = "53' Dry Van" }

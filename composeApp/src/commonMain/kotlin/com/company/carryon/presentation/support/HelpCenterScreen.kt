@@ -32,9 +32,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.i18n.LocalStrings
@@ -54,6 +57,28 @@ import com.company.carryon.presentation.navigation.Screen
 fun HelpCenterScreen(navigator: AppNavigator) {
     val strings = LocalStrings.current
     var searchQuery by remember { mutableStateOf("") }
+    var selectedQuestion by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    selectedQuestion?.let { faq ->
+        AlertDialog(
+            onDismissRequest = { selectedQuestion = null },
+            confirmButton = {
+                TextButton(onClick = { selectedQuestion = null }) {
+                    Text("Got it", color = Color(0xFF4B79E6))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    selectedQuestion = null
+                    navigator.navigateTo(Screen.RaiseTicket)
+                }) {
+                    Text("Raise ticket", color = Color(0xFF4B79E6))
+                }
+            },
+            title = { Text(faq.first, fontWeight = FontWeight.SemiBold) },
+            text = { Text(faq.second, fontSize = 14.sp, lineHeight = 20.sp) }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -69,7 +94,7 @@ fun HelpCenterScreen(navigator: AppNavigator) {
             IconButton(onClick = { navigator.goBack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
             }
-            Text(strings.helpCenter, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp)
+            Text(strings.helpCenter, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
 
         Column(
@@ -85,7 +110,7 @@ fun HelpCenterScreen(navigator: AppNavigator) {
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF4B79E6))
             ) {
                 Column(Modifier.padding(14.dp)) {
-                    Text(strings.howCanWeHelp, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp)
+                    Text(strings.howCanWeHelp, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Spacer(Modifier.height(10.dp))
                     OutlinedTextField(
                         value = searchQuery,
@@ -144,10 +169,18 @@ fun HelpCenterScreen(navigator: AppNavigator) {
             }
 
             Text(strings.topQuestions, fontWeight = FontWeight.Bold, color = Color(0xFF2C3852), fontSize = 18.sp)
-            QuestionRow("How do I update my vehicle registration?")
-            QuestionRow("What to do if a customer is not available for delivery?")
-            QuestionRow("Understanding the weekly pay summary.")
-            QuestionRow("How to request a route change?")
+            QuestionRow("How do I update my vehicle registration?") {
+                selectedQuestion = "How do I update my vehicle registration?" to "Open Profile > Vehicle or Documents, upload the new registration/road tax document, and wait for admin review. If your account is blocked while waiting, raise a Vehicle or document verification ticket."
+            }
+            QuestionRow("What to do if a customer is not available for delivery?") {
+                selectedQuestion = "What to do if a customer is not available for delivery?" to "Use the in-job contact action first. If the customer remains unreachable, wait at the drop-off as required by policy, capture proof where available, and raise a job-specific support ticket."
+            }
+            QuestionRow("Understanding the weekly pay summary.") {
+                selectedQuestion = "Understanding the weekly pay summary." to "Weekly pay includes completed delivery earnings, approved extra charges, bonuses, adjustments, and payout deductions. For a missing job payment, raise an Earnings or payout ticket and select the related job."
+            }
+            QuestionRow("How to request a route change?") {
+                selectedQuestion = "How to request a route change?" to "Use the navigation/location support option from the job flow when the active route is wrong or blocked. Include the job and a short note about the road closure or location issue."
+            }
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -243,7 +276,7 @@ fun HelpTopicScreen(
             IconButton(onClick = { navigator.goBack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
             }
-            Text(title, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp)
+            Text(title, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
 
         Column(
@@ -311,7 +344,7 @@ fun ContactSupportScreen(navigator: AppNavigator) {
             IconButton(onClick = { navigator.goBack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
             }
-            Text("Contact Support", fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp)
+            Text("Contact Support", fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
 
         Column(
@@ -344,7 +377,8 @@ fun ContactSupportScreen(navigator: AppNavigator) {
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Email", color = Color(0xFF6E7991), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Text("support@carryon.com", color = Color(0xFF2C3852), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("support@carryon.my", color = Color(0xFF2C3852), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Use for document review, payout questions, and non-urgent account issues.", color = Color(0xFF7B88A2), fontSize = 12.sp, lineHeight = 16.sp)
                 }
             }
 
@@ -355,8 +389,8 @@ fun ContactSupportScreen(navigator: AppNavigator) {
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Phone", color = Color(0xFF6E7991), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Text("+60 3-5555 0101", color = Color(0xFF2C3852), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Average wait time: 3-5 minutes", color = Color(0xFF7B88A2), fontSize = 12.sp)
+                    Text("+60 3-9212 7740", color = Color(0xFF2C3852), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Operations support: 8:00 AM - 10:00 PM MYT. For emergencies, use SOS.", color = Color(0xFF7B88A2), fontSize = 12.sp, lineHeight = 16.sp)
                 }
             }
 
@@ -374,7 +408,7 @@ fun ContactSupportScreen(navigator: AppNavigator) {
 }
 
 @Composable
-private fun QuestionRow(text: String) {
+private fun QuestionRow(text: String, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
@@ -383,7 +417,7 @@ private fun QuestionRow(text: String) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { }
+                .clickable { onClick() }
                 .padding(horizontal = 12.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -426,7 +460,7 @@ fun DriverHandbookScreen(navigator: AppNavigator) {
             IconButton(onClick = { navigator.goBack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
             }
-            Text("Driver Handbook", fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp)
+            Text("Driver Handbook", fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
 
         Column(
@@ -521,7 +555,7 @@ fun HandbookDetailScreen(
             IconButton(onClick = { navigator.goBack() }) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
             }
-            Text(title, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp)
+            Text(title, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
 
         Column(

@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import drive_app.composeapp.generated.resources.Res
@@ -122,7 +123,7 @@ fun VehicleDetailsScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Spacer(Modifier.height(2.dp))
-            Text(strings.vehicleDetailsTitle, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF242833))
+            Text(strings.vehicleDetailsTitle, fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF242833), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(strings.vehicleDetailsDesc, color = Color(0xFF5E6574), fontSize = 13.sp, lineHeight = 18.sp)
             Spacer(Modifier.height(2.dp))
 

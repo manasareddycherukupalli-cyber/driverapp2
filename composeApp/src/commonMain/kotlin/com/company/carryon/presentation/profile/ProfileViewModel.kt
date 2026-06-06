@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.*
 import com.company.carryon.di.ServiceLocator
 import com.company.carryon.data.network.getOnboardingDraft
+import com.company.carryon.data.network.HttpClientFactory
 import com.company.carryon.data.network.SupabaseConfig
+import com.company.carryon.data.network.withAuth
 import io.github.jan.supabase.auth.auth
+import io.ktor.client.request.*
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -91,6 +94,25 @@ class ProfileViewModel : ViewModel() {
     fun logout() {
         viewModelScope.launch {
             authRepository.logout()
+        }
+    }
+
+    private val _deleteAccountState = MutableStateFlow<UiState<Unit>>(UiState.Idle)
+    val deleteAccountState: StateFlow<UiState<Unit>> = _deleteAccountState.asStateFlow()
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _deleteAccountState.value = UiState.Loading
+            runCatching {
+                HttpClientFactory.client.delete("/api/driver/profile") {
+                    withAuth()
+                }
+            }.onSuccess {
+                authRepository.logout()
+                _deleteAccountState.value = UiState.Success(Unit)
+            }.onFailure { e ->
+                _deleteAccountState.value = UiState.Error(e.message ?: "Failed to delete account")
+            }
         }
     }
 

@@ -62,6 +62,7 @@ data class Driver(
     @SerialName("vehicle") val vehicleDetails: VehicleDetails? = null,
     val documents: List<Document> = emptyList(),
     val emergencyContact: String = "",
+    val onboardingSubmittedAt: String? = null,
     val createdAt: String? = null
 )
 
@@ -69,18 +70,28 @@ data class Driver(
 data class AuthResponse(
     val success: Boolean = false,
     val driver: Driver? = null,
-    val isNewDriver: Boolean = false
+    val isNewDriver: Boolean = false,
+    val token: String? = null,
+    val refreshToken: String? = null,
+    val expiresIn: Long? = null
 )
 
 @Serializable
 data class OtpRequest(
-    val email: String
+    val email: String,
+    val mode: String = "login",
+    val phone: String = ""
 )
 
 @Serializable
 data class OtpVerifyRequest(
     val email: String,
-    val otp: String
+    val otp: String,
+    val mode: String = "login",
+    val name: String = "",
+    val phone: String = "",
+    val emergencyContact: String = "",
+    val language: String = ""
 )
 
 @Serializable
@@ -95,6 +106,13 @@ data class RegisterRequest(
     val phone: String = "",
     val emergencyContact: String = "",
     val language: String = ""
+)
+
+@Serializable
+data class ToggleOnlineRequest(
+    val isOnline: Boolean,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 // ============================================================
@@ -517,20 +535,34 @@ data class WalletInfo(
     val bankAccountLast4: String? = null,
     val stripeAccountId: String? = null,
     val stripeDetailsSubmitted: Boolean = false,
-    val stripePayoutsEnabled: Boolean = false
+    val stripePayoutsEnabled: Boolean = false,
+    val stripeRequirements: PayoutRequirements? = null
 )
 
 @Serializable
 data class PayoutStatus(
     val accountId: String? = null,
     val detailsSubmitted: Boolean = false,
-    val payoutsEnabled: Boolean = false
+    val payoutsEnabled: Boolean = false,
+    val requirements: PayoutRequirements? = null,
+    val minimumWithdrawalAmount: Double = 50.0,
+    val withdrawalFeeFlat: Double = 0.0,
+    val withdrawalFeeRate: Double = 0.0,
+    val testModeOnly: Boolean = true
 )
 
 @Serializable
 data class PayoutOnboardingLink(
     val url: String = "",
     val expiresAt: Long = 0
+)
+
+@Serializable
+data class PayoutRequirements(
+    val currentlyDue: List<String> = emptyList(),
+    val eventuallyDue: List<String> = emptyList(),
+    val pastDue: List<String> = emptyList(),
+    val disabledReason: String? = null
 )
 
 @Serializable
@@ -605,6 +637,19 @@ data class SupportTicket(
     val createdAt: String? = null,
     val updatedAt: String? = null,
     val messages: List<ChatMessage> = emptyList()
+)
+
+@Serializable
+data class SupportIssueOption(
+    val id: String = "",
+    val label: String = "",
+    val category: String = "",
+    val priority: String = "MEDIUM",
+    val requiresBooking: Boolean = false,
+    val requiresDetails: Boolean = false,
+    val allowsAttachments: Boolean = false,
+    val emergency: Boolean = false,
+    val children: List<SupportIssueOption> = emptyList()
 )
 
 @Serializable

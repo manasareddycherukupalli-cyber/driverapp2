@@ -91,8 +91,13 @@ class HomeViewModel : ViewModel() {
     val acceptInFlight: StateFlow<Boolean> = _acceptInFlight.asStateFlow()
 
     // Flag to prevent initOnlineStatusFromDriver from overriding _isOnline during a toggle request
-    private var isTogglingOnline = false
+    private val _isTogglingOnline = MutableStateFlow(false)
+    val isTogglingOnline: StateFlow<Boolean> = _isTogglingOnline.asStateFlow()
     private var authRecoveryInProgress = false
+
+    // Whether the driver's current location is within a service area
+    private val _isInServiceArea = MutableStateFlow<Boolean?>(null)
+    val isInServiceArea: StateFlow<Boolean?> = _isInServiceArea.asStateFlow()
 
     // Transient error messages for toast/snackbar
     private val _toastError = MutableSharedFlow<String>(extraBufferCapacity = 1)
@@ -124,7 +129,7 @@ class HomeViewModel : ViewModel() {
                 .distinctUntilChanged { old, new -> old.isOnline == new.isOnline }
                 .collect { driver ->
                     // Skip update while a toggle request is in-flight to avoid race condition
-                    if (isTogglingOnline) return@collect
+                    if (_isTogglingOnline.value) return@collect
                     _isOnline.value = driver.isOnline
                     // Driver became available/refreshed — refresh dashboard data so stale errors clear.
                     loadDashboardData()
@@ -157,40 +162,48 @@ class HomeViewModel : ViewModel() {
     /** Toggle driver online/offline status */
     fun toggleOnlineStatus() {
         viewModelScope.launch {
+            if (_isTogglingOnline.value) return@launch
             val newStatus = !_isOnline.value
-            isTogglingOnline = true
+            _isTogglingOnline.value = true
 
-            // Pre-check: verify driver is inside a service area before going online
-            if (newStatus) {
+            try {
                 val loc = getLastKnownLocation()
-                if (loc != null) {
-                    if (!ServiceLocator.serviceAreaRepository.isInServiceArea(loc.first, loc.second)) {
-                        _toastError.tryEmit("You're outside the service area. Move to an active region to go online.")
-                        isTogglingOnline = false
+                // Pre-check: verify driver is inside a service area before going online
+                if (newStatus) {
+                    if (loc != null) {
+                        if (!ServiceLocator.serviceAreaRepository.isInServiceArea(loc.first, loc.second)) {
+                            _toastError.tryEmit("You're outside the service area. Move to an active region to go online.")
+                            return@launch
+                        }
+                    } else {
+                        _toastError.tryEmit("Current location is required to go online.")
                         return@launch
                     }
                 }
-            }
 
-            authRepository.toggleOnline(newStatus)
-                .onSuccess {
-                    _isOnline.value = newStatus
-                    if (newStatus) {
-                        checkForIncomingJobs()
-                        currentDriver.value?.id?.let { startRealtimeSubscription(it) }
-                        registerFcmToken()
-                        startLocationTracking()
-                        startJobPolling()
-                        consumePendingIncomingJob()
-                    } else {
-                        stopRealtimeSubscription()
-                        stopLocationTracking()
-                        stopJobPolling()
-                        clearIncomingOffers()
+                authRepository.toggleOnline(newStatus, if (newStatus) loc else null)
+                    .onSuccess {
+                        _isOnline.value = newStatus
+                        if (newStatus) {
+                            checkForIncomingJobs()
+                            currentDriver.value?.id?.let { startRealtimeSubscription(it) }
+                            registerFcmToken()
+                            startLocationTracking()
+                            startJobPolling()
+                            consumePendingIncomingJob()
+                        } else {
+                            stopRealtimeSubscription()
+                            stopLocationTracking()
+                            stopJobPolling()
+                            clearIncomingOffers()
+                        }
                     }
-                }
-                .onFailure { _toastError.tryEmit(it.message ?: "Failed to update status") }
-            isTogglingOnline = false
+                    .onFailure { _toastError.tryEmit(it.message ?: "Failed to update status") }
+            } catch (e: Exception) {
+                _toastError.tryEmit(e.message ?: "Failed to update status")
+            } finally {
+                _isTogglingOnline.value = false
+            }
         }
     }
 
@@ -226,6 +239,9 @@ class HomeViewModel : ViewModel() {
         getLastKnownLocation()?.let { loc ->
             _driverLocation.value = loc
             reverseGeocodeLocation(loc.first, loc.second)
+            viewModelScope.launch {
+                _isInServiceArea.value = ServiceLocator.serviceAreaRepository.isInServiceArea(loc.first, loc.second)
+            }
         }
     }
 

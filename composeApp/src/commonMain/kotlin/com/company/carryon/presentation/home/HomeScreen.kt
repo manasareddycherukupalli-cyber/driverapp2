@@ -47,6 +47,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -89,6 +91,7 @@ import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.components.MapViewComposable
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.navigation.mapJobStatusToResumeScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -124,6 +127,9 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
     val driverLocation by viewModel.driverLocation.collectAsState()
     val currentLocationName by viewModel.currentLocationName.collectAsState()
     val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
+    val isInServiceArea by viewModel.isInServiceArea.collectAsState()
+    val isTogglingOnline by viewModel.isTogglingOnline.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     var hasLocationAccess by remember { mutableStateOf(hasLocationPermission()) }
     var locationWaitTimedOut by remember { mutableStateOf(false) }
 
@@ -140,6 +146,12 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             if (driverLocation == null && hasLocationPermission()) {
                 locationWaitTimedOut = true
             }
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.toastError.collect { message ->
+            snackbarHostState.showSnackbar(message)
         }
     }
 
@@ -172,7 +184,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             onAccept = { jobId ->
                 viewModel.acceptIncomingJob(jobId) { acceptedJob ->
                     navigator.selectedJobId = acceptedJob.id
-                    navigator.navigateTo(Screen.JobDetails)
+                    navigator.navigateAndClearStack(acceptedJobDeliveryEntryScreen(acceptedJob))
                 }
             }
         )
@@ -209,48 +221,64 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
         return
     }
 
-    FinalHomeDashboard(
-        isOnline = isOnline,
-        earningsState = earningsState,
-        activeJobsState = activeJobsState,
-        todayCompletedJobsState = todayCompletedJobsState,
-        driverLocation = driverLocation,
-        currentLocationName = currentLocationName,
-        mapStyleUrl = mapStyleUrl,
-        hasLocationAccess = hasLocationAccess,
-        locationWaitTimedOut = locationWaitTimedOut,
-        onMenuClick = { navigator.switchTab(Screen.Profile) },
-        onProfileClick = { navigator.switchTab(Screen.Profile) },
-        onToggleOnline = {
-            if (startedOnlineFlow) return@FinalHomeDashboard
-            startedOnlineFlow = true
-            scope.launch {
-                viewModel.toggleOnlineStatus()
-                delay(500)
-                startedOnlineFlow = false
-            }
-        },
-        onEarningsClick = { navigator.switchTab(Screen.Earnings) },
-        onRefreshLocation = {
-            hasLocationAccess = hasLocationPermission()
-            viewModel.refreshDriverLocation()
-        },
-        onRequestLocationPermission = {
-            requestLocationPermission { granted ->
-                hasLocationAccess = granted
-                locationWaitTimedOut = false
-                if (granted) viewModel.refreshDriverLocation()
-            }
-        },
-        onOpenAppSettings = { openAppSettings() },
-        onLiveNavigationClick = { showLiveQueue = true },
-        onViewAll = { navigator.switchToJobsTab(2) }
-    )
+    Box(Modifier.fillMaxSize()) {
+        FinalHomeDashboard(
+            isOnline = isOnline,
+            isInServiceArea = isInServiceArea,
+            isTogglingOnline = isTogglingOnline,
+            earningsState = earningsState,
+            activeJobsState = activeJobsState,
+            todayCompletedJobsState = todayCompletedJobsState,
+            driverLocation = driverLocation,
+            currentLocationName = currentLocationName,
+            mapStyleUrl = mapStyleUrl,
+            hasLocationAccess = hasLocationAccess,
+            locationWaitTimedOut = locationWaitTimedOut,
+            onMenuClick = { navigator.switchTab(Screen.Profile) },
+            onProfileClick = { navigator.switchTab(Screen.Profile) },
+            onToggleOnline = {
+                if (startedOnlineFlow || isTogglingOnline) return@FinalHomeDashboard
+                startedOnlineFlow = true
+                scope.launch {
+                    viewModel.toggleOnlineStatus()
+                    delay(500)
+                    startedOnlineFlow = false
+                }
+            },
+            onEarningsClick = { navigator.switchTab(Screen.Earnings) },
+            onRefreshLocation = {
+                hasLocationAccess = hasLocationPermission()
+                viewModel.refreshDriverLocation()
+            },
+            onRequestLocationPermission = {
+                requestLocationPermission { granted ->
+                    hasLocationAccess = granted
+                    locationWaitTimedOut = false
+                    if (granted) viewModel.refreshDriverLocation()
+                }
+            },
+            onOpenAppSettings = { openAppSettings() },
+            onLiveNavigationClick = { showLiveQueue = true },
+            onViewAll = { navigator.switchToJobsTab(2) }
+        )
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
+    }
+}
+
+internal fun acceptedJobDeliveryEntryScreen(job: DeliveryJob): Screen {
+    return mapJobStatusToResumeScreen(job.status) ?: Screen.MapNavigation
 }
 
 @Composable
 private fun FinalHomeDashboard(
     isOnline: Boolean,
+    isInServiceArea: Boolean?,
+    isTogglingOnline: Boolean,
     earningsState: UiState<EarningsSummary>,
     activeJobsState: UiState<List<DeliveryJob>>,
     todayCompletedJobsState: UiState<List<DeliveryJob>>,
@@ -290,6 +318,36 @@ private fun FinalHomeDashboard(
             containerSpacing = 2.dp
         )
 
+        if (isInServiceArea == false) {
+            androidx.compose.material3.Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFFFFF3E0),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("⚠️", fontSize = 18.sp)
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            "Not available in your area",
+                            color = Color(0xFFE65100),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "CarryOn isn't active in your city yet. Move to a service area to go online.",
+                            color = Color(0xFF8D4E00),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+            }
+        }
+
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = White), modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -299,11 +357,17 @@ private fun FinalHomeDashboard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(10.dp).background(HomeBlue, CircleShape))
                     Spacer(Modifier.width(10.dp))
-                    Text(strings.statusOnline, color = Black, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+                    Text(
+                        if (isOnline) strings.statusOnline else "Status Offline",
+                        color = Black,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp
+                    )
                 }
                 Switch(
                     checked = isOnline,
-                    onCheckedChange = { onToggleOnline() },
+                    onCheckedChange = { if (!isTogglingOnline) onToggleOnline() },
+                    enabled = !isTogglingOnline,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = White,
                         checkedTrackColor = HomeBlue,
@@ -575,7 +639,7 @@ private fun SummaryItem(id: String, subtitle: String, amount: String, status: St
                 Spacer(Modifier.width(10.dp))
                 Column {
                     Text("Parcel $id", color = HomeBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(subtitle, color = Black.copy(alpha = 0.65f), fontSize = 12.sp)
+                    Text(subtitle, color = Black.copy(alpha = 0.65f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -933,7 +997,9 @@ private fun IncomingJobCard(
                     fontSize = 36.sp,
                     lineHeight = 38.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Orange500
+                    color = Orange500,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.weight(1f))
                 Surface(

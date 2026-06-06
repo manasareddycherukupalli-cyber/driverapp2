@@ -53,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import drive_app.composeapp.generated.resources.*
@@ -177,7 +178,7 @@ private fun VerificationSummary(driver: Driver, navigator: AppNavigator) {
                     }
                 }
 
-                Text(strings.identityVerification, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = PureBlack)
+                Text(strings.identityVerification, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = PureBlack, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     strings.completeStepsPrompt,
                     color = PureBlack.copy(alpha = 0.65f),
@@ -554,7 +555,7 @@ private fun ApprovedFlow(navigator: AppNavigator) {
         ) {
             Spacer(Modifier.height(50.dp))
             Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(70.dp))
-            Text(strings.verificationSuccessful, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp)
+            Text(strings.verificationSuccessful, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(strings.congratulationsActive, textAlign = TextAlign.Center, color = Color(0xFF414755))
 
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0x33A6D2F3)), shape = RoundedCornerShape(12.dp)) {
@@ -590,7 +591,7 @@ private fun ApprovedFlow(navigator: AppNavigator) {
                 }
             }
             Text(strings.step3Of3, color = Color(0x99000000), fontSize = 12.sp)
-            Text(strings.youAreReadyToDrive, fontWeight = FontWeight.ExtraBold, fontSize = 36.sp)
+            Text(strings.youAreReadyToDrive, fontWeight = FontWeight.ExtraBold, fontSize = 36.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
 
             Box(modifier = Modifier.fillMaxWidth().height(240.dp).background(Color(0xFFD4D9E6), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                 Icon(Icons.Filled.DirectionsCar, contentDescription = null, tint = VerifyBlue, modifier = Modifier.size(72.dp))

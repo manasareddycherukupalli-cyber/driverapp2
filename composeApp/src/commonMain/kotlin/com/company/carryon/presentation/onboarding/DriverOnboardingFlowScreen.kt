@@ -11,13 +11,10 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -71,7 +68,6 @@ import com.company.carryon.data.model.DocumentStatus
 import com.company.carryon.data.model.DocumentType
 import com.company.carryon.data.model.DriverNationality
 import com.company.carryon.data.model.DriverOnboardingDraft
-import com.company.carryon.data.model.InsuranceCoverageType
 import com.company.carryon.data.model.LicenseClass
 import com.company.carryon.data.model.MalaysianState
 import com.company.carryon.data.model.UiState
@@ -115,9 +111,6 @@ private val stepTitles = listOf(
     "Vehicle",
     "Vehicle Docs",
     "Vehicle Photos",
-    "Insurance",
-    "Bank",
-    "Tax",
     "Background",
     "Review"
 )
@@ -264,7 +257,7 @@ fun DriverOnboardingFlowScreen(
                         2 -> NationalityStep(
                             draft = draft,
                             messages = messages,
-                            onSelected = { nationality -> viewModel.updateDraft { it.copy(nationality = nationality) } }
+                            onSelected = { viewModel.updateDraft { it.copy(nationality = DriverNationality.MALAYSIAN) } }
                         )
                         3 -> IdentityStep(
                             draft = draft,
@@ -275,10 +268,6 @@ fun DriverOnboardingFlowScreen(
                                     it.copy(mykadNumber = value.filter(Char::isDigit).take(12))
                                 }
                             },
-                            onPassportChanged = { value -> viewModel.updateDraft { it.copy(passportNumber = value) } },
-                            onPassportExpiryChanged = { value -> viewModel.updateDraft { it.copy(passportExpiry = value) } },
-                            onPlksChanged = { value -> viewModel.updateDraft { it.copy(plksNumber = value) } },
-                            onPlksExpiryChanged = { value -> viewModel.updateDraft { it.copy(plksExpiry = value) } },
                             launchUpload = launchUpload
                         )
                         4 -> PersonalStep(
@@ -311,13 +300,18 @@ fun DriverOnboardingFlowScreen(
                             draft = draft,
                             messages = messages,
                             onVehicleTypeChanged = { value -> viewModel.updateDraft { it.copy(vehicleType = value) } },
-                            onMakeChanged = { value -> viewModel.updateDraft { it.copy(vehicleMake = value) } },
+                            onMakeChanged = { value ->
+                                viewModel.updateDraft {
+                                    val model = it.vehicleModel.takeIf { currentModel ->
+                                        currentModel in DriverOnboardingViewModel.vehicleModelsForMake(value)
+                                    }.orEmpty()
+                                    it.copy(vehicleMake = value, vehicleModel = model)
+                                }
+                            },
                             onModelChanged = { value -> viewModel.updateDraft { it.copy(vehicleModel = value) } },
                             onYearChanged = { value -> viewModel.updateDraft { it.copy(vehicleYear = value) } },
                             onPlateChanged = { value -> viewModel.updateDraft { it.copy(vehiclePlate = value) } },
                             onColorChanged = { value -> viewModel.updateDraft { it.copy(vehicleColor = value) } },
-                            onChassisChanged = { value -> viewModel.updateDraft { it.copy(chassisNumber = value) } },
-                            onEngineChanged = { value -> viewModel.updateDraft { it.copy(engineNumber = value) } },
                             onOwnershipChanged = { value -> viewModel.updateDraft { it.copy(vehicleOwnership = value) } },
                             onOwnerNameChanged = { value -> viewModel.updateDraft { it.copy(ownerName = value) } }
                         )
@@ -325,10 +319,6 @@ fun DriverOnboardingFlowScreen(
                             draft = draft,
                             messages = messages,
                             serverDocuments = serverDocuments,
-                            onRoadTaxExpiryChanged = { value -> viewModel.updateDraft { it.copy(roadTaxExpiry = value) } },
-                            onPuspakomExpiryChanged = { value -> viewModel.updateDraft { it.copy(puspakomExpiry = value) } },
-                            onApadNumberChanged = { value -> viewModel.updateDraft { it.copy(apadPermitNumber = value) } },
-                            onApadExpiryChanged = { value -> viewModel.updateDraft { it.copy(apadPermitExpiry = value) } },
                             launchUpload = launchUpload
                         )
                         8 -> VehiclePhotosStep(
@@ -337,44 +327,14 @@ fun DriverOnboardingFlowScreen(
                             serverDocuments = serverDocuments,
                             launchUpload = launchUpload
                         )
-                        9 -> InsuranceStep(
+                        9 -> BackgroundStep(
                             draft = draft,
                             messages = messages,
-                            serverDocuments = serverDocuments,
-                            onInsurerChanged = { value -> viewModel.updateDraft { it.copy(insurerName = value) } },
-                            onPolicyChanged = { value -> viewModel.updateDraft { it.copy(insurancePolicyNumber = value) } },
-                            onCoverageChanged = { value -> viewModel.updateDraft { it.copy(insuranceCoverageType = value) } },
-                            onExpiryChanged = { value -> viewModel.updateDraft { it.copy(insuranceExpiry = value) } },
-                            onCommercialCoverChanged = { value -> viewModel.updateDraft { it.copy(hasCommercialCover = value) } },
-                            launchUpload = launchUpload
-                        )
-                        10 -> BankStep(
-                            draft = draft,
-                            messages = messages,
-                            serverDocuments = serverDocuments,
-                            onBankChanged = { value -> viewModel.updateDraft { it.copy(bankName = value) } },
-                            onAccountNumberChanged = { value -> viewModel.updateDraft { it.copy(bankAccountNumber = value) } },
-                            onAccountHolderChanged = { value -> viewModel.updateDraft { it.copy(bankAccountHolder = value) } },
-                            onDuitNowChanged = { value -> viewModel.updateDraft { it.copy(duitNowId = value) } },
-                            onTngChanged = { value -> viewModel.updateDraft { it.copy(tngEwalletId = value) } },
-                            launchUpload = launchUpload
-                        )
-                        11 -> TaxStep(
-                            draft = draft,
-                            messages = messages,
-                            onLhdnChanged = { value -> viewModel.updateDraft { it.copy(lhdnTaxNumber = value) } },
-                            onSstChanged = { value -> viewModel.updateDraft { it.copy(sstNumber = value) } }
-                        )
-                        12 -> BackgroundStep(
-                            draft = draft,
-                            messages = messages,
-                            serverDocuments = serverDocuments,
                             onPdpaChanged = { value -> viewModel.updateDraft { it.copy(pdpaConsent = value) } },
                             onBackgroundConsentChanged = { value -> viewModel.updateDraft { it.copy(backgroundCheckConsent = value) } },
-                            onNoOffencesChanged = { value -> viewModel.updateDraft { it.copy(noOffencesDeclared = value) } },
-                            launchUpload = launchUpload
+                            onNoOffencesChanged = { value -> viewModel.updateDraft { it.copy(noOffencesDeclared = value) } }
                         )
-                        13 -> ReviewStep(
+                        10 -> ReviewStep(
                             draft = draft,
                             messages = messages,
                             onAgreementChanged = { value -> viewModel.updateDraft { it.copy(agreementAccepted = value) } }
@@ -552,35 +512,19 @@ private fun PhoneStep(
 private fun NationalityStep(
     draft: DriverOnboardingDraft,
     messages: List<ValidationMessage>,
-    onSelected: (DriverNationality) -> Unit
+    onSelected: () -> Unit
 ) {
     SectionCard(
         title = "Nationality",
-        description = "Choose the path that determines the identity documents required next."
+        description = "Carry On currently accepts Malaysian drivers only."
     ) {
-        Row(
-            modifier = Modifier.height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            SelectionCard(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                title = "Malaysian",
-                subtitle = "MyKad front, back, and selfie",
-                selected = draft.nationality == DriverNationality.MALAYSIAN,
-                onClick = { onSelected(DriverNationality.MALAYSIAN) }
-            )
-            SelectionCard(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                title = "Foreigner",
-                subtitle = "Passport and PLKS",
-                selected = draft.nationality == DriverNationality.FOREIGNER,
-                onClick = { onSelected(DriverNationality.FOREIGNER) }
-            )
-        }
+        SelectionCard(
+            modifier = Modifier.fillMaxWidth(),
+            title = "Malaysian",
+            subtitle = "MyKad front, back, and selfie",
+            selected = true,
+            onClick = onSelected
+        )
         ValidationText(error = errorFor(messages, "nationality"), warning = warningFor(messages, "nationality"))
     }
 }
@@ -591,125 +535,49 @@ private fun IdentityStep(
     messages: List<ValidationMessage>,
     serverDocuments: Map<DocumentType, Document>,
     onMyKadChanged: (String) -> Unit,
-    onPassportChanged: (String) -> Unit,
-    onPassportExpiryChanged: (String) -> Unit,
-    onPlksChanged: (String) -> Unit,
-    onPlksExpiryChanged: (String) -> Unit,
     launchUpload: (DocumentType, String?) -> Unit
 ) {
     SectionCard(
         title = "Identity upload",
-        description = if (draft.nationality == DriverNationality.FOREIGNER) {
-            "Upload passport and PLKS. Selfie is optional but recommended for the driver profile photo."
-        } else {
-            "Upload MyKad front, MyKad back, and a selfie."
-        }
+        description = "Upload MyKad front, MyKad back, and a selfie."
     ) {
-        when (draft.nationality) {
-            DriverNationality.MALAYSIAN -> {
-                TextFieldBlock(
-                    label = "MyKad number",
-                    value = draft.mykadNumber,
-                    onValueChange = onMyKadChanged,
-                    placeholder = "YYMMDDPB####",
-                    keyboardType = KeyboardType.Number,
-                    error = errorFor(messages, "mykadNumber"),
-                    borderColor = Blue,
-                    valueColor = Blue
-                )
-                UploadField(
-                    label = "MyKad front",
-                    documentType = DocumentType.MYKAD_FRONT,
-                    localUrl = identityUrl(draft, DocumentType.MYKAD_FRONT),
-                    serverDocument = serverDocuments[DocumentType.MYKAD_FRONT],
-                    error = errorFor(messages, "mykadFront"),
-                    containerColor = Color(0x33A6D2F3),
-                    onUpload = { launchUpload(DocumentType.MYKAD_FRONT, null) }
-                )
-                UploadField(
-                    label = "MyKad back",
-                    documentType = DocumentType.MYKAD_BACK,
-                    localUrl = identityUrl(draft, DocumentType.MYKAD_BACK),
-                    serverDocument = serverDocuments[DocumentType.MYKAD_BACK],
-                    error = errorFor(messages, "mykadBack"),
-                    containerColor = Color(0x33A6D2F3),
-                    onUpload = { launchUpload(DocumentType.MYKAD_BACK, null) }
-                )
-                UploadField(
-                    label = "Selfie",
-                    documentType = DocumentType.SELFIE,
-                    localUrl = identityUrl(draft, DocumentType.SELFIE),
-                    serverDocument = serverDocuments[DocumentType.SELFIE],
-                    error = errorFor(messages, "selfie"),
-                    containerColor = Color(0x33A6D2F3),
-                    onUpload = { launchUpload(DocumentType.SELFIE, null) }
-                )
-            }
-            DriverNationality.FOREIGNER -> {
-                TextFieldBlock(
-                    label = "Passport number",
-                    value = draft.passportNumber,
-                    onValueChange = onPassportChanged,
-                    placeholder = "e.g. A12345678",
-                    error = errorFor(messages, "passportNumber"),
-                    errorColor = Blue
-                )
-                DateFieldBlock(
-                    label = "Passport expiry",
-                    value = draft.passportExpiry,
-                    onValueSelected = onPassportExpiryChanged,
-                    error = errorFor(messages, "passportExpiry"),
-                    warning = warningFor(messages, "passportExpiry"),
-                    errorColor = Blue
-                )
-                UploadField(
-                    label = "Passport",
-                    documentType = DocumentType.PASSPORT,
-                    localUrl = identityUrl(draft, DocumentType.PASSPORT),
-                    serverDocument = serverDocuments[DocumentType.PASSPORT],
-                    error = errorFor(messages, "passport"),
-                    containerColor = Color(0x33A6D2F3),
-                    errorColor = Blue,
-                    onUpload = { launchUpload(DocumentType.PASSPORT, draft.passportExpiry.takeIf { it.isNotBlank() }) }
-                )
-                TextFieldBlock(
-                    label = "PLKS number",
-                    value = draft.plksNumber,
-                    onValueChange = onPlksChanged,
-                    placeholder = "e.g. PLKS-123456",
-                    error = errorFor(messages, "plksNumber"),
-                    errorColor = Blue
-                )
-                DateFieldBlock(
-                    label = "PLKS expiry",
-                    value = draft.plksExpiry,
-                    onValueSelected = onPlksExpiryChanged,
-                    error = errorFor(messages, "plksExpiry"),
-                    warning = warningFor(messages, "plksExpiry"),
-                    errorColor = Blue
-                )
-                UploadField(
-                    label = "PLKS / work permit",
-                    documentType = DocumentType.WORK_PERMIT_PLKS,
-                    localUrl = identityUrl(draft, DocumentType.WORK_PERMIT_PLKS),
-                    serverDocument = serverDocuments[DocumentType.WORK_PERMIT_PLKS],
-                    error = errorFor(messages, "plks"),
-                    containerColor = Color(0x33A6D2F3),
-                    errorColor = Blue,
-                    onUpload = { launchUpload(DocumentType.WORK_PERMIT_PLKS, draft.plksExpiry.takeIf { it.isNotBlank() }) }
-                )
-                UploadField(
-                    label = "Optional selfie",
-                    documentType = DocumentType.SELFIE,
-                    localUrl = identityUrl(draft, DocumentType.SELFIE),
-                    serverDocument = serverDocuments[DocumentType.SELFIE],
-                    error = null,
-                    containerColor = Color(0x33A6D2F3),
-                    onUpload = { launchUpload(DocumentType.SELFIE, null) }
-                )
-            }
-            null -> Text("Select nationality first.", color = TextMuted)
-        }
+        TextFieldBlock(
+            label = "MyKad number",
+            value = draft.mykadNumber,
+            onValueChange = onMyKadChanged,
+            placeholder = "YYMMDDPB####",
+            keyboardType = KeyboardType.Number,
+            error = errorFor(messages, "mykadNumber"),
+            borderColor = Blue,
+            valueColor = Blue
+        )
+        UploadField(
+            label = "MyKad front",
+            documentType = DocumentType.MYKAD_FRONT,
+            localUrl = identityUrl(draft, DocumentType.MYKAD_FRONT),
+            serverDocument = serverDocuments[DocumentType.MYKAD_FRONT],
+            error = errorFor(messages, "mykadFront"),
+            containerColor = Color(0x33A6D2F3),
+            onUpload = { launchUpload(DocumentType.MYKAD_FRONT, null) }
+        )
+        UploadField(
+            label = "MyKad back",
+            documentType = DocumentType.MYKAD_BACK,
+            localUrl = identityUrl(draft, DocumentType.MYKAD_BACK),
+            serverDocument = serverDocuments[DocumentType.MYKAD_BACK],
+            error = errorFor(messages, "mykadBack"),
+            containerColor = Color(0x33A6D2F3),
+            onUpload = { launchUpload(DocumentType.MYKAD_BACK, null) }
+        )
+        UploadField(
+            label = "Selfie",
+            documentType = DocumentType.SELFIE,
+            localUrl = identityUrl(draft, DocumentType.SELFIE),
+            serverDocument = serverDocuments[DocumentType.SELFIE],
+            error = errorFor(messages, "selfie"),
+            containerColor = Color(0x33A6D2F3),
+            onUpload = { launchUpload(DocumentType.SELFIE, null) }
+        )
     }
 }
 
@@ -912,11 +780,10 @@ private fun VehicleDetailsStep(
     onYearChanged: (String) -> Unit,
     onPlateChanged: (String) -> Unit,
     onColorChanged: (String) -> Unit,
-    onChassisChanged: (String) -> Unit,
-    onEngineChanged: (String) -> Unit,
     onOwnershipChanged: (VehicleOwnership) -> Unit,
     onOwnerNameChanged: (String) -> Unit
 ) {
+    val modelOptions = DriverOnboardingViewModel.vehicleModelsForMake(draft.vehicleMake)
     SectionCard(title = "Vehicle details", description = "Capture the vehicle that will be used for deliveries.") {
         EnumDropdownBlock(
             label = "Vehicle type",
@@ -926,13 +793,23 @@ private fun VehicleDetailsStep(
             onSelected = onVehicleTypeChanged,
             error = errorFor(messages, "vehicleType")
         )
-        TextFieldBlock("Make", draft.vehicleMake, onMakeChanged, placeholder = "Toyota", error = errorFor(messages, "vehicleMake"))
-        TextFieldBlock("Model", draft.vehicleModel, onModelChanged, placeholder = "Hiace", error = errorFor(messages, "vehicleModel"))
+        DropdownBlock(
+            label = "Brand",
+            value = draft.vehicleMake,
+            options = DriverOnboardingViewModel.vehicleBrands,
+            onSelected = onMakeChanged,
+            error = errorFor(messages, "vehicleMake")
+        )
+        DropdownBlock(
+            label = "Model",
+            value = draft.vehicleModel,
+            options = modelOptions,
+            onSelected = onModelChanged,
+            error = errorFor(messages, "vehicleModel")
+        )
         TextFieldBlock("Year", draft.vehicleYear, onYearChanged, placeholder = "2022", keyboardType = KeyboardType.Number, error = errorFor(messages, "vehicleYear"))
         TextFieldBlock("License plate", draft.vehiclePlate, onPlateChanged, placeholder = "WXY1234", error = errorFor(messages, "vehiclePlate"))
         TextFieldBlock("Color", draft.vehicleColor, onColorChanged, placeholder = "White", error = errorFor(messages, "vehicleColor"))
-        TextFieldBlock("Chassis number", draft.chassisNumber, onChassisChanged, placeholder = "Optional")
-        TextFieldBlock("Engine number", draft.engineNumber, onEngineChanged, placeholder = "Optional")
         EnumDropdownBlock(
             label = "Ownership",
             value = draft.vehicleOwnership,
@@ -952,51 +829,17 @@ private fun VehicleDocumentsStep(
     draft: DriverOnboardingDraft,
     messages: List<ValidationMessage>,
     serverDocuments: Map<DocumentType, Document>,
-    onRoadTaxExpiryChanged: (String) -> Unit,
-    onPuspakomExpiryChanged: (String) -> Unit,
-    onApadNumberChanged: (String) -> Unit,
-    onApadExpiryChanged: (String) -> Unit,
     launchUpload: (DocumentType, String?) -> Unit
 ) {
-    SectionCard(title = "Vehicle documents", description = "Upload geran, road tax, and commercial permits where required.") {
+    SectionCard(title = "Vehicle documents", description = "Upload the vehicle registration document.") {
         UploadField(
-            label = "Vehicle registration / Geran",
+            label = "Vehicle registration",
             documentType = DocumentType.VEHICLE_REGISTRATION,
             localUrl = draft.vehicleRegistrationUrl,
             serverDocument = serverDocuments[DocumentType.VEHICLE_REGISTRATION],
             error = errorFor(messages, "vehicleRegistration"),
             onUpload = { launchUpload(DocumentType.VEHICLE_REGISTRATION, null) }
         )
-        DateFieldBlock("Road tax expiry", draft.roadTaxExpiry, onRoadTaxExpiryChanged, error = errorFor(messages, "roadTaxExpiry"), warning = warningFor(messages, "roadTaxExpiry"))
-        UploadField(
-            label = "Road tax",
-            documentType = DocumentType.ROAD_TAX,
-            localUrl = draft.roadTaxUrl,
-            serverDocument = serverDocuments[DocumentType.ROAD_TAX],
-            error = errorFor(messages, "roadTax"),
-            onUpload = { launchUpload(DocumentType.ROAD_TAX, draft.roadTaxExpiry.takeIf { it.isNotBlank() }) }
-        )
-        if (draft.vehicleType in setOf(VehicleType.PICKUP, VehicleType.VAN, VehicleType.VAN_7FT, VehicleType.VAN_9FT, VehicleType.LORRY_10FT, VehicleType.LORRY_14FT, VehicleType.LORRY_17FT, VehicleType.TRUCK)) {
-            DateFieldBlock("PUSPAKOM expiry", draft.puspakomExpiry, onPuspakomExpiryChanged, error = errorFor(messages, "puspakomExpiry"), warning = warningFor(messages, "puspakomExpiry"))
-            UploadField(
-                label = "PUSPAKOM",
-                documentType = DocumentType.PUSPAKOM,
-                localUrl = draft.puspakomUrl,
-                serverDocument = serverDocuments[DocumentType.PUSPAKOM],
-                error = errorFor(messages, "puspakom"),
-                onUpload = { launchUpload(DocumentType.PUSPAKOM, draft.puspakomExpiry.takeIf { it.isNotBlank() }) }
-            )
-            TextFieldBlock("APAD / LPKP permit number", draft.apadPermitNumber, onApadNumberChanged, placeholder = "Permit number", error = errorFor(messages, "apadPermitNumber"))
-            DateFieldBlock("APAD / LPKP permit expiry", draft.apadPermitExpiry, onApadExpiryChanged, error = errorFor(messages, "apadPermitExpiry"), warning = warningFor(messages, "apadPermitExpiry"))
-            UploadField(
-                label = "APAD / LPKP permit",
-                documentType = DocumentType.APAD_PERMIT,
-                localUrl = draft.apadPermitUrl,
-                serverDocument = serverDocuments[DocumentType.APAD_PERMIT],
-                error = errorFor(messages, "apadPermit"),
-                onUpload = { launchUpload(DocumentType.APAD_PERMIT, draft.apadPermitExpiry.takeIf { it.isNotBlank() }) }
-            )
-        }
     }
 }
 
@@ -1007,102 +850,9 @@ private fun VehiclePhotosStep(
     serverDocuments: Map<DocumentType, Document>,
     launchUpload: (DocumentType, String?) -> Unit
 ) {
-    SectionCard(title = "Vehicle photos", description = "Upload all five vehicle angles required by verification.") {
+    SectionCard(title = "Vehicle photos", description = "Upload the front and back of the vehicle.") {
         UploadField("Front photo", DocumentType.VEHICLE_PHOTO_FRONT, draft.vehicleFrontUrl, serverDocuments[DocumentType.VEHICLE_PHOTO_FRONT], errorFor(messages, "vehicleFront")) { launchUpload(DocumentType.VEHICLE_PHOTO_FRONT, null) }
         UploadField("Back photo", DocumentType.VEHICLE_PHOTO_BACK, draft.vehicleBackUrl, serverDocuments[DocumentType.VEHICLE_PHOTO_BACK], errorFor(messages, "vehicleBack")) { launchUpload(DocumentType.VEHICLE_PHOTO_BACK, null) }
-        UploadField("Left photo", DocumentType.VEHICLE_PHOTO_LEFT, draft.vehicleLeftUrl, serverDocuments[DocumentType.VEHICLE_PHOTO_LEFT], errorFor(messages, "vehicleLeft")) { launchUpload(DocumentType.VEHICLE_PHOTO_LEFT, null) }
-        UploadField("Right photo", DocumentType.VEHICLE_PHOTO_RIGHT, draft.vehicleRightUrl, serverDocuments[DocumentType.VEHICLE_PHOTO_RIGHT], errorFor(messages, "vehicleRight")) { launchUpload(DocumentType.VEHICLE_PHOTO_RIGHT, null) }
-        UploadField("Interior photo", DocumentType.VEHICLE_PHOTO_INTERIOR, draft.vehicleInteriorUrl, serverDocuments[DocumentType.VEHICLE_PHOTO_INTERIOR], errorFor(messages, "vehicleInterior")) { launchUpload(DocumentType.VEHICLE_PHOTO_INTERIOR, null) }
-    }
-}
-
-@Composable
-private fun InsuranceStep(
-    draft: DriverOnboardingDraft,
-    messages: List<ValidationMessage>,
-    serverDocuments: Map<DocumentType, Document>,
-    onInsurerChanged: (String) -> Unit,
-    onPolicyChanged: (String) -> Unit,
-    onCoverageChanged: (InsuranceCoverageType) -> Unit,
-    onExpiryChanged: (String) -> Unit,
-    onCommercialCoverChanged: (Boolean) -> Unit,
-    launchUpload: (DocumentType, String?) -> Unit
-) {
-    SectionCard(title = "Insurance", description = "Capture policy details and upload the supporting insurance document.") {
-        TextFieldBlock("Insurer", draft.insurerName, onInsurerChanged, placeholder = "Insurer name", error = errorFor(messages, "insurerName"))
-        TextFieldBlock("Policy number", draft.insurancePolicyNumber, onPolicyChanged, placeholder = "Policy number", error = errorFor(messages, "insurancePolicyNumber"))
-        EnumDropdownBlock(
-            label = "Coverage type",
-            value = draft.insuranceCoverageType,
-            options = DriverOnboardingViewModel.insuranceCoverageTypes,
-            toLabel = ::coverageLabel,
-            onSelected = onCoverageChanged,
-            error = errorFor(messages, "insuranceCoverageType")
-        )
-        DateFieldBlock("Insurance expiry", draft.insuranceExpiry, onExpiryChanged, error = errorFor(messages, "insuranceExpiry"), warning = warningFor(messages, "insuranceExpiry"))
-        CheckboxRow(
-            title = "Commercial cover included",
-            checked = draft.hasCommercialCover,
-            onCheckedChange = onCommercialCoverChanged,
-            supporting = "Required for commercial operations."
-        )
-        UploadField(
-            label = "Insurance document",
-            documentType = DocumentType.INSURANCE,
-            localUrl = draft.insuranceUrl,
-            serverDocument = serverDocuments[DocumentType.INSURANCE],
-            error = errorFor(messages, "insuranceUrl"),
-            onUpload = { launchUpload(DocumentType.INSURANCE, draft.insuranceExpiry.takeIf { it.isNotBlank() }) }
-        )
-    }
-}
-
-@Composable
-private fun BankStep(
-    draft: DriverOnboardingDraft,
-    messages: List<ValidationMessage>,
-    serverDocuments: Map<DocumentType, Document>,
-    onBankChanged: (String) -> Unit,
-    onAccountNumberChanged: (String) -> Unit,
-    onAccountHolderChanged: (String) -> Unit,
-    onDuitNowChanged: (String) -> Unit,
-    onTngChanged: (String) -> Unit,
-    launchUpload: (DocumentType, String?) -> Unit
-) {
-    SectionCard(title = "Bank and payout", description = "Bank statement is required. DuitNow and TNG are optional payout identifiers.") {
-        DropdownBlock(
-            label = "Bank",
-            value = draft.bankName,
-            options = DriverOnboardingViewModel.banks,
-            onSelected = onBankChanged,
-            error = errorFor(messages, "bankName")
-        )
-        TextFieldBlock("Account number", draft.bankAccountNumber, onAccountNumberChanged, placeholder = "Bank account number", keyboardType = KeyboardType.Number, error = errorFor(messages, "bankAccountNumber"))
-        TextFieldBlock("Account holder", draft.bankAccountHolder, onAccountHolderChanged, placeholder = "Must match MyKad name", error = errorFor(messages, "bankAccountHolder"), warning = warningFor(messages, "bankAccountHolder"))
-        UploadField(
-            label = "Bank statement",
-            documentType = DocumentType.BANK_STATEMENT,
-            localUrl = draft.bankStatementUrl,
-            serverDocument = serverDocuments[DocumentType.BANK_STATEMENT],
-            error = errorFor(messages, "bankStatement"),
-            onUpload = { launchUpload(DocumentType.BANK_STATEMENT, null) }
-        )
-        TextFieldBlock("DuitNow ID (optional)", draft.duitNowId, onDuitNowChanged, placeholder = "Optional")
-        TextFieldBlock("TNG eWallet ID (optional)", draft.tngEwalletId, onTngChanged, placeholder = "Optional")
-    }
-}
-
-@Composable
-private fun TaxStep(
-    draft: DriverOnboardingDraft,
-    messages: List<ValidationMessage>,
-    onLhdnChanged: (String) -> Unit,
-    onSstChanged: (String) -> Unit
-) {
-    SectionCard(title = "Tax", description = "These fields are optional during onboarding and can be completed later.") {
-        TextFieldBlock("LHDN tax file number", draft.lhdnTaxNumber, onLhdnChanged, placeholder = "Optional")
-        TextFieldBlock("SST number", draft.sstNumber, onSstChanged, placeholder = "Optional")
-        ValidationText(error = errorFor(messages, "tax"), warning = warningFor(messages, "tax"))
     }
 }
 
@@ -1110,24 +860,14 @@ private fun TaxStep(
 private fun BackgroundStep(
     draft: DriverOnboardingDraft,
     messages: List<ValidationMessage>,
-    serverDocuments: Map<DocumentType, Document>,
     onPdpaChanged: (Boolean) -> Unit,
     onBackgroundConsentChanged: (Boolean) -> Unit,
-    onNoOffencesChanged: (Boolean) -> Unit,
-    launchUpload: (DocumentType, String?) -> Unit
+    onNoOffencesChanged: (Boolean) -> Unit
 ) {
-    SectionCard(title = "Background check consent", description = "PDPA consent, background check consent, declaration, and police clearance are all required.") {
+    SectionCard(title = "Background check consent", description = "PDPA consent, background check consent, and declaration are required.") {
         CheckboxRow("I consent to PDPA processing", draft.pdpaConsent, onPdpaChanged, error = errorFor(messages, "pdpaConsent"))
         CheckboxRow("I consent to background checks", draft.backgroundCheckConsent, onBackgroundConsentChanged, error = errorFor(messages, "backgroundCheckConsent"))
         CheckboxRow("I declare I have no disqualifying offences", draft.noOffencesDeclared, onNoOffencesChanged, error = errorFor(messages, "noOffencesDeclared"))
-        UploadField(
-            label = "Police clearance",
-            documentType = DocumentType.POLICE_CLEARANCE,
-            localUrl = draft.policeClearanceUrl,
-            serverDocument = serverDocuments[DocumentType.POLICE_CLEARANCE],
-            error = errorFor(messages, "policeClearance"),
-            onUpload = { launchUpload(DocumentType.POLICE_CLEARANCE, null) }
-        )
     }
 }
 
@@ -1141,9 +881,7 @@ private fun ReviewStep(
         ReviewCard("Phone", listOf("${draft.phone}"))
         ReviewCard("Identity", listOfNotNull(
             "Nationality: ${draft.nationality?.name ?: "-"}",
-            draft.mykadNumber.takeIf { it.isNotBlank() }?.let { "MyKad: $it" },
-            draft.passportNumber.takeIf { it.isNotBlank() }?.let { "Passport: $it" },
-            draft.plksNumber.takeIf { it.isNotBlank() }?.let { "PLKS: $it" }
+            draft.mykadNumber.takeIf { it.isNotBlank() }?.let { "MyKad: $it" }
         ))
         ReviewCard("Personal", listOf(
             draft.fullName,
@@ -1165,16 +903,8 @@ private fun ReviewStep(
             draft.vehiclePlate.takeIf { it.isNotBlank() }?.let { "Plate: $it" },
             draft.vehicleOwnership?.let { "Ownership: ${ownershipLabel(it)}" }
         ))
-        ReviewCard("Insurance and payout", listOfNotNull(
-            draft.insurerName.takeIf { it.isNotBlank() }?.let { "Insurer: $it" },
-            draft.insurancePolicyNumber.takeIf { it.isNotBlank() }?.let { "Policy: $it" },
-            draft.bankName.takeIf { it.isNotBlank() }?.let { "Bank: $it" },
-            draft.bankAccountNumber.takeIf { it.isNotBlank() }?.let { "Account: $it" },
-            draft.bankAccountHolder.takeIf { it.isNotBlank() }?.let { "Holder: $it" }
-        ))
-        ReviewCard("Tax and declarations", listOfNotNull(
-            draft.lhdnTaxNumber.takeIf { it.isNotBlank() }?.let { "LHDN: $it" },
-            draft.sstNumber.takeIf { it.isNotBlank() }?.let { "SST: $it" },
+        ReviewCard("Payout", listOf("Stripe payout setup happens after approval from the Wallet screen. Drivers cannot go online until Stripe payouts are enabled."))
+        ReviewCard("Declarations", listOf(
             "PDPA consent: ${if (draft.pdpaConsent) "Yes" else "No"}",
             "Background check consent: ${if (draft.backgroundCheckConsent) "Yes" else "No"}",
             "No offences declared: ${if (draft.noOffencesDeclared) "Yes" else "No"}"
@@ -1555,7 +1285,6 @@ private fun identityUrl(draft: DriverOnboardingDraft, type: DocumentType): Strin
 private fun enumLabel(state: MalaysianState): String = state.name.replace('_', ' ')
 private fun vehicleLabel(type: VehicleType): String = type.displayName
 private fun ownershipLabel(ownership: VehicleOwnership): String = ownership.name.replace('_', ' ')
-private fun coverageLabel(coverage: InsuranceCoverageType): String = coverage.name.replace('_', ' ')
 
 private fun formatDate(millis: Long): String {
     val localDate = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date

@@ -40,6 +40,9 @@ class SupportViewModel : ViewModel() {
     private val _createTicketState = MutableStateFlow<UiState<SupportTicket>>(UiState.Idle)
     val createTicketState: StateFlow<UiState<SupportTicket>> = _createTicketState.asStateFlow()
 
+    private val _intakeOptions = MutableStateFlow<UiState<List<SupportIssueOption>>>(UiState.Idle)
+    val intakeOptions: StateFlow<UiState<List<SupportIssueOption>>> = _intakeOptions.asStateFlow()
+
     // SOS state
     private val _sosState = MutableStateFlow<UiState<SosResult>>(UiState.Idle)
     val sosState: StateFlow<UiState<SosResult>> = _sosState.asStateFlow()
@@ -47,6 +50,16 @@ class SupportViewModel : ViewModel() {
     init {
         loadHelpArticles()
         loadTickets()
+        loadIntakeOptions()
+    }
+
+    fun loadIntakeOptions() {
+        viewModelScope.launch {
+            _intakeOptions.value = UiState.Loading
+            repository.getIntakeOptions()
+                .onSuccess { _intakeOptions.value = UiState.Success(it) }
+                .onFailure { _intakeOptions.value = UiState.Error(it.message ?: "Failed to load support options") }
+        }
     }
 
     fun loadHelpArticles() {
@@ -112,6 +125,18 @@ class SupportViewModel : ViewModel() {
                 description = description
             )
             repository.createTicket(ticket)
+                .onSuccess {
+                    _createTicketState.value = UiState.Success(it)
+                    loadTickets()
+                }
+                .onFailure { _createTicketState.value = UiState.Error(it.message ?: "Failed to create") }
+        }
+    }
+
+    fun createIntakeTicket(issue: SupportIssueOption, bookingId: String?, details: String, displayPath: List<String>) {
+        viewModelScope.launch {
+            _createTicketState.value = UiState.Loading
+            repository.createIntakeTicket(issue.id, bookingId, details, displayPath)
                 .onSuccess {
                     _createTicketState.value = UiState.Success(it)
                     loadTickets()

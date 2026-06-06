@@ -17,12 +17,14 @@ import kotlinx.coroutines.flow.asStateFlow
 interface AuthRepository {
     val currentDriver: Flow<Driver?>
     val isLoggedIn: Flow<Boolean>
+    suspend fun sendOtp(request: OtpRequest): Result<Boolean>
+    suspend fun verifyOtp(request: OtpVerifyRequest): Result<AuthResponse>
     suspend fun syncDriver(): Result<AuthResponse>
     suspend fun register(driver: Driver): Result<AuthResponse>
     suspend fun uploadDocument(document: Document): Result<Document>
     suspend fun updateVehicle(vehicle: VehicleDetails): Result<VehicleDetails>
     suspend fun getVerificationStatus(): Result<Driver>
-    suspend fun toggleOnline(isOnline: Boolean): Result<Boolean>
+    suspend fun toggleOnline(isOnline: Boolean, location: Pair<Double, Double>? = null): Result<Boolean>
     suspend fun updateFcmToken(fcmToken: String): Result<Boolean>
     suspend fun updateProfile(driver: Driver): Result<Driver>
     suspend fun updateLocation(latitude: Double, longitude: Double): Result<Boolean>
@@ -42,6 +44,20 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         if (token != null) {
             _isLoggedIn.value = true
         }
+    }
+
+    override suspend fun sendOtp(request: OtpRequest): Result<Boolean> = api.sendOtp(request)
+
+    override suspend fun verifyOtp(request: OtpVerifyRequest): Result<AuthResponse> {
+        val result = api.verifyOtp(request)
+        result.getOrNull()?.let { response ->
+            if (response.success) {
+                response.token?.takeIf { it.isNotBlank() }?.let { AuthSessionManager.storeAccessToken(it) }
+                _currentDriver.value = response.driver
+                _isLoggedIn.value = true
+            }
+        }
+        return result
     }
 
     override suspend fun syncDriver(): Result<AuthResponse> {
@@ -99,9 +115,9 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         return result
     }
 
-    override suspend fun toggleOnline(isOnline: Boolean): Result<Boolean> {
+    override suspend fun toggleOnline(isOnline: Boolean, location: Pair<Double, Double>?): Result<Boolean> {
         val driverId = _currentDriver.value?.id ?: return Result.failure(Exception("Not logged in"))
-        val result = api.toggleOnlineStatus(driverId, isOnline)
+        val result = api.toggleOnlineStatus(driverId, isOnline, location)
         result.getOrNull()?.let {
             _currentDriver.value = _currentDriver.value?.copy(isOnline = isOnline)
         }
@@ -176,23 +192,23 @@ interface JobRepository {
 }
 
 class JobRepositoryImpl(private val api: JobApi) : JobRepository {
-    override suspend fun getActiveJobs() = api.getActiveJobs("")
-    override suspend fun getScheduledJobs() = api.getScheduledJobs("")
-    override suspend fun getCompletedJobs() = api.getCompletedJobs("")
-    override suspend fun getJobDetails(jobId: String) = api.getJobDetails(jobId)
-    override suspend fun acceptJob(jobId: String) = api.acceptJob(jobId, "")
+    override suspend fun getActiveJobs() = api.getActiveJobs("").mapJobsWithNormalizedContactPhones()
+    override suspend fun getScheduledJobs() = api.getScheduledJobs("").mapJobsWithNormalizedContactPhones()
+    override suspend fun getCompletedJobs() = api.getCompletedJobs("").mapJobsWithNormalizedContactPhones()
+    override suspend fun getJobDetails(jobId: String) = api.getJobDetails(jobId).mapJobWithNormalizedContactPhones()
+    override suspend fun acceptJob(jobId: String) = api.acceptJob(jobId, "").mapJobWithNormalizedContactPhones()
     override suspend fun rejectJob(jobId: String) = api.rejectJob(jobId, "")
-    override suspend fun updateJobStatus(jobId: String, status: JobStatus) = api.updateJobStatus(jobId, status)
-    override suspend fun submitProof(jobId: String, proof: ProofOfDelivery) = api.submitProofOfDelivery(jobId, proof)
-    override suspend fun getIncomingRequest() = api.getIncomingJobRequest("")
-    override suspend fun getIncomingRequests() = api.getIncomingJobRequests("")
-    override suspend fun verifyPickupOtp(jobId: String, otp: String) = api.verifyPickupOtp(jobId, otp)
+    override suspend fun updateJobStatus(jobId: String, status: JobStatus) = api.updateJobStatus(jobId, status).mapJobWithNormalizedContactPhones()
+    override suspend fun submitProof(jobId: String, proof: ProofOfDelivery) = api.submitProofOfDelivery(jobId, proof).mapJobWithNormalizedContactPhones()
+    override suspend fun getIncomingRequest() = api.getIncomingJobRequest("").map { it?.withNormalizedContactPhones() }
+    override suspend fun getIncomingRequests() = api.getIncomingJobRequests("").mapJobsWithNormalizedContactPhones()
+    override suspend fun verifyPickupOtp(jobId: String, otp: String) = api.verifyPickupOtp(jobId, otp).mapJobWithNormalizedContactPhones()
     override suspend fun requestDeliveryOtp(jobId: String, forceResend: Boolean) = api.requestDeliveryOtp(jobId, forceResend)
     override suspend fun executeLifecycleCommand(
         jobId: String,
         command: DeliveryLifecycleCommand,
         payload: DeliveryLifecycleCommandPayload
-    ) = api.executeLifecycleCommand(jobId, command, payload)
+    ) = api.executeLifecycleCommand(jobId, command, payload).map { it.copy(job = it.job.withNormalizedContactPhones()) }
     override suspend fun cancelJob(jobId: String) = api.cancelJob(jobId)
     override suspend fun submitExtraCharge(
         jobId: String,
@@ -202,6 +218,12 @@ class JobRepositoryImpl(private val api: JobApi) : JobRepository {
         note: String
     ) = api.submitExtraCharge(jobId, type, amount, proofPath, note)
 }
+
+private fun Result<DeliveryJob>.mapJobWithNormalizedContactPhones(): Result<DeliveryJob> =
+    map { it.withNormalizedContactPhones() }
+
+private fun Result<List<DeliveryJob>>.mapJobsWithNormalizedContactPhones(): Result<List<DeliveryJob>> =
+    map { jobs -> jobs.map { it.withNormalizedContactPhones() } }
 
 // ============================================================
 // EARNINGS REPOSITORY
@@ -248,6 +270,8 @@ class RatingsRepositoryImpl(private val api: RatingsApi) : RatingsRepository {
 interface SupportRepository {
     suspend fun getHelpArticles(): Result<List<HelpArticle>>
     suspend fun getTickets(): Result<List<SupportTicket>>
+    suspend fun getIntakeOptions(): Result<List<SupportIssueOption>>
+    suspend fun createIntakeTicket(issueId: String, bookingId: String? = null, details: String, displayPath: List<String>): Result<SupportTicket>
     suspend fun createTicket(ticket: SupportTicket): Result<SupportTicket>
     suspend fun getMessages(ticketId: String): Result<List<ChatMessage>>
     suspend fun sendMessage(ticketId: String, message: ChatMessage): Result<ChatMessage>
@@ -257,6 +281,9 @@ interface SupportRepository {
 class SupportRepositoryImpl(private val api: SupportApi) : SupportRepository {
     override suspend fun getHelpArticles() = api.getHelpArticles()
     override suspend fun getTickets() = api.getTickets("")
+    override suspend fun getIntakeOptions() = api.getIntakeOptions()
+    override suspend fun createIntakeTicket(issueId: String, bookingId: String?, details: String, displayPath: List<String>) =
+        api.createIntakeTicket(issueId, bookingId, details, displayPath)
     override suspend fun createTicket(ticket: SupportTicket) = api.createTicket(ticket)
     override suspend fun getMessages(ticketId: String) = api.getTicketMessages(ticketId)
     override suspend fun sendMessage(ticketId: String, message: ChatMessage) = api.sendMessage(ticketId, message)

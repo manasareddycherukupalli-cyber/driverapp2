@@ -15,7 +15,7 @@ interface AuthApi {
     suspend fun getVerificationStatus(driverId: String): Result<Driver>
     suspend fun getDriverProfile(driverId: String): Result<Driver>
     suspend fun updateDriverProfile(driver: Driver): Result<Driver>
-    suspend fun toggleOnlineStatus(driverId: String, isOnline: Boolean): Result<Boolean>
+    suspend fun toggleOnlineStatus(driverId: String, isOnline: Boolean, location: Pair<Double, Double>? = null): Result<Boolean>
     suspend fun updateFcmToken(driverId: String, fcmToken: String): Result<Boolean>
     suspend fun deletePushToken(driverId: String): Result<Boolean>
     suspend fun updateLocation(latitude: Double, longitude: Double): Result<Boolean>
@@ -83,6 +83,8 @@ interface RatingsApi {
 interface SupportApi {
     suspend fun getHelpArticles(): Result<List<HelpArticle>>
     suspend fun getTickets(driverId: String): Result<List<SupportTicket>>
+    suspend fun getIntakeOptions(): Result<List<SupportIssueOption>>
+    suspend fun createIntakeTicket(issueId: String, bookingId: String? = null, details: String, displayPath: List<String>): Result<SupportTicket>
     suspend fun createTicket(ticket: SupportTicket): Result<SupportTicket>
     suspend fun getTicketMessages(ticketId: String): Result<List<ChatMessage>>
     suspend fun sendMessage(ticketId: String, message: ChatMessage): Result<ChatMessage>

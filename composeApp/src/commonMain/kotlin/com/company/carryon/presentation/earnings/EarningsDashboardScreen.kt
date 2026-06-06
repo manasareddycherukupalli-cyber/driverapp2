@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.presentation.components.DriveAppTopBar
@@ -222,7 +223,9 @@ private fun BalanceCard(balance: Double?, onWithdraw: () -> Unit) {
                     balance?.let { "RM ${formatMoney(it)}" } ?: "--",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 33.sp / 1.5f
+                    fontSize = 33.sp / 1.5f,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(4.dp))
                 Button(
@@ -258,7 +261,9 @@ private fun WeeklySection(
                     netProfit?.let { "+RM ${formatMoney(it)}" } ?: "--",
                     color = BrandBlue,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text("NET PROFIT", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
             }

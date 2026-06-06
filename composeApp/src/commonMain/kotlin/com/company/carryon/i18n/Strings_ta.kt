@@ -23,7 +23,7 @@ object TaDriverStrings : DriverStrings {
     override val emailAddress = "மின்னஞ்சல் முகவரி"
     override val enterYourEmail = "உங்கள் மின்னஞ்சலை உள்ளிடவும்"
     override val sendVerificationCode = "சரிபார்ப்பு குறியீட்டை அனுப்பு"
-    override val otpHint = "உங்கள் மின்னஞ்சலுக்கு சரிபார்ப்பு குறியீடு அனுப்பப்படும்"
+    override val otpHint = "உங்கள் தொலைபேசி எண்ணுக்கு சரிபார்ப்பு குறியீடு அனுப்பப்படும்"
     override val dontHaveAccount = "கணக்கு இல்லையா?"
     override val signUpLink = "பதிவு செய்"
     override val networkError = "நெட்வொர்க் பிழை. இணைப்பை சரிபார்க்கவும்."
@@ -32,7 +32,7 @@ object TaDriverStrings : DriverStrings {
 
     // ── Auth — OTP ───────────────────────────────────────────────
     override val enterTheCode = "குறியீட்டை உள்ளிடவும்"
-    override val verificationCodeSentToEmail = "சரிபார்ப்பு குறியீடு உங்கள் மின்னஞ்சலுக்கு அனுப்பப்பட்டது"
+    override val verificationCodeSentToEmail = "சரிபார்ப்பு குறியீடு உங்கள் தொலைபேசி எண்ணுக்கு அனுப்பப்பட்டது"
     override val dontReceiveCode = "குறியீடு வரவில்லையா? "
     override val resendAgain = "மீண்டும் அனுப்பு"
     override val resendTimer: (Int) -> String = { "${it} வி-ல் மீண்டும் அனுப்பு" }

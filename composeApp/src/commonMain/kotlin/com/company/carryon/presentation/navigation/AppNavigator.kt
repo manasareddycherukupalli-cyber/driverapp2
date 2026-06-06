@@ -146,7 +146,7 @@ class AppNavigator {
      */
     fun goBack(): Boolean {
         return if (backStack.isNotEmpty()) {
-            currentScreen = backStack.removeLast()
+            currentScreen = backStack.removeAt(backStack.lastIndex)
             syncDeliveryResumeState()
             true
         } else false

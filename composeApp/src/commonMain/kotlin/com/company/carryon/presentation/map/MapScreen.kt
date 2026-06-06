@@ -70,6 +70,8 @@ import com.company.carryon.presentation.components.ErrorState
 import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.components.MapViewComposable
 import com.company.carryon.presentation.navigation.AppNavigator
+import com.company.carryon.presentation.util.contactPhoneForCurrentDestination
+import com.company.carryon.presentation.util.telUriFor
 import org.jetbrains.compose.resources.painterResource
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -158,6 +160,7 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
         ?: "--"
     val earningsLabel = currentJob?.estimatedEarnings?.let { "RM${it.toInt()}" } ?: "--"
     val distanceLabel = currentJob?.distance?.takeIf { it > 0 }?.let { "${formatOneDecimal(it)} km" } ?: "--"
+    val destinationTelUri = telUriFor(currentJob?.contactPhoneForCurrentDestination())
     var activeSheet by remember { mutableStateOf<String?>(null) }
 
     Box(
@@ -309,13 +312,9 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
                             }
                             OutlinedButton(
                                 onClick = {
-                                    val job = currentJob ?: return@OutlinedButton
-                                    val destination = if (job.status.ordinal <= JobStatus.ARRIVED_AT_PICKUP.ordinal) job.pickup else job.dropoff
-                                    val phone = destination.contactPhone?.filter { it.isDigit() || it == '+' }.orEmpty()
-                                    if (phone.isNotBlank()) {
-                                        uriHandler.openUri("tel:$phone")
-                                    }
+                                    destinationTelUri?.let(uriHandler::openUri)
                                 },
+                                enabled = destinationTelUri != null,
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = NavWhite)
@@ -587,7 +586,7 @@ private fun NavEarningsSheet(earnings: Double, orderId: String) {
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("Job Earnings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = NavBlack)
-        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = NavBlue)
+        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = NavBlue, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text("Order #${orderId.takeLast(8).uppercase()}", color = NavBlack.copy(alpha = 0.5f), fontSize = 13.sp)
         Text("Final amount confirmed after delivery completion.", fontSize = 12.sp, color = NavBlack.copy(alpha = 0.4f))
         Spacer(Modifier.height(16.dp))

@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
@@ -155,7 +156,9 @@ fun DeliveryCompleteScreen(navigator: AppNavigator, viewModel: DeliveryViewModel
                             if (job.isSettlementEligible) "RM ${job.estimatedEarnings.toInt()}" else "Pending",
                             color = DoneBlue,
                             fontWeight = FontWeight.ExtraBold,
-                            fontSize = 38.sp
+                            fontSize = 38.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     Box(
@@ -339,7 +342,7 @@ private fun DeliveryEarningsSheet(earnings: Double, orderId: String, blue: Color
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("Job Earnings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
-        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = blue)
+        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = blue, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text("Order #${orderId.takeLast(8).uppercase()}", color = black.copy(alpha = 0.5f), fontSize = 13.sp)
         Text("Final amount confirmed after delivery completion.", fontSize = 12.sp, color = black.copy(alpha = 0.4f))
         Spacer(Modifier.height(16.dp))

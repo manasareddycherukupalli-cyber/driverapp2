@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.*
@@ -73,7 +74,9 @@ private fun RatingsContent(info: RatingInfo) {
                         text = "${info.averageRating}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 48.sp,
-                        color = Orange500
+                        color = Orange500,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     // Star display
                     Row {

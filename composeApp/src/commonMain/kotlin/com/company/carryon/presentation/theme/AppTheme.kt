@@ -1,9 +1,12 @@
 package com.company.carryon.presentation.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 // ============================================================
 // DRIVEAPP COLOR PALETTE — Inspired by Lalamove/Uber
@@ -120,9 +123,18 @@ fun DriveAppTheme(
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography(), // Default Material3 typography
-        content = content
-    )
+    BoxWithConstraints {
+        val widthClass = when {
+            maxWidth < 360.dp -> WindowWidthClass.Compact
+            maxWidth < 600.dp -> WindowWidthClass.Medium
+            else -> WindowWidthClass.Expanded
+        }
+        CompositionLocalProvider(LocalWindowWidthClass provides widthClass) {
+            MaterialTheme(
+                colorScheme = colorScheme,
+                typography = Typography(),
+                content = content
+            )
+        }
+    }
 }

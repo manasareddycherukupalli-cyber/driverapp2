@@ -23,7 +23,7 @@ object MsDriverStrings : DriverStrings {
     override val emailAddress = "Alamat E-mel"
     override val enterYourEmail = "Masukkan e-mel anda"
     override val sendVerificationCode = "Hantar Kod Pengesahan"
-    override val otpHint = "Kami akan menghantar kod pengesahan ke e-mel anda"
+    override val otpHint = "Kami akan menghantar kod pengesahan ke nombor telefon anda"
     override val dontHaveAccount = "Belum mempunyai Akaun?"
     override val signUpLink = "Daftar"
     override val networkError = "Ralat rangkaian. Sila semak sambungan anda."
@@ -32,7 +32,7 @@ object MsDriverStrings : DriverStrings {
 
     // ── Auth — OTP ───────────────────────────────────────────────
     override val enterTheCode = "Masukkan Kod"
-    override val verificationCodeSentToEmail = "Kod pengesahan telah dihantar ke e-mel anda"
+    override val verificationCodeSentToEmail = "Kod pengesahan telah dihantar ke nombor telefon anda"
     override val dontReceiveCode = "Tidak menerima kod? "
     override val resendAgain = "Hantar semula"
     override val resendTimer: (Int) -> String = { "Hantar semula dalam ${it}s" }

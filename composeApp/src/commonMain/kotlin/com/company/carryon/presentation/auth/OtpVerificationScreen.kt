@@ -19,14 +19,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
-import com.company.carryon.data.network.SupabaseConfig
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
-import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.OtpType
-import io.github.jan.supabase.auth.providers.builtin.OTP
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
@@ -92,7 +87,7 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                 color = Color(0xFF6B6B6B)
             )
             Text(
-                text = authViewModel.driverEmail.ifEmpty { "your email" },
+                text = authViewModel.driverPhone.ifEmpty { "your phone number" },
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF1A1A2E)
@@ -151,15 +146,13 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                         resendTimer = 30
                         otpValues = List(otpLength) { "" }
                         errorMessage = null
-                        coroutineScope.launch {
-                            try {
-                                clearStaleAuthSessionForOtp()
-                                SupabaseConfig.client.auth.signInWith(OTP) {
-                                    email = normalizeEmailInput(authViewModel.driverEmail)
-                                }
-                            } catch (e: Exception) {
-                                errorMessage = mapAuthErrorMessage(e)
-                            }
+                        if (authViewModel.authFlowType == AuthFlowType.SIGNUP) {
+                            authViewModel.sendSignupOtp(
+                                authViewModel.driverName,
+                                authViewModel.driverPhone
+                            )
+                        } else {
+                            authViewModel.sendLoginOtp(authViewModel.driverPhone)
                         }
                     }
                 )
@@ -188,40 +181,20 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                 isVerifying = true
                 val otp = otpValues.joinToString("")
                 coroutineScope.launch {
-                    try {
-                        // Use the OTP provider's verifyEmailOtp method
-                        SupabaseConfig.client.auth.verifyEmailOtp(
-                            type = OtpType.Email.EMAIL,
-                            email = normalizeEmailInput(authViewModel.driverEmail),
-                            token = otp
-                        )
-                        // Get the session after successful verification
-                        val session = SupabaseConfig.client.auth.currentSessionOrNull()
-                        val accessToken = session?.accessToken
-                        if (accessToken != null) {
-                            authViewModel.onSupabaseTokenReceived(accessToken)
-                            // Wait for the first terminal state from sync result.
-                            when (val state = authViewModel.otpVerifyState.first {
-                                it is UiState.Success || it is UiState.Error
-                            }) {
-                                is UiState.Success -> {
-                                    val screen = authViewModel.determinePostAuthScreen(state.data)
-                                    navigator.navigateAndClearStack(screen)
-                                }
-                                is UiState.Error -> {
-                                    errorMessage = state.message
-                                }
-                                else -> {}
-                            }
-                            isVerifying = false
-                        } else {
-                            errorMessage = "Verification succeeded but no session found"
-                            isVerifying = false
+                    authViewModel.verifySmsOtp(otp)
+                    when (val state = authViewModel.otpVerifyState.first {
+                        it is UiState.Success || it is UiState.Error
+                    }) {
+                        is UiState.Success -> {
+                            val screen = authViewModel.determinePostAuthScreen(state.data)
+                            navigator.navigateAndClearStack(screen)
                         }
-                    } catch (e: Exception) {
-                        errorMessage = mapAuthErrorMessage(e)
-                        isVerifying = false
+                        is UiState.Error -> {
+                            errorMessage = state.message
+                        }
+                        else -> {}
                     }
+                    isVerifying = false
                 }
             },
             modifier = Modifier

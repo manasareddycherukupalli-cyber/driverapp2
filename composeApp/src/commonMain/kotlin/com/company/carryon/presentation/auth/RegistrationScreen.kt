@@ -1,8 +1,6 @@
 package com.company.carryon.presentation.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -25,24 +22,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
-import com.company.carryon.data.network.SupabaseConfig
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
-import drive_app.composeapp.generated.resources.*
-import com.company.carryon.getPlatform
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.providers.Google
-import io.github.jan.supabase.auth.providers.builtin.OTP
-import io.github.jan.supabase.compose.auth.composeAuth
-import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
-import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
 
 // ── Figma design tokens ──────────────────────────────────────
 private val RegBlue  = Color(0xFF2F80ED)
@@ -57,20 +44,33 @@ private val RegGray  = Color(0xFF828282)
 fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     val strings = LocalStrings.current
     var name         by remember { mutableStateOf("") }
-    var email        by remember { mutableStateOf("") }
     var phone        by remember { mutableStateOf("") }
     var isLoading    by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var awaitingGoogleAuth by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
+    val otpSendState by authViewModel.otpSendState.collectAsState()
     val otpVerifyState by authViewModel.otpVerifyState.collectAsState()
 
     LaunchedEffect(Unit) {
         authViewModel.resetOtpState()
     }
 
-    // Navigate after Google sign-in completes (skips OTP screen)
+    LaunchedEffect(otpSendState) {
+        when (otpSendState) {
+            is UiState.Success -> {
+                isLoading = false
+                navigator.navigateTo(Screen.OtpVerification)
+            }
+            is UiState.Error -> {
+                isLoading = false
+                errorMessage = (otpSendState as UiState.Error).message
+            }
+            is UiState.Loading -> { isLoading = true }
+            else -> {}
+        }
+    }
+
     LaunchedEffect(otpVerifyState) {
         when (val state = otpVerifyState) {
             is UiState.Success -> {
@@ -87,58 +87,15 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         }
     }
 
-    val normalizedEmail = normalizeEmailInput(email)
-    val signUpEnabled = name.isNotBlank() && isValidEmailInput(email)
-
-    // Listen for session changes (handles iOS OAuth callback)
-    LaunchedEffect(Unit) {
-        SupabaseConfig.client.auth.sessionStatus.collect { status ->
-            if (awaitingGoogleAuth && status is io.github.jan.supabase.auth.status.SessionStatus.Authenticated) {
-                awaitingGoogleAuth = false
-                val session = SupabaseConfig.client.auth.currentSessionOrNull()
-                if (session != null && !isLoading) {
-                    authViewModel.authFlowType = AuthFlowType.SIGNUP
-                    authViewModel.driverEmail = session.user?.email ?: ""
-                    authViewModel.onSupabaseTokenReceived(session.accessToken)
-                }
-            }
-        }
-    }
-
-    // Google Sign-In via Supabase ComposeAuth
-    val googleSignInAction = SupabaseConfig.client.composeAuth.rememberSignInWithGoogle(
-        onResult = { result ->
-            when (result) {
-                is NativeSignInResult.Success -> {
-                    awaitingGoogleAuth = false
-                    coroutineScope.launch {
-                        val session = SupabaseConfig.client.auth.currentSessionOrNull()
-                        if (session != null) {
-                            authViewModel.authFlowType = AuthFlowType.SIGNUP
-                            authViewModel.driverEmail = session.user?.email ?: ""
-                            authViewModel.onSupabaseTokenReceived(session.accessToken)
-                        }
-                    }
-                }
-                is NativeSignInResult.Error -> {
-                    awaitingGoogleAuth = false
-                    errorMessage = result.message
-                }
-                is NativeSignInResult.ClosedByUser -> { awaitingGoogleAuth = false }
-                is NativeSignInResult.NetworkError -> {
-                    awaitingGoogleAuth = false
-                    errorMessage = "Network error. Please check your connection."
-                }
-            }
-        }
-    )
+    val normalizedPhone = normalizePhoneInput(phone)
+    val signUpEnabled = name.isNotBlank() && isValidPhoneInput(phone)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 39.dp)
+            .padding(horizontal = 24.dp)
     ) {
         Spacer(Modifier.height(20.dp))
 
@@ -169,7 +126,9 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                 withStyle(SpanStyle(color = Color(0xFF333333), fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
                     append("!")
                 }
-            }
+            },
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
 
         Spacer(Modifier.height(8.dp))
@@ -188,17 +147,6 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             value         = name,
             onValueChange = { name = it },
             placeholder   = strings.enterYourName
-        )
-
-        Spacer(Modifier.height(25.dp))
-
-        // ── Email field ────────────────────────────────────────
-        RegInputField(
-            label         = strings.emailAddress,
-            value         = email,
-            onValueChange = { email = it },
-            placeholder   = strings.enterYourEmail,
-            keyboardType  = KeyboardType.Email
         )
 
         Spacer(Modifier.height(25.dp))
@@ -237,22 +185,7 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                 errorMessage = null
                 isLoading = true
                 authViewModel.authFlowType = AuthFlowType.SIGNUP
-                authViewModel.driverName = name
-                authViewModel.driverEmail = normalizedEmail
-                authViewModel.driverPhone = phone
-                coroutineScope.launch {
-                    try {
-                        clearStaleAuthSessionForOtp()
-                        SupabaseConfig.client.auth.signInWith(OTP) {
-                            this.email = normalizedEmail
-                        }
-                        authViewModel.onOtpSent(normalizedEmail)
-                        navigator.navigateTo(Screen.OtpVerification)
-                    } catch (e: Exception) {
-                        errorMessage = mapAuthErrorMessage(e)
-                        isLoading = false
-                    }
-                }
+                authViewModel.sendSignupOtp(name, normalizedPhone)
             },
             modifier  = Modifier
                 .fillMaxWidth()
@@ -283,55 +216,7 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             }
         }
 
-        Spacer(Modifier.height(30.dp))   // outer gap-[30px] between form and options
-
-        // ── Or divider ─────────────────────────────────────────
-        Row(
-            modifier          = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
-            Text(
-                text     = strings.or,
-                modifier = Modifier.padding(horizontal = 9.dp),
-                color    = RegGray,
-                fontSize = 16.sp
-            )
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
-        }
-
-        Spacer(Modifier.height(20.dp))
-
-        // ── Social icons (Apple · Google · Facebook) ──────────
-        Row(
-            modifier              = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment     = Alignment.CenterVertically
-        ) {
-            RegSocialButton(Res.drawable.ic_apple) {}
-            Spacer(Modifier.width(10.dp))
-            RegSocialButton(Res.drawable.ic_google) {
-                if (getPlatform().name.startsWith("Android")) {
-                    awaitingGoogleAuth = true
-                    googleSignInAction.startFlow()
-                } else {
-                    // iOS: use OAuth web flow
-                    coroutineScope.launch {
-                        try {
-                            awaitingGoogleAuth = true
-                            SupabaseConfig.client.auth.signInWith(Google)
-                        } catch (e: Exception) {
-                            awaitingGoogleAuth = false
-                            errorMessage = e.message ?: "Google sign-in failed"
-                        }
-                    }
-                }
-            }
-            Spacer(Modifier.width(10.dp))
-            RegSocialButton(Res.drawable.ic_facebook) {}
-        }
-
-        Spacer(Modifier.height(28.dp))   // bottom padding
+        Spacer(Modifier.height(28.dp))
     }
 }
 
@@ -399,29 +284,3 @@ private fun RegInputField(
     }
 }
 
-// ── Social login button — white card 80×60 with shadow ───────
-@Composable
-private fun RegSocialButton(
-    resource : DrawableResource,
-    onClick  : () -> Unit
-) {
-    Surface(
-        shape           = RoundedCornerShape(10.dp),
-        shadowElevation = 4.dp,
-        tonalElevation  = 0.dp,
-        color           = Color.White,
-        modifier        = Modifier
-            .width(80.dp)
-            .height(60.dp)
-            .clickable(onClick = onClick)
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Image(
-                painter            = painterResource(resource),
-                contentDescription = null,
-                modifier           = Modifier.size(32.dp),
-                contentScale       = ContentScale.Fit
-            )
-        }
-    }
-}

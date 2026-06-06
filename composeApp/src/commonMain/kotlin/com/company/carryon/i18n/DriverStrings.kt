@@ -23,7 +23,7 @@ interface DriverStrings {
     val emailAddress: String get() = "Email Address"
     val enterYourEmail: String get() = "Enter your email"
     val sendVerificationCode: String get() = "Send Verification Code"
-    val otpHint: String get() = "We'll send a verification code to your email"
+    val otpHint: String get() = "We'll send a verification code to your phone number"
     val dontHaveAccount: String get() = "Don't have an Account ?"
     val signUpLink: String get() = "Sign up"
     val networkError: String get() = "Network error. Please check your connection."
@@ -32,7 +32,7 @@ interface DriverStrings {
 
     // ── Auth — OTP ───────────────────────────────────────────────
     val enterTheCode: String get() = "Enter the Code"
-    val verificationCodeSentToEmail: String get() = "A verification code has been sent to your email"
+    val verificationCodeSentToEmail: String get() = "A verification code has been sent to your phone number"
     val dontReceiveCode: String get() = "Don't receive code? "
     val resendAgain: String get() = "Resend again"
     val resendTimer: (Int) -> String get() = { "Resend in ${it}s" }
@@ -84,6 +84,8 @@ interface DriverStrings {
     val privacyPolicy: String get() = "Privacy Policy"
     val termsOfService: String get() = "Terms of Service"
     val logOut: String get() = "Log Out"
+    val deleteAccount: String get() = "Delete Account"
+    val deleteAccountWarning: String get() = "Deleting your account is permanent. All your delivery history and saved data will be removed."
     val appVersionLabel: String get() = "CARRY ON DRIVER APP V4.2.0-STABLE"
 
     // ── Language Selection ────────────────────────────────────────

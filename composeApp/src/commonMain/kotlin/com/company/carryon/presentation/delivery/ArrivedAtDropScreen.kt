@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DeliveryJob
@@ -57,6 +58,7 @@ import com.company.carryon.presentation.components.ErrorState
 import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.util.telUriFor
 
 private val DropBlue = Color(0xFF2F80ED)
 private val DropSoft = Color(0x4DA6D2F3)
@@ -117,6 +119,7 @@ private fun ArrivedAtDropContent(
     val recipientPhone = job.dropoff.contactPhone?.takeIf { it.isNotBlank() }
         ?: job.customerPhone.takeIf { it.isNotBlank() }
         ?: "--"
+    val recipientTelUri = telUriFor(recipientPhone)
     val primaryAddress = job.dropoff.shortAddress.ifBlank { job.dropoff.address }.ifBlank { "--" }
     val secondaryAddress = when {
         job.dropoff.address.isBlank() -> ""
@@ -189,10 +192,18 @@ private fun ArrivedAtDropContent(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
                         Text("RECIPIENT", color = DropBlue.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        Text(recipientName, color = DropBlack, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(recipientName, color = DropBlack, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(recipientPhone, color = DropBlack.copy(alpha = 0.65f), fontSize = 14.sp)
                     }
-                    Box(modifier = Modifier.size(44.dp).background(DropBlue, CircleShape), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(DropBlue, CircleShape)
+                            .clickable(enabled = recipientTelUri != null) {
+                                recipientTelUri?.let(uriHandler::openUri)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(Icons.Filled.Call, contentDescription = null, tint = DropWhite)
                     }
                 }
@@ -205,7 +216,7 @@ private fun ArrivedAtDropContent(
                         Icon(Icons.Filled.LocationOn, contentDescription = null, tint = DropBlue, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Column {
-                            Text(primaryAddress, color = DropBlack, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(primaryAddress, color = DropBlack, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (secondaryAddress.isNotBlank()) {
                                 Text(secondaryAddress, color = DropBlack.copy(alpha = 0.65f), fontSize = 14.sp)
                             }
@@ -232,12 +243,15 @@ private fun ArrivedAtDropContent(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
-                onClick = { },
+                onClick = { recipientTelUri?.let(uriHandler::openUri) },
+                enabled = recipientTelUri != null,
                 modifier = Modifier.weight(1f).height(48.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DropSoft, contentColor = DropBlue)
             ) {
-                Text("Message", fontWeight = FontWeight.SemiBold)
+                Icon(Icons.Filled.Call, contentDescription = null, tint = DropBlue, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Call", fontWeight = FontWeight.SemiBold)
             }
             Button(
                 onClick = { },
@@ -362,7 +376,7 @@ private fun DeliveryEarningsSheet(earnings: Double, orderId: String, blue: Color
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("Job Earnings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
-        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = blue)
+        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = blue, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text("Order #${orderId.takeLast(8).uppercase()}", color = black.copy(alpha = 0.5f), fontSize = 13.sp)
         Text("Final amount confirmed after delivery completion.", fontSize = 12.sp, color = black.copy(alpha = 0.4f))
         Spacer(Modifier.height(16.dp))

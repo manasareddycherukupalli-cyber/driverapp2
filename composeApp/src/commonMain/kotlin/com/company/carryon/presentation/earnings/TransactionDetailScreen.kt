@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.InvoiceLink
@@ -110,7 +111,9 @@ private fun TransactionDetailContent(
                     text = "RM${kotlin.math.abs(transaction.amount).toInt()}",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 40.sp
+                    fontSize = 40.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(

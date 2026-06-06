@@ -116,8 +116,8 @@ class AuthViewModel : ViewModel() {
      * The OTP is sent directly via Supabase SDK on the client side.
      * This just updates the UI state.
      */
-    fun onOtpSent(email: String) {
-        driverEmail = email
+    fun onOtpSent(phone: String) {
+        driverPhone = phone
         _otpSendState.value = UiState.Success(true)
     }
 
@@ -127,6 +127,55 @@ class AuthViewModel : ViewModel() {
 
     fun setOtpLoading() {
         _otpSendState.value = UiState.Loading
+    }
+
+    fun sendLoginOtp(phone: String) {
+        driverEmail = ""
+        driverPhone = phone
+        authFlowType = AuthFlowType.LOGIN
+        viewModelScope.launch {
+            _otpSendState.value = UiState.Loading
+            repository.sendOtp(OtpRequest(email = "", mode = "login", phone = phone))
+                .onSuccess { _otpSendState.value = UiState.Success(true) }
+                .onFailure { _otpSendState.value = UiState.Error(it.message ?: "Failed to send verification code") }
+        }
+    }
+
+    fun sendSignupOtp(name: String, phone: String) {
+        driverName = name
+        driverEmail = ""
+        driverPhone = phone
+        authFlowType = AuthFlowType.SIGNUP
+        viewModelScope.launch {
+            _otpSendState.value = UiState.Loading
+            repository.sendOtp(OtpRequest(email = "", mode = "signup", phone = phone))
+                .onSuccess { _otpSendState.value = UiState.Success(true) }
+                .onFailure { _otpSendState.value = UiState.Error(it.message ?: "Failed to send verification code") }
+        }
+    }
+
+    fun verifySmsOtp(otp: String) {
+        viewModelScope.launch {
+            _otpVerifyState.value = UiState.Loading
+            repository.verifyOtp(
+                OtpVerifyRequest(
+                    email = driverEmail,
+                    otp = otp,
+                    mode = if (authFlowType == AuthFlowType.SIGNUP) "signup" else "login",
+                    name = driverName,
+                    phone = driverPhone,
+                    emergencyContact = emergencyContact,
+                    language = currentLanguageOrDefault()
+                )
+            )
+                .onSuccess { response ->
+                    _latestAuthResponse.value = response
+                    response.driver?.let { hydrateIdentityFallbacks(it) }
+                    _hasValidSession.value = response.token?.isNotBlank() == true || _hasValidSession.value
+                    _otpVerifyState.value = UiState.Success(response)
+                }
+                .onFailure { _otpVerifyState.value = UiState.Error(it.message ?: "Verification failed") }
+        }
     }
 
     /**
@@ -379,9 +428,9 @@ class AuthViewModel : ViewModel() {
         }
 
         val hasSubmittedOnboardingPackage =
-            driver.vehicleDetails != null &&
-                driver.driversLicenseNumber.isNotBlank() &&
-                driver.documents.size >= 5
+            driver.onboardingSubmittedAt != null ||
+                driver.verificationStatus == VerificationStatus.IN_REVIEW ||
+                driver.verificationStatus == VerificationStatus.REJECTED
 
         if (hasSubmittedOnboardingPackage) {
             return Screen.VerificationStatus

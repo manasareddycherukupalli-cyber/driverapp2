@@ -76,11 +76,6 @@ class MainActivity : ComponentActivity() {
             add(Manifest.permission.CAMERA)
             add(Manifest.permission.READ_CONTACTS)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                add(Manifest.permission.READ_MEDIA_IMAGES)
-            } else {
-                add(Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
         }
 
         val missingPermissions = permissionsToRequest.filter { permission ->

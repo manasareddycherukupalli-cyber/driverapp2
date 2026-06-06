@@ -3,7 +3,7 @@ package com.company.carryon.data.repository
 import com.company.carryon.data.model.ServiceArea
 import com.company.carryon.data.network.LocationApi
 import com.company.carryon.util.GeoUtils
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 interface ServiceAreaRepository {
     suspend fun getServiceAreas(): List<ServiceArea>

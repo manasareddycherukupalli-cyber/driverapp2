@@ -240,6 +240,22 @@ class DeliveryViewModel : ViewModel() {
         }
     }
 
+    fun confirmPickup(jobId: String) {
+        viewModelScope.launch {
+            _otpError.value = null
+            _otpVerifying.value = true
+            executeLifecycle(jobId, DeliveryLifecycleCommand.VERIFY_PICKUP_OTP)
+                .onSuccess {
+                    _otpVerifying.value = false
+                    emitNavigation(Screen.StartDelivery)
+                }
+                .onFailure { e ->
+                    _otpError.value = e.message ?: "Failed to confirm pickup"
+                    _otpVerifying.value = false
+                }
+        }
+    }
+
     fun clearOtpError() {
         _otpError.value = null
     }
@@ -325,7 +341,7 @@ class DeliveryViewModel : ViewModel() {
     }
 
     /** Submit proof of delivery */
-    fun submitProof(jobId: String, photoBytes: ByteArray?, otpCode: String, recipientName: String) {
+    fun submitProof(jobId: String, photoBytes: ByteArray?, recipientName: String) {
         viewModelScope.launch {
             _proofState.value = UiState.Loading
             val uploadedPhotoUrl = when (val state = _photoUploadState.value) {
@@ -348,7 +364,7 @@ class DeliveryViewModel : ViewModel() {
             }
             val proof = ProofOfDelivery(
                 photoUrl = uploadedPhotoUrl,
-                otpCode = otpCode.ifBlank { null },
+                otpCode = null,
                 recipientName = recipientName.ifBlank { null },
                 deliveredAt = null // Server sets the timestamp
             )
@@ -356,7 +372,6 @@ class DeliveryViewModel : ViewModel() {
                 jobId,
                 DeliveryLifecycleCommand.COMPLETE_DELIVERY,
                 lifecyclePayload(
-                    otp = proof.otpCode,
                     proof = DeliveryLifecycleProof(
                         photoUrl = proof.photoUrl,
                         recipientName = proof.recipientName
@@ -432,7 +447,6 @@ fun fallbackDeliveryCommandsForStatus(status: JobStatus): Set<DeliveryLifecycleC
     JobStatus.PICKED_UP -> setOf(DeliveryLifecycleCommand.START_DELIVERY)
     JobStatus.IN_TRANSIT -> setOf(DeliveryLifecycleCommand.ARRIVE_DROP)
     JobStatus.ARRIVED_AT_DROP -> setOf(
-        DeliveryLifecycleCommand.REQUEST_DROP_OTP,
         DeliveryLifecycleCommand.COMPLETE_DELIVERY
     )
     else -> emptySet()

@@ -309,7 +309,7 @@ fun ErrorState(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier.padding(24.dp)
         ) {
             Text(
                 text = "⚠️",
@@ -320,7 +320,9 @@ fun ErrorState(
                 text = message,
                 color = MaterialTheme.colorScheme.error,
                 fontSize = 16.sp,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             if (onRetry != null) {
                 Spacer(Modifier.height(16.dp))
@@ -346,7 +348,7 @@ fun EmptyState(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier.padding(24.dp)
         ) {
             Text(text = emoji, fontSize = 64.sp)
             Spacer(Modifier.height(16.dp))
@@ -354,7 +356,9 @@ fun EmptyState(
                 text = title,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 18.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             if (subtitle.isNotBlank()) {
                 Spacer(Modifier.height(8.dp))

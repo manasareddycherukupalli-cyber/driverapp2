@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.*
@@ -28,6 +29,7 @@ import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
+import kotlin.math.round
 
 private val WalletBlue = Color(0xFF2F80ED)
 private val WalletBlueDark = Color(0xFF1A6ED4)
@@ -85,6 +87,14 @@ fun WalletScreen(navigator: AppNavigator) {
                 }
             }
 
+            item {
+                PayoutMessage(
+                    payoutStatus = payoutStatus,
+                    withdrawalState = withdrawalState,
+                    onboardingLink = onboardingLink
+                )
+            }
+
             // Quick stats
             item {
                 when (val state = walletState) {
@@ -124,13 +134,17 @@ fun WalletScreen(navigator: AppNavigator) {
 
     // Withdraw dialog
     if (showWithdrawDialog) {
+        val status = (payoutStatus as? UiState.Success)?.data
         WithdrawDialog(
             onDismiss = { showWithdrawDialog = false },
             onConfirm = { amount ->
                 viewModel.requestWithdrawal(amount)
                 showWithdrawDialog = false
             },
-            maxAmount = (walletState as? UiState.Success)?.data?.balance ?: 0.0
+            maxAmount = (walletState as? UiState.Success)?.data?.balance ?: 0.0,
+            minimumAmount = status?.minimumWithdrawalAmount ?: 50.0,
+            feeFlat = status?.withdrawalFeeFlat ?: 0.0,
+            feeRate = status?.withdrawalFeeRate ?: 0.0
         )
     }
 }
@@ -169,7 +183,9 @@ private fun WalletBalanceCard(
                     text = "RM${wallet.balance.toInt()}",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 36.sp
+                    fontSize = 36.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 if (wallet.pendingAmount > 0) {
                     Text(
@@ -194,7 +210,7 @@ private fun WalletBalanceCard(
                 if (payoutsEnabled) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Stripe payouts enabled",
+                        text = "Stripe payouts enabled. Withdrawals are manual.",
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 12.sp
                     )
@@ -208,6 +224,51 @@ private fun WalletBalanceCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PayoutMessage(
+    payoutStatus: UiState<PayoutStatus>,
+    withdrawalState: UiState<Transaction>,
+    onboardingLink: UiState<PayoutOnboardingLink>
+) {
+    val message = when (withdrawalState) {
+        is UiState.Success -> "Withdrawal submitted. Check transaction history for the transfer record."
+        is UiState.Error -> withdrawalState.message
+        else -> when (payoutStatus) {
+            is UiState.Success -> {
+                val requirements = payoutStatus.data.requirements
+                when {
+                    payoutStatus.data.payoutsEnabled -> "Minimum withdrawal: RM ${formatWalletMoney(payoutStatus.data.minimumWithdrawalAmount)}"
+                    requirements?.pastDue?.isNotEmpty() == true -> "Stripe needs urgent payout details: ${requirements.pastDue.take(2).joinToString()}"
+                    requirements?.currentlyDue?.isNotEmpty() == true -> "Stripe needs payout details: ${requirements.currentlyDue.take(2).joinToString()}"
+                    payoutStatus.data.accountId != null -> "Continue Stripe setup to enable withdrawals and online driving."
+                    else -> "Set up Stripe payouts before going online or withdrawing earnings."
+                }
+            }
+            is UiState.Error -> payoutStatus.message
+            else -> null
+        }
+    } ?: when (onboardingLink) {
+        is UiState.Error -> onboardingLink.message
+        else -> null
+    }
+
+    if (message.isNullOrBlank()) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(14.dp),
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -317,10 +378,16 @@ private fun WalletStatCard(
 private fun WithdrawDialog(
     onDismiss: () -> Unit,
     onConfirm: (Double) -> Unit,
-    maxAmount: Double
+    maxAmount: Double,
+    minimumAmount: Double,
+    feeFlat: Double,
+    feeRate: Double
 ) {
     val strings = LocalStrings.current
     var amount by remember { mutableStateOf("") }
+    val parsedAmount = amount.toDoubleOrNull() ?: 0.0
+    val estimatedFee = minOf(parsedAmount, feeFlat + (parsedAmount * feeRate))
+    val estimatedTransfer = maxOf(0.0, parsedAmount - estimatedFee)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -328,8 +395,13 @@ private fun WithdrawDialog(
         text = {
             Column {
                 Text(
-                    text = "${strings.available}: RM${maxAmount.toInt()}",
+                    text = "${strings.available}: RM ${formatWalletMoney(maxAmount)}",
                     fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Minimum withdrawal: RM ${formatWalletMoney(minimumAmount)}",
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(12.dp))
@@ -343,12 +415,21 @@ private fun WithdrawDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = { Text("RM", fontWeight = FontWeight.Bold, fontSize = 18.sp) }
                 )
+                if (parsedAmount > 0.0) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Estimated transfer: RM ${formatWalletMoney(estimatedTransfer)}" +
+                            if (estimatedFee > 0.0) " after RM ${formatWalletMoney(estimatedFee)} fee" else "",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = { amount.toDoubleOrNull()?.let { onConfirm(it) } },
-                enabled = (amount.toDoubleOrNull() ?: 0.0) > 0 && (amount.toDoubleOrNull() ?: 0.0) <= maxAmount,
+                enabled = parsedAmount >= minimumAmount && parsedAmount <= maxAmount && estimatedTransfer > 0.0,
                 colors = ButtonDefaults.buttonColors(containerColor = WalletBlue)
             ) {
                 Text(strings.withdraw)
@@ -360,4 +441,9 @@ private fun WithdrawDialog(
             }
         }
     )
+}
+
+private fun formatWalletMoney(value: Double): String {
+    val rounded = round(value * 100.0) / 100.0
+    return if (rounded % 1.0 == 0.0) rounded.toInt().toString() else rounded.toString()
 }

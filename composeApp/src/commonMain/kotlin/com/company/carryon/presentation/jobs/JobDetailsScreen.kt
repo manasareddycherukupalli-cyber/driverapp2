@@ -392,7 +392,7 @@ private fun RouteStop(
         Spacer(Modifier.width(10.dp))
         Column {
             Text(label, color = TextMuted, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-            Text(title, color = DispatchBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(title, color = DispatchBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(subtitle, color = TextDark, fontSize = 13.sp)
         }
     }

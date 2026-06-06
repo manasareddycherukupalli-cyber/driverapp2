@@ -246,7 +246,7 @@ private fun BookingMessageBubble(message: BookingChatMessage) {
         horizontalArrangement = if (isOwnMessage) Arrangement.End else Arrangement.Start
     ) {
         Card(
-            modifier = Modifier.widthIn(max = 280.dp),
+            modifier = Modifier.fillMaxWidth(0.75f),
             shape = RoundedCornerShape(
                 topStart = 16.dp,
                 topEnd = 16.dp,

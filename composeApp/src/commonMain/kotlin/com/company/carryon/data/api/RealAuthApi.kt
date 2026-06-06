@@ -1,6 +1,7 @@
 package com.company.carryon.data.api
 
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.AuthSessionManager
 import com.company.carryon.data.network.HttpClientFactory
 import com.company.carryon.data.network.currentPushPlatform
 import com.company.carryon.data.network.getOrCreateDeviceId
@@ -14,18 +15,29 @@ class RealAuthApi : AuthApi {
     private val client = HttpClientFactory.client
 
     override suspend fun sendOtp(request: OtpRequest): Result<Boolean> = runCatching {
-        // OTP is sent directly via Supabase client-side — this is a no-op
+        client.post("/api/driver/auth/send-otp") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
         true
     }
 
     override suspend fun verifyOtp(request: OtpVerifyRequest): Result<AuthResponse> = runCatching {
-        // OTP verification happens via Supabase client-side
-        // After that, we call sync to create/find driver in our backend
-        val response: AuthResponse = client.post("/api/driver/auth/sync") {
-            withAuth()
+        val endpoint = if (request.email.isBlank() && request.otp.isBlank()) {
+            "/api/driver/auth/sync"
+        } else {
+            "/api/driver/auth/verify-otp"
+        }
+        val response: AuthResponse = client.post(endpoint) {
+            if (endpoint.endsWith("/sync")) withAuth()
             contentType(ContentType.Application.Json)
-            setBody(SyncRequest(language = currentLanguageOrDefault()))
+            if (endpoint.endsWith("/sync")) {
+                setBody(SyncRequest(language = currentLanguageOrDefault()))
+            } else {
+                setBody(request.copy(language = request.language.ifBlank { currentLanguageOrDefault() }))
+            }
         }.body()
+        response.token?.takeIf { it.isNotBlank() }?.let { AuthSessionManager.storeAccessToken(it) }
         response
     }
 
@@ -86,11 +98,17 @@ class RealAuthApi : AuthApi {
         response.data ?: throw Exception("Failed to update profile")
     }
 
-    override suspend fun toggleOnlineStatus(driverId: String, isOnline: Boolean): Result<Boolean> = runCatching {
+    override suspend fun toggleOnlineStatus(driverId: String, isOnline: Boolean, location: Pair<Double, Double>?): Result<Boolean> = runCatching {
         val response: ApiResponse<Driver> = client.post("/api/driver/profile/toggle-online") {
             withAuth()
             contentType(ContentType.Application.Json)
-            setBody(mapOf("isOnline" to isOnline))
+            setBody(
+                ToggleOnlineRequest(
+                    isOnline = isOnline,
+                    latitude = location?.first,
+                    longitude = location?.second
+                )
+            )
         }.body()
         if (!response.success) throw Exception(response.message ?: "Toggle failed")
         response.data?.isOnline ?: throw Exception("Missing isOnline in response")

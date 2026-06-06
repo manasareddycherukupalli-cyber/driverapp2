@@ -12,7 +12,6 @@ import com.company.carryon.data.model.DriverOnboardingSubmissionRequest
 import com.company.carryon.data.model.DriverProfileUpdateRequest
 import com.company.carryon.data.model.DriverVerificationStatusPayload
 import com.company.carryon.data.model.DriverVehicleUpsertRequest
-import com.company.carryon.data.model.InsuranceCoverageType
 import com.company.carryon.data.model.LicenseClass
 import com.company.carryon.data.model.MalaysianState
 import com.company.carryon.data.model.UiState
@@ -158,12 +157,12 @@ class DriverOnboardingViewModel(
                 }
             }
             2 -> {
-                if (draft.nationality == null) {
-                    messages += ValidationMessage("nationality", "Select your nationality.")
+                if (draft.nationality != null && draft.nationality != DriverNationality.MALAYSIAN) {
+                    messages += ValidationMessage("nationality", "Carry On currently accepts Malaysian drivers only.")
                 }
             }
             3 -> {
-                when (draft.nationality) {
+                when (draft.nationality ?: DriverNationality.MALAYSIAN) {
                     DriverNationality.MALAYSIAN -> {
                         if (!isValidMyKad(draft.mykadNumber)) {
                             messages += ValidationMessage("mykadNumber", "Enter a valid 12-digit MyKad number.")
@@ -178,31 +177,7 @@ class DriverOnboardingViewModel(
                             messages += ValidationMessage("selfie", "Upload a selfie.")
                         }
                     }
-                    DriverNationality.FOREIGNER -> {
-                        if (draft.passportNumber.isBlank()) {
-                            messages += ValidationMessage("passportNumber", "Enter your passport number.")
-                        }
-                        if (draft.passportExpiry.isBlank()) {
-                            messages += ValidationMessage("passportExpiry", "Select passport expiry date.")
-                        } else if (isExpired(draft.passportExpiry)) {
-                            messages += ValidationMessage("passportExpiry", "Passport is expired.", isWarning = true)
-                        }
-                        if (draft.plksNumber.isBlank()) {
-                            messages += ValidationMessage("plksNumber", "Enter your PLKS number.")
-                        }
-                        if (draft.plksExpiry.isBlank()) {
-                            messages += ValidationMessage("plksExpiry", "Select PLKS expiry date.")
-                        } else if (isExpired(draft.plksExpiry)) {
-                            messages += ValidationMessage("plksExpiry", "PLKS is expired.", isWarning = true)
-                        }
-                        if (identityUrl(draft, DocumentType.PASSPORT).isBlank()) {
-                            messages += ValidationMessage("passport", "Upload passport photo.")
-                        }
-                        if (identityUrl(draft, DocumentType.WORK_PERMIT_PLKS).isBlank()) {
-                            messages += ValidationMessage("plks", "Upload PLKS / work permit.")
-                        }
-                    }
-                    null -> messages += ValidationMessage("nationality", "Select your nationality first.")
+                    DriverNationality.FOREIGNER -> messages += ValidationMessage("nationality", "Carry On currently accepts Malaysian drivers only.")
                 }
             }
             4 -> {
@@ -254,8 +229,8 @@ class DriverOnboardingViewModel(
             }
             6 -> {
                 if (draft.vehicleType == null) messages += ValidationMessage("vehicleType", "Select vehicle type.")
-                if (draft.vehicleMake.isBlank()) messages += ValidationMessage("vehicleMake", "Enter vehicle make.")
-                if (draft.vehicleModel.isBlank()) messages += ValidationMessage("vehicleModel", "Enter vehicle model.")
+                if (draft.vehicleMake !in vehicleBrands) messages += ValidationMessage("vehicleMake", "Select vehicle brand.")
+                if (draft.vehicleModel !in vehicleModelsForMake(draft.vehicleMake)) messages += ValidationMessage("vehicleModel", "Select vehicle model.")
                 val year = draft.vehicleYear.toIntOrNull()
                 if (year == null || year !in 1980..(currentYear() + 1)) {
                     messages += ValidationMessage("vehicleYear", "Enter a valid vehicle year.")
@@ -271,74 +246,17 @@ class DriverOnboardingViewModel(
                 if (draft.vehicleRegistrationUrl.isBlank()) {
                     messages += ValidationMessage("vehicleRegistration", "Upload vehicle registration.")
                 }
-                if (draft.roadTaxUrl.isBlank()) {
-                    messages += ValidationMessage("roadTax", "Upload road tax.")
-                }
-                if (draft.roadTaxExpiry.isBlank()) {
-                    messages += ValidationMessage("roadTaxExpiry", "Select road tax expiry.")
-                } else if (isExpired(draft.roadTaxExpiry)) {
-                    messages += ValidationMessage("roadTaxExpiry", "Road tax is expired.", isWarning = true)
-                }
-                if (isCommercialVehicle(draft.vehicleType)) {
-                    if (draft.puspakomUrl.isBlank()) {
-                        messages += ValidationMessage("puspakom", "Upload PUSPAKOM certificate.")
-                    }
-                    if (draft.puspakomExpiry.isBlank()) {
-                        messages += ValidationMessage("puspakomExpiry", "Select PUSPAKOM expiry.")
-                    } else if (isExpired(draft.puspakomExpiry)) {
-                        messages += ValidationMessage("puspakomExpiry", "PUSPAKOM is expired.", isWarning = true)
-                    }
-                    if (draft.apadPermitUrl.isBlank()) {
-                        messages += ValidationMessage("apadPermit", "Upload APAD / LPKP permit.")
-                    }
-                    if (draft.apadPermitNumber.isBlank()) {
-                        messages += ValidationMessage("apadPermitNumber", "Enter APAD / LPKP permit number.")
-                    }
-                    if (draft.apadPermitExpiry.isBlank()) {
-                        messages += ValidationMessage("apadPermitExpiry", "Select APAD / LPKP permit expiry.")
-                    } else if (isExpired(draft.apadPermitExpiry)) {
-                        messages += ValidationMessage("apadPermitExpiry", "APAD / LPKP permit is expired.", isWarning = true)
-                    }
-                }
             }
             8 -> {
                 if (draft.vehicleFrontUrl.isBlank()) messages += ValidationMessage("vehicleFront", "Upload front vehicle photo.")
                 if (draft.vehicleBackUrl.isBlank()) messages += ValidationMessage("vehicleBack", "Upload back vehicle photo.")
-                if (draft.vehicleLeftUrl.isBlank()) messages += ValidationMessage("vehicleLeft", "Upload left vehicle photo.")
-                if (draft.vehicleRightUrl.isBlank()) messages += ValidationMessage("vehicleRight", "Upload right vehicle photo.")
-                if (draft.vehicleInteriorUrl.isBlank()) messages += ValidationMessage("vehicleInterior", "Upload interior vehicle photo.")
             }
             9 -> {
-                if (draft.insurerName.isBlank()) messages += ValidationMessage("insurerName", "Enter insurer name.")
-                if (draft.insurancePolicyNumber.isBlank()) messages += ValidationMessage("insurancePolicyNumber", "Enter policy number.")
-                if (draft.insuranceCoverageType == null) messages += ValidationMessage("insuranceCoverageType", "Select coverage type.")
-                if (draft.insuranceExpiry.isBlank()) {
-                    messages += ValidationMessage("insuranceExpiry", "Select insurance expiry.")
-                } else if (isExpired(draft.insuranceExpiry)) {
-                    messages += ValidationMessage("insuranceExpiry", "Insurance is expired.", isWarning = true)
-                }
-                if (draft.insuranceUrl.isBlank()) messages += ValidationMessage("insuranceUrl", "Upload insurance document.")
-            }
-            10 -> {
-                if (draft.bankName.isBlank()) messages += ValidationMessage("bankName", "Select bank.")
-                if (draft.bankAccountNumber.isBlank()) messages += ValidationMessage("bankAccountNumber", "Enter bank account number.")
-                if (draft.bankAccountHolder.isBlank()) messages += ValidationMessage("bankAccountHolder", "Enter account holder name.")
-                if (draft.bankStatementUrl.isBlank()) messages += ValidationMessage("bankStatement", "Upload bank statement.")
-                if (draft.fullName.isNotBlank() &&
-                    draft.bankAccountHolder.isNotBlank() &&
-                    !matchesNameSoft(draft.fullName, draft.bankAccountHolder)
-                ) {
-                    messages += ValidationMessage("bankAccountHolder", "Account holder should match the driver's MyKad name.", isWarning = true)
-                }
-            }
-            11 -> Unit
-            12 -> {
                 if (!draft.pdpaConsent) messages += ValidationMessage("pdpaConsent", "PDPA consent is required.")
                 if (!draft.backgroundCheckConsent) messages += ValidationMessage("backgroundCheckConsent", "Background check consent is required.")
                 if (!draft.noOffencesDeclared) messages += ValidationMessage("noOffencesDeclared", "You must declare no disqualifying offences.")
-                if (draft.policeClearanceUrl.isBlank()) messages += ValidationMessage("policeClearance", "Upload police clearance.")
             }
-            13 -> {
+            10 -> {
                 if (!draft.agreementAccepted) {
                     messages += ValidationMessage("agreementAccepted", "Accept the partner terms to submit.")
                 }
@@ -510,12 +428,15 @@ class DriverOnboardingViewModel(
 
         return draft.copy(
             phone = draft.phone.ifBlank { profile?.phone.orEmpty() },
-            nationality = draft.nationality ?: profile?.nationality,
+            nationality = when (draft.nationality ?: profile?.nationality) {
+                DriverNationality.FOREIGNER -> DriverNationality.MALAYSIAN
+                else -> draft.nationality ?: profile?.nationality ?: DriverNationality.MALAYSIAN
+            },
             mykadNumber = draft.mykadNumber.ifBlank { profile?.mykadNumber.orEmpty() },
-            passportNumber = draft.passportNumber.ifBlank { profile?.passportNumber.orEmpty() },
-            passportExpiry = draft.passportExpiry.ifBlank { profile?.passportExpiry.orEmpty() },
-            plksNumber = draft.plksNumber.ifBlank { profile?.plksNumber.orEmpty() },
-            plksExpiry = draft.plksExpiry.ifBlank { profile?.plksExpiry.orEmpty() },
+            passportNumber = "",
+            passportExpiry = "",
+            plksNumber = "",
+            plksExpiry = "",
             identityDocuments = mergeIdentityDocuments(draft.identityDocuments, serverDocs),
             fullName = draft.fullName.ifBlank { profile?.name.orEmpty() },
             dateOfBirth = draft.dateOfBirth.ifBlank { profile?.dateOfBirth.orEmpty() },
@@ -544,41 +465,41 @@ class DriverOnboardingViewModel(
             vehicleYear = draft.vehicleYear.ifBlank { vehicle?.year?.takeIf { it > 0 }?.toString().orEmpty() },
             vehiclePlate = draft.vehiclePlate.ifBlank { vehicle?.licensePlate.orEmpty() },
             vehicleColor = draft.vehicleColor.ifBlank { vehicle?.color.orEmpty() },
-            chassisNumber = draft.chassisNumber.ifBlank { vehicle?.chassisNumber.orEmpty() },
-            engineNumber = draft.engineNumber.ifBlank { vehicle?.engineNumber.orEmpty() },
+            chassisNumber = "",
+            engineNumber = "",
             vehicleOwnership = draft.vehicleOwnership ?: vehicle?.ownership,
             ownerName = draft.ownerName.ifBlank { vehicle?.ownerName.orEmpty() },
             vehicleRegistrationUrl = draft.vehicleRegistrationUrl.ifBlank { serverDocs[DocumentType.VEHICLE_REGISTRATION]?.imageUrl.orEmpty() },
-            roadTaxUrl = draft.roadTaxUrl.ifBlank { serverDocs[DocumentType.ROAD_TAX]?.imageUrl.orEmpty() },
-            roadTaxExpiry = draft.roadTaxExpiry.ifBlank { vehicle?.roadTaxExpiry.orEmpty() },
-            puspakomUrl = draft.puspakomUrl.ifBlank { serverDocs[DocumentType.PUSPAKOM]?.imageUrl.orEmpty() },
-            puspakomExpiry = draft.puspakomExpiry.ifBlank { vehicle?.puspakomExpiry.orEmpty() },
-            apadPermitUrl = draft.apadPermitUrl.ifBlank { serverDocs[DocumentType.APAD_PERMIT]?.imageUrl.orEmpty() },
-            apadPermitNumber = draft.apadPermitNumber.ifBlank { vehicle?.apadPermitNumber.orEmpty() },
-            apadPermitExpiry = draft.apadPermitExpiry.ifBlank { vehicle?.apadPermitExpiry.orEmpty() },
+            roadTaxUrl = "",
+            roadTaxExpiry = "",
+            puspakomUrl = "",
+            puspakomExpiry = "",
+            apadPermitUrl = "",
+            apadPermitNumber = "",
+            apadPermitExpiry = "",
             vehicleFrontUrl = draft.vehicleFrontUrl.ifBlank { serverDocs[DocumentType.VEHICLE_PHOTO_FRONT]?.imageUrl.orEmpty() },
             vehicleBackUrl = draft.vehicleBackUrl.ifBlank { serverDocs[DocumentType.VEHICLE_PHOTO_BACK]?.imageUrl.orEmpty() },
-            vehicleLeftUrl = draft.vehicleLeftUrl.ifBlank { serverDocs[DocumentType.VEHICLE_PHOTO_LEFT]?.imageUrl.orEmpty() },
-            vehicleRightUrl = draft.vehicleRightUrl.ifBlank { serverDocs[DocumentType.VEHICLE_PHOTO_RIGHT]?.imageUrl.orEmpty() },
-            vehicleInteriorUrl = draft.vehicleInteriorUrl.ifBlank { serverDocs[DocumentType.VEHICLE_PHOTO_INTERIOR]?.imageUrl.orEmpty() },
-            insurerName = draft.insurerName.ifBlank { vehicle?.insurerName.orEmpty() },
-            insurancePolicyNumber = draft.insurancePolicyNumber.ifBlank { vehicle?.insurancePolicyNumber.orEmpty() },
-            insuranceCoverageType = draft.insuranceCoverageType ?: vehicle?.insuranceCoverageType,
-            insuranceExpiry = draft.insuranceExpiry.ifBlank { vehicle?.insuranceExpiry.orEmpty() },
-            insuranceUrl = draft.insuranceUrl.ifBlank { serverDocs[DocumentType.INSURANCE]?.imageUrl.orEmpty() },
-            hasCommercialCover = draft.hasCommercialCover || vehicle?.hasCommercialCover == true,
-            bankName = draft.bankName.ifBlank { profile?.bankName.orEmpty() },
-            bankAccountNumber = draft.bankAccountNumber.ifBlank { profile?.bankAccountNumber.orEmpty() },
-            bankAccountHolder = draft.bankAccountHolder.ifBlank { profile?.bankAccountHolder.orEmpty() },
-            bankStatementUrl = draft.bankStatementUrl.ifBlank { serverDocs[DocumentType.BANK_STATEMENT]?.imageUrl.orEmpty() },
-            duitNowId = draft.duitNowId.ifBlank { profile?.duitNowId.orEmpty() },
-            tngEwalletId = draft.tngEwalletId.ifBlank { profile?.tngEwalletId.orEmpty() },
-            lhdnTaxNumber = draft.lhdnTaxNumber.ifBlank { profile?.lhdnTaxNumber.orEmpty() },
+            vehicleLeftUrl = "",
+            vehicleRightUrl = "",
+            vehicleInteriorUrl = "",
+            insurerName = "",
+            insurancePolicyNumber = "",
+            insuranceCoverageType = null,
+            insuranceExpiry = "",
+            insuranceUrl = "",
+            hasCommercialCover = false,
+            bankName = "",
+            bankAccountNumber = "",
+            bankAccountHolder = "",
+            bankStatementUrl = "",
+            duitNowId = "",
+            tngEwalletId = "",
+            lhdnTaxNumber = "",
             sstNumber = draft.sstNumber.ifBlank { profile?.sstNumber.orEmpty() },
             pdpaConsent = draft.pdpaConsent || profile?.pdpaConsent == true,
             backgroundCheckConsent = draft.backgroundCheckConsent || profile?.backgroundCheckConsent == true,
             noOffencesDeclared = draft.noOffencesDeclared || profile?.noOffencesDeclared == true,
-            policeClearanceUrl = draft.policeClearanceUrl.ifBlank { serverDocs[DocumentType.POLICE_CLEARANCE]?.imageUrl.orEmpty() }
+            policeClearanceUrl = ""
         )
     }
 
@@ -682,17 +603,8 @@ class DriverOnboardingViewModel(
         add(DocumentType.DRIVERS_LICENSE_BACK, draft.driversLicenseBackUrl, draft.licenseExpiry)
         if (draft.hasGDL) add(DocumentType.GDL, draft.gdlUrl, draft.gdlExpiry)
         add(DocumentType.VEHICLE_REGISTRATION, draft.vehicleRegistrationUrl)
-        add(DocumentType.ROAD_TAX, draft.roadTaxUrl, draft.roadTaxExpiry)
-        add(DocumentType.PUSPAKOM, draft.puspakomUrl, draft.puspakomExpiry)
-        add(DocumentType.APAD_PERMIT, draft.apadPermitUrl, draft.apadPermitExpiry)
         add(DocumentType.VEHICLE_PHOTO_FRONT, draft.vehicleFrontUrl)
         add(DocumentType.VEHICLE_PHOTO_BACK, draft.vehicleBackUrl)
-        add(DocumentType.VEHICLE_PHOTO_LEFT, draft.vehicleLeftUrl)
-        add(DocumentType.VEHICLE_PHOTO_RIGHT, draft.vehicleRightUrl)
-        add(DocumentType.VEHICLE_PHOTO_INTERIOR, draft.vehicleInteriorUrl)
-        add(DocumentType.INSURANCE, draft.insuranceUrl, draft.insuranceExpiry)
-        add(DocumentType.BANK_STATEMENT, draft.bankStatementUrl)
-        add(DocumentType.POLICE_CLEARANCE, draft.policeClearanceUrl)
         return requests.distinctBy { it.type }
     }
 
@@ -705,12 +617,12 @@ class DriverOnboardingViewModel(
             dateOfBirth = dateOfBirth,
             gender = gender,
             preferredLanguage = "en",
-            nationality = nationality,
+            nationality = DriverNationality.MALAYSIAN,
             mykadNumber = mykadNumber.takeIf { it.isNotBlank() },
-            passportNumber = passportNumber.takeIf { it.isNotBlank() },
-            passportExpiry = passportExpiry.takeIf { it.isNotBlank() },
-            plksNumber = plksNumber.takeIf { it.isNotBlank() },
-            plksExpiry = plksExpiry.takeIf { it.isNotBlank() },
+            passportNumber = null,
+            passportExpiry = null,
+            plksNumber = null,
+            plksExpiry = null,
             driversLicenseNumber = driversLicenseNumber,
             licenseClass = licenseClass,
             licenseExpiry = licenseExpiry.takeIf { it.isNotBlank() },
@@ -725,13 +637,13 @@ class DriverOnboardingViewModel(
             emergencyContactName = emergencyContactName,
             emergencyContactRelation = emergencyContactRelation,
             emergencyContactPhone = emergencyContactPhone,
-            bankName = bankName,
-            bankAccountNumber = bankAccountNumber,
-            bankAccountHolder = bankAccountHolder,
-            duitNowId = duitNowId.takeIf { it.isNotBlank() },
-            tngEwalletId = tngEwalletId.takeIf { it.isNotBlank() },
-            lhdnTaxNumber = lhdnTaxNumber.takeIf { it.isNotBlank() },
-            sstNumber = sstNumber.takeIf { it.isNotBlank() },
+            bankName = "",
+            bankAccountNumber = "",
+            bankAccountHolder = "",
+            duitNowId = null,
+            tngEwalletId = null,
+            lhdnTaxNumber = null,
+            sstNumber = null,
             pdpaConsent = pdpaConsent,
             backgroundCheckConsent = backgroundCheckConsent,
             noOffencesDeclared = noOffencesDeclared
@@ -746,19 +658,19 @@ class DriverOnboardingViewModel(
             year = vehicleYear.toIntOrNull() ?: 0,
             licensePlate = vehiclePlate,
             color = vehicleColor,
-            chassisNumber = chassisNumber,
-            engineNumber = engineNumber,
+            chassisNumber = "",
+            engineNumber = "",
             ownership = vehicleOwnership,
             ownerName = ownerName.takeIf { it.isNotBlank() },
-            roadTaxExpiry = roadTaxExpiry.takeIf { it.isNotBlank() },
-            puspakomExpiry = puspakomExpiry.takeIf { it.isNotBlank() },
-            apadPermitNumber = apadPermitNumber.takeIf { it.isNotBlank() },
-            apadPermitExpiry = apadPermitExpiry.takeIf { it.isNotBlank() },
-            insurerName = insurerName.takeIf { it.isNotBlank() },
-            insurancePolicyNumber = insurancePolicyNumber.takeIf { it.isNotBlank() },
-            insuranceCoverageType = insuranceCoverageType,
-            insuranceExpiry = insuranceExpiry.takeIf { it.isNotBlank() },
-            hasCommercialCover = hasCommercialCover
+            roadTaxExpiry = null,
+            puspakomExpiry = null,
+            apadPermitNumber = null,
+            apadPermitExpiry = null,
+            insurerName = null,
+            insurancePolicyNumber = null,
+            insuranceCoverageType = null,
+            insuranceExpiry = null,
+            hasCommercialCover = false
         )
     }
 
@@ -774,10 +686,6 @@ class DriverOnboardingViewModel(
         return value.filter(Char::isDigit).length == 12
     }
 
-    private fun isCommercialVehicle(type: VehicleType?): Boolean {
-        return type in COMMERCIAL_VEHICLE_TYPES
-    }
-
     private fun isExpired(date: String): Boolean {
         val parsed = runCatching { LocalDate.parse(date) }.getOrNull() ?: return false
         return parsed < today()
@@ -790,14 +698,50 @@ class DriverOnboardingViewModel(
     private fun currentYear(): Int = today().year
 
     companion object {
-        const val TOTAL_STEPS = 13
+        const val TOTAL_STEPS = 10
 
         val states = MalaysianState.entries
         val vehicleTypes = VehicleType.entries.filterNot { it == VehicleType.VAN || it == VehicleType.TRUCK }
         val licenseClasses = LicenseClass.entries
         val ownershipTypes = VehicleOwnership.entries
-        val insuranceCoverageTypes = InsuranceCoverageType.entries
-        val nationalities = DriverNationality.entries
+        val nationalities = listOf(DriverNationality.MALAYSIAN)
+        val vehicleBrands = listOf(
+            "Perodua",
+            "Proton",
+            "Toyota",
+            "Honda",
+            "Nissan",
+            "Mitsubishi",
+            "Isuzu",
+            "Mazda",
+            "Ford",
+            "Hyundai",
+            "Kia",
+            "Yamaha",
+            "Modenas",
+            "Suzuki",
+            "Kawasaki"
+        )
+
+        private val vehicleModelsByBrand = mapOf(
+            "Perodua" to listOf("Axia", "Bezza", "Myvi", "Alza", "Aruz", "Ativa"),
+            "Proton" to listOf("Saga", "Persona", "Iriz", "S70", "X50", "X70", "X90"),
+            "Toyota" to listOf("Vios", "Yaris", "Corolla", "Camry", "Hilux", "Innova", "Hiace", "Veloz"),
+            "Honda" to listOf("City", "Civic", "Accord", "HR-V", "CR-V", "WR-V", "BR-V"),
+            "Nissan" to listOf("Almera", "Serena", "Navara", "X-Trail", "NV200"),
+            "Mitsubishi" to listOf("Triton", "Xpander", "Outlander", "Pajero Sport"),
+            "Isuzu" to listOf("D-Max", "MU-X"),
+            "Mazda" to listOf("Mazda 2", "Mazda 3", "CX-3", "CX-5", "CX-8", "BT-50"),
+            "Ford" to listOf("Ranger", "Everest"),
+            "Hyundai" to listOf("Elantra", "Kona", "Santa Fe", "Staria"),
+            "Kia" to listOf("Picanto", "Cerato", "Sportage", "Carnival"),
+            "Yamaha" to listOf("Laganda", "LC135", "Y15ZR", "NVX", "NMAX"),
+            "Modenas" to listOf("Kriss", "Elegan", "Pulsar NS200", "Dominar D400"),
+            "Suzuki" to listOf("Smash", "Raider", "V-Strom 250SX"),
+            "Kawasaki" to listOf("Ninja 250", "Z250", "Versys-X 250")
+        )
+
+        fun vehicleModelsForMake(make: String): List<String> = vehicleModelsByBrand[make].orEmpty()
 
         val banks = listOf(
             "Maybank",
@@ -818,22 +762,10 @@ class DriverOnboardingViewModel(
 
         private val PHONE_REGEX = Regex("^[+0-9][0-9 -]{7,15}$")
         private val POSTCODE_REGEX = Regex("^\\d{5}$")
-        private val COMMERCIAL_VEHICLE_TYPES = setOf(
-            VehicleType.PICKUP,
-            VehicleType.VAN,
-            VehicleType.VAN_7FT,
-            VehicleType.VAN_9FT,
-            VehicleType.LORRY_10FT,
-            VehicleType.LORRY_14FT,
-            VehicleType.LORRY_17FT,
-            VehicleType.TRUCK
-        )
         private val IDENTITY_DOCUMENT_TYPES = setOf(
             DocumentType.MYKAD_FRONT,
             DocumentType.MYKAD_BACK,
-            DocumentType.SELFIE,
-            DocumentType.PASSPORT,
-            DocumentType.WORK_PERMIT_PLKS
+            DocumentType.SELFIE
         )
     }
 }
