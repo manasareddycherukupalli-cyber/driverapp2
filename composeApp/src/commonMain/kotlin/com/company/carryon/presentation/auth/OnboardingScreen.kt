@@ -15,11 +15,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.presentation.components.CarryOnWordmark
+import com.company.carryon.presentation.components.carryOnWordmarkFontFamily
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
@@ -34,7 +37,8 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun OnboardingScreen(navigator: AppNavigator) {
     val strings = LocalStrings.current
-    val onboardingButtonBlue = Color(0xFF2F80ED)
+    val onboardingButtonBlue = Color(0xFF034094)
+    val wordmarkFontFamily = carryOnWordmarkFontFamily()
 
     Column(
         modifier = Modifier
@@ -53,13 +57,7 @@ fun OnboardingScreen(navigator: AppNavigator) {
                 Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = Color.DarkGray)
             }
 
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = Color.DarkGray, fontWeight = FontWeight.Bold)) { append("Carry ") }
-                    withStyle(SpanStyle(color = CarryBlue, fontWeight = FontWeight.Bold)) { append("On") }
-                },
-                fontSize = 22.sp
-            )
+            CarryOnWordmark(fontSize = 22.sp)
 
             IconButton(onClick = {}) {
                 Icon(Icons.Filled.Notifications, contentDescription = "Notifications", tint = Color.DarkGray)
@@ -94,9 +92,24 @@ fun OnboardingScreen(navigator: AppNavigator) {
             Text(
                 text = buildAnnotatedString {
                     append(strings.haveBetterExperience)
-                    withStyle(SpanStyle(color = CarryBlue, fontWeight = FontWeight.SemiBold)) {
-                        append("Carry On")
-                    }
+                    withStyle(
+                        SpanStyle(
+                            color = Color(0xFF2F80ED),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontStyle = FontStyle.Italic,
+                            fontFamily = wordmarkFontFamily,
+                            letterSpacing = 0.sp
+                        )
+                    ) { append("CARRY ") }
+                    withStyle(
+                        SpanStyle(
+                            color = Color(0xFF034094),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontStyle = FontStyle.Italic,
+                            fontFamily = wordmarkFontFamily,
+                            letterSpacing = 0.sp
+                        )
+                    ) { append("ON") }
                 },
                 fontSize = 14.sp,
                 color = Color(0xFF6B6B6B),

@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,6 +30,50 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.presentation.theme.*
+import drive_app.composeapp.generated.resources.Res
+import drive_app.composeapp.generated.resources.montserrat_italic
+import org.jetbrains.compose.resources.Font
+
+@Composable
+fun carryOnWordmarkFontFamily(): FontFamily = FontFamily(
+    Font(
+        resource = Res.font.montserrat_italic,
+        weight = FontWeight.ExtraBold,
+        style = FontStyle.Italic
+    )
+)
+
+@Composable
+fun CarryOnWordmark(
+    modifier: Modifier = Modifier,
+    fontSize: androidx.compose.ui.unit.TextUnit = 22.sp
+) {
+    val wordmarkFontFamily = carryOnWordmarkFontFamily()
+    Text(
+        text = buildAnnotatedString {
+            withStyle(
+                SpanStyle(
+                    color = Color(0xFF2F80ED),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontStyle = FontStyle.Italic,
+                    fontFamily = wordmarkFontFamily,
+                    letterSpacing = 0.sp
+                )
+            ) { append("CARRY ") }
+            withStyle(
+                SpanStyle(
+                    color = Color(0xFF034094),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontStyle = FontStyle.Italic,
+                    fontFamily = wordmarkFontFamily,
+                    letterSpacing = 0.sp
+                )
+            ) { append("ON") }
+        },
+        modifier = modifier,
+        fontSize = fontSize
+    )
+}
 
 // ============================================================
 // TOP APP BAR WITH BACK BUTTON
@@ -70,14 +116,7 @@ fun DriveAppTopBar(
                             .clickable { onBackClick() }
                     )
                 }
-                Text(
-                    buildAnnotatedString {
-                        withStyle(SpanStyle(color = Color(0xFF2F80ED), fontWeight = FontWeight.Bold)) { append("Carry") }
-                        append(" ")
-                        withStyle(SpanStyle(color = Color(0xFF034094), fontWeight = FontWeight.Bold)) { append("On") }
-                    },
-                    fontSize = 22.sp
-                )
+                CarryOnWordmark(fontSize = 22.sp)
             }
 
             Row(

@@ -31,7 +31,7 @@ import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.*
 import kotlin.math.round
 
-private val WalletBlue = Color(0xFF2F80ED)
+private val WalletBlue = Color(0xFF034094)
 private val WalletBlueDark = Color(0xFF1A6ED4)
 private val WalletBg = Color(0xFFF9F9FF)
 private val TransactionCardBg = Color(0xFFA6D2F3).copy(alpha = 0.2f)

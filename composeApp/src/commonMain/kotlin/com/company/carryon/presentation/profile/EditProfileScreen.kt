@@ -43,7 +43,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.text.KeyboardOptions
@@ -60,10 +62,19 @@ import com.company.carryon.presentation.util.toImageBitmap
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 
-internal val EditBg = Color(0xFFF9F9FF)
-internal val EditBlue = Color(0xFF2F80ED)
-internal val EditBody = Color(0xFF414755)
-internal val EditInputBg = Color(0x33A6D2F3)
+private val EditBg = Color.White
+private val EditBlue = Color(0xFF034094)
+private val EditBody = Color(0xFF414755)
+private val EditInputBg = Color.White
+private val SurfaceShadow = Color(0x26000000)
+
+private fun Modifier.cardSurfaceShadow(shape: Shape): Modifier =
+    shadow(
+        elevation = 8.dp,
+        shape = shape,
+        ambientColor = SurfaceShadow,
+        spotColor = SurfaceShadow
+    )
 
 @Composable
 fun EditProfileScreen(navigator: AppNavigator) {
@@ -113,7 +124,7 @@ fun EditProfileScreen(navigator: AppNavigator) {
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(EditBg)
@@ -122,7 +133,6 @@ fun EditProfileScreen(navigator: AppNavigator) {
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 170.dp)
         ) {
             EditTopBar(navigator)
 
@@ -164,7 +174,7 @@ fun EditProfileScreen(navigator: AppNavigator) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         strings.changePhoto,
-                        color = Color(0xFF0058BC),
+                        color = Color(0xFF034094),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.clickable { navigator.navigateTo(Screen.PersonalIdentity) }
@@ -185,32 +195,30 @@ fun EditProfileScreen(navigator: AppNavigator) {
                 if (updateState is UiState.Error) {
                     Text((updateState as UiState.Error).message, color = Color(0xFFB3261E), fontSize = 12.sp)
                 }
-            }
-        }
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(Color.White.copy(alpha = 0.9f))
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Button(
-                onClick = { viewModel.updateProfile(name, email, phone, "") },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = EditBlue)
-            ) {
-                Text(strings.saveChanges, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
-            Button(
-                onClick = { navigator.goBack() },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA6D2F3), contentColor = EditBlue)
-            ) {
-                Text(strings.cancel, color = EditBlue, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp, bottom = 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.updateProfile(name, email, phone, "") },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = EditBlue)
+                    ) {
+                        Text(strings.saveChanges, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Button(
+                        onClick = { navigator.goBack() },
+                        modifier = Modifier.fillMaxWidth().height(48.dp).cardSurfaceShadow(RoundedCornerShape(12.dp)),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = EditBlue)
+                    ) {
+                        Text(strings.cancel, color = EditBlue, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
         }
     }
@@ -241,6 +249,7 @@ private fun AccountStatusCard(isVerified: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .cardSurfaceShadow(RoundedCornerShape(12.dp))
             .background(EditInputBg, RoundedCornerShape(12.dp))
             .padding(horizontal = 12.dp, vertical = 14.dp)
     ) {
@@ -287,6 +296,7 @@ private fun ProfileFormCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .cardSurfaceShadow(RoundedCornerShape(12.dp))
             .background(Color.White, RoundedCornerShape(12.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -356,6 +366,7 @@ private fun InfoField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .cardSurfaceShadow(RoundedCornerShape(12.dp))
                 .background(EditInputBg, RoundedCornerShape(12.dp))
                 .border(1.dp, Color(0x33C1C6D7), RoundedCornerShape(12.dp))
                 .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = if (singleLine) 14.dp else 16.dp),
@@ -374,6 +385,7 @@ private fun PasswordCard(onChangePassword: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .cardSurfaceShadow(RoundedCornerShape(12.dp))
             .background(EditInputBg, RoundedCornerShape(12.dp))
             .border(1.dp, Color(0x1AC1C6D7), RoundedCornerShape(12.dp))
             .padding(horizontal = 10.dp, vertical = 14.dp),
@@ -384,7 +396,8 @@ private fun PasswordCard(onChangePassword: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color(0xFFE6E8F3), CircleShape),
+                    .cardSurfaceShadow(CircleShape)
+                    .background(Color.White, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Filled.History, contentDescription = null, tint = Color(0xFF5E6C89), modifier = Modifier.size(20.dp))
@@ -395,6 +408,6 @@ private fun PasswordCard(onChangePassword: () -> Unit) {
                 Text("Last changed 4 months ago", color = EditBody, fontSize = 12.sp)
             }
         }
-        Text(strings.changePassword, color = Color(0xFF0058BC), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onChangePassword() })
+        Text(strings.changePassword, color = Color(0xFF034094), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onChangePassword() })
     }
 }

@@ -13,15 +13,15 @@ import androidx.compose.ui.unit.dp
 // ============================================================
 
 // Primary Brand Blue
-val Orange500 = Color(0xFF2F80ED)   // #2F80ED — main brand blue
+val Orange500 = Color(0xFF034094)   // #034094 — main brand blue
 val Orange600 = Color(0xFF1A6ED4)   // slightly darker
 val Orange700 = Color(0xFF0D59B0)   // darkest
 val Orange400 = Color(0xFF5B9BF2)   // slightly lighter
 val Orange100 = Color(0xFFE8F2FD)   // very light tint
 
 // Carry On Brand Blue
-val CarryBlue = Color(0xFF4361EE)
-val CarryBlueDark = Color(0xFF3451D1)
+val CarryBlue = Color(0xFF034094)
+val CarryBlueDark = Color(0xFF034094)
 val CarryBlueLight = Color(0xFFEEF1FF)
 
 // Secondary Dark

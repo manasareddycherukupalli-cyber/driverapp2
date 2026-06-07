@@ -63,7 +63,7 @@ import com.company.carryon.presentation.util.telUriFor
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val ITBlue = Color(0xFF2F80ED)
+private val ITBlue = Color(0xFF034094)
 private val ITSoft = Color(0x4DA6D2F3)
 private val ITWhite = Color(0xFFFFFFFF)
 private val ITBlack = Color(0xFF000000)

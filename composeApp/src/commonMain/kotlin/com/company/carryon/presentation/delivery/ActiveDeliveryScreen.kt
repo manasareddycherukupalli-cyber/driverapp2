@@ -76,7 +76,7 @@ import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.util.senderPhoneForPickup
 import com.company.carryon.presentation.util.telUriFor
 
-private val ArriveBlue = Color(0xFF2F80ED)
+private val ArriveBlue = Color(0xFF034094)
 private val ArriveSoft = Color(0x4DA6D2F3)
 private val ArriveWhite = Color(0xFFFFFFFF)
 private val ArriveBlack = Color(0xFF000000)

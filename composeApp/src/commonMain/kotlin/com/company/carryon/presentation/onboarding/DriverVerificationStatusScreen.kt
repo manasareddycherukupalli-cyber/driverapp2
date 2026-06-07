@@ -46,6 +46,7 @@ import com.company.carryon.data.model.Document
 import com.company.carryon.data.model.DocumentStatus
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.VerificationStatus
+import com.company.carryon.presentation.components.CarryOnWordmark
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import kotlinx.datetime.LocalDate
@@ -53,7 +54,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
-private val VerifyBlue = Color(0xFF2F80ED)
+private val VerifyBlue = Color(0xFF034094)
 private val VerifyBg = Color(0xFFF7F9FF)
 private val VerifyText = Color(0xFF232323)
 private val VerifyMuted = Color(0xFF676A74)
@@ -266,7 +267,7 @@ private fun VerificationHeader() {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("Carry On", color = VerifyBlue, fontWeight = FontWeight.Bold, fontSize = 36.sp / 2)
+        CarryOnWordmark(fontSize = 18.sp)
         Row(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically

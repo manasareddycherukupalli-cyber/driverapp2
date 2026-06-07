@@ -14,7 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -28,6 +30,16 @@ import com.company.carryon.presentation.components.AvatarCircle
 import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+
+private val SurfaceShadow = Color(0x26000000)
+
+private fun Modifier.cardSurfaceShadow(shape: Shape): Modifier =
+    shadow(
+        elevation = 8.dp,
+        shape = shape,
+        ambientColor = SurfaceShadow,
+        spotColor = SurfaceShadow
+    )
 
 @Composable
 fun SettingsScreen(
@@ -48,8 +60,8 @@ fun SettingsScreen(
         }
     }
 
-    val sectionBg = Color(0x33A6D2F3)
-    val blue = Color(0xFF2F80ED)
+    val sectionBg = Color.White
+    val blue = Color(0xFF034094)
     val textMuted = Color(0xFF414755)
     val driverInitials = remember(driver?.name) { initialsFromName(driver?.name, "CO") }
     val documentsBadge = remember(driver?.documents) {
@@ -87,7 +99,7 @@ fun SettingsScreen(
             Spacer(Modifier.height(8.dp))
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(12.dp)),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
@@ -136,7 +148,7 @@ fun SettingsScreen(
             Spacer(Modifier.height(20.dp))
             SettingsSection(strings.appPreferences)
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = sectionBg)
             ) {
@@ -276,7 +288,7 @@ private fun SettingsNavRow(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).cardSurfaceShadow(RoundedCornerShape(12.dp)).clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = background)
     ) {
@@ -290,7 +302,7 @@ private fun SettingsNavRow(
                     modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFFFFFFF)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, contentDescription = null, tint = Color(0xFF2F80ED), modifier = Modifier.size(18.dp))
+                    Icon(icon, contentDescription = null, tint = Color(0xFF034094), modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
@@ -299,9 +311,13 @@ private fun SettingsNavRow(
                         if (trailingBadge != null) {
                             Spacer(Modifier.width(8.dp))
                             Box(
-                                modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(Color(0xFFA6D2F3)).padding(horizontal = 8.dp, vertical = 2.dp)
+                                modifier = Modifier
+                                    .cardSurfaceShadow(RoundedCornerShape(99.dp))
+                                    .clip(RoundedCornerShape(99.dp))
+                                    .background(Color.White)
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
                             ) {
-                                Text(trailingBadge, color = Color(0xFF2F80ED), fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
+                                Text(trailingBadge, color = Color(0xFF034094), fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
                             }
                         }
                     }
@@ -333,7 +349,8 @@ private fun PrefComingSoonRow(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(999.dp))
-                .background(Color(0xFFE7EEF9))
+                .cardSurfaceShadow(RoundedCornerShape(999.dp))
+                .background(Color.White)
                 .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {
             Text(
@@ -363,13 +380,13 @@ private fun UnitToggleRow(
             Spacer(Modifier.width(12.dp))
             Text(strings.units, color = Color(0xFF181C23), fontWeight = FontWeight.SemiBold)
         }
-        Row(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xFFA6D2F3)).padding(4.dp)) {
+        Row(modifier = Modifier.cardSurfaceShadow(RoundedCornerShape(8.dp)).clip(RoundedCornerShape(8.dp)).background(Color.White).padding(4.dp)) {
             AssistChip(
                 onClick = onMilesSelected,
                 label = { Text(strings.miles, fontSize = 12.sp) },
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = if (useMiles) Color.White else Color.Transparent,
-                    labelColor = if (useMiles) Color(0xFF2F80ED) else Color(0xFF414755)
+                    labelColor = if (useMiles) Color(0xFF034094) else Color(0xFF414755)
                 )
             )
             Spacer(Modifier.width(4.dp))
@@ -378,7 +395,7 @@ private fun UnitToggleRow(
                 label = { Text(strings.km, fontSize = 12.sp) },
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = if (useMiles) Color.Transparent else Color.White,
-                    labelColor = if (useMiles) Color(0xFF414755) else Color(0xFF2F80ED)
+                    labelColor = if (useMiles) Color(0xFF414755) else Color(0xFF034094)
                 )
             )
         }

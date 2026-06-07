@@ -122,7 +122,7 @@ actual fun MapViewComposable(
             val polylinePoints = routeGeometry.map { GmsLatLng(it.lat, it.lng) }
             Polyline(
                 points = polylinePoints,
-                color = androidx.compose.ui.graphics.Color(AndroidColor.parseColor("#2F80ED")),
+                color = androidx.compose.ui.graphics.Color(AndroidColor.parseColor("#034094")),
                 width = 10f,
             )
         }

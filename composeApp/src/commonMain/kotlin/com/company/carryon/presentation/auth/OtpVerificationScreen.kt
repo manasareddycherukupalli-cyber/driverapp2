@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.first
 @Composable
 fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     val strings = LocalStrings.current
-    val otpBlue = Color(0xFF2F80ED)
+    val otpBlue = Color(0xFF034094)
     val otpLength = 6
     var otpValues by remember { mutableStateOf(List(otpLength) { "" }) }
     var resendTimer by remember { mutableStateOf(30) }

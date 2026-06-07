@@ -53,7 +53,7 @@ import com.company.carryon.presentation.navigation.Screen
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val SDBlue = Color(0xFF2F80ED)
+private val SDBlue = Color(0xFF034094)
 private val SDSoft = Color(0x4DA6D2F3)
 private val SDWhite = Color(0xFFFFFFFF)
 private val SDBlack = Color(0xFF000000)

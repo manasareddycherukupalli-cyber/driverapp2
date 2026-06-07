@@ -78,7 +78,7 @@ import org.jetbrains.compose.resources.painterResource
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val DispatchBlue = Color(0xFF4D7EE7)
+private val DispatchBlue = Color(0xFF034094)
 private val DispatchBg = Color(0xFFF6F7FB)
 private val CardBg = Color(0xFFF3F5FA)
 private val TextDark = Color(0xFF222631)

@@ -97,9 +97,9 @@ private val BlueTint = Orange100
 private val TextPrimary = Gray900
 private val TextMuted = Gray700
 private val Success = Orange500
-private val WarningColor = Color(0xFF2F80ED)
-private val Danger = Color(0xFF2F80ED)
-private val FieldBlue = Color(0xFF2F80ED)
+private val WarningColor = Color(0xFF034094)
+private val Danger = Color(0xFF034094)
+private val FieldBlue = Color(0xFF034094)
 private val FieldTextBlack = Color(0xFF000000)
 
 private val stepTitles = listOf(

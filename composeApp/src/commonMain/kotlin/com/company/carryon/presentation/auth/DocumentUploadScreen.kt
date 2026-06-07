@@ -177,7 +177,7 @@ fun DocumentUploadScreen(navigator: AppNavigator, viewModel: AuthViewModel) {
                         .height(140.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(Color(0x26A6D2F3))
-                        .border(1.dp, Color(0xFF2F80ED), RoundedCornerShape(10.dp))
+                        .border(1.dp, Color(0xFF034094), RoundedCornerShape(10.dp))
                         .clickable {
                             pendingType = DocumentType.ID_PROOF
                             picker.launch()
@@ -304,7 +304,7 @@ private fun ChecklistRow(
             modifier = Modifier
                 .size(38.dp)
                 .clip(RoundedCornerShape(9.dp))
-                .background(Color(0x332F80ED)),
+                .background(Color(0x33034094)),
             contentAlignment = Alignment.Center
         ) {
             androidx.compose.foundation.Image(

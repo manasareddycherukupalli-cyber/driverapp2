@@ -58,7 +58,7 @@ import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
-private val PickBlue = Color(0xFF2F80ED)
+private val PickBlue = Color(0xFF034094)
 private val PickSoft = Color(0x4DA6D2F3)
 private val PickWhite = Color(0xFFFFFFFF)
 private val PickBlack = Color(0xFF000000)

@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -27,12 +28,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
 import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.presentation.components.carryOnWordmarkFontFamily
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import kotlinx.coroutines.launch
 
 // ── Figma design tokens ──────────────────────────────────────
-private val RegBlue  = Color(0xFF2F80ED)
+private val RegBlue  = Color(0xFF034094)
 private val RegBlack = Color(0xFF16161E)
 private val RegGray  = Color(0xFF828282)
 
@@ -48,6 +50,7 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     var isLoading    by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val wordmarkFontFamily = carryOnWordmarkFontFamily()
 
     val otpSendState by authViewModel.otpSendState.collectAsState()
     val otpVerifyState by authViewModel.otpVerifyState.collectAsState()
@@ -120,9 +123,26 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
                 withStyle(SpanStyle(color = RegBlack, fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
                     append(strings.welcomeTo)
                 }
-                withStyle(SpanStyle(color = RegBlue, fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
-                    append(strings.appName)
-                }
+                withStyle(
+                    SpanStyle(
+                        color = Color(0xFF2F80ED),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontStyle = FontStyle.Italic,
+                        fontFamily = wordmarkFontFamily,
+                        fontSize = 30.sp,
+                        letterSpacing = 0.sp
+                    )
+                ) { append("CARRY ") }
+                withStyle(
+                    SpanStyle(
+                        color = Color(0xFF034094),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontStyle = FontStyle.Italic,
+                        fontFamily = wordmarkFontFamily,
+                        fontSize = 30.sp,
+                        letterSpacing = 0.sp
+                    )
+                ) { append("ON") }
                 withStyle(SpanStyle(color = Color(0xFF333333), fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
                     append("!")
                 }

@@ -44,7 +44,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -52,6 +54,16 @@ import androidx.compose.ui.unit.sp
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+
+private val SurfaceShadow = Color(0x26000000)
+
+private fun Modifier.cardSurfaceShadow(shape: Shape): Modifier =
+    shadow(
+        elevation = 8.dp,
+        shape = shape,
+        ambientColor = SurfaceShadow,
+        spotColor = SurfaceShadow
+    )
 
 @Composable
 fun HelpCenterScreen(navigator: AppNavigator) {
@@ -92,7 +104,7 @@ fun HelpCenterScreen(navigator: AppNavigator) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { navigator.goBack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF034094))
             }
             Text(strings.helpCenter, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -107,7 +119,7 @@ fun HelpCenterScreen(navigator: AppNavigator) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF4B79E6))
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF034094))
             ) {
                 Column(Modifier.padding(14.dp)) {
                     Text(strings.howCanWeHelp, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -183,18 +195,19 @@ fun HelpCenterScreen(navigator: AppNavigator) {
             }
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(12.dp)),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F3FA))
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFFDDE5F6), RoundedCornerShape(24.dp)),
+                            .cardSurfaceShadow(RoundedCornerShape(24.dp))
+                            .background(Color.White, RoundedCornerShape(24.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Filled.Emergency, contentDescription = null, tint = Color(0xFF4B79E6))
+                        Icon(Icons.Filled.Emergency, contentDescription = null, tint = Color(0xFF034094))
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(strings.stillNeedHelp, fontWeight = FontWeight.Bold, color = Color(0xFF2C3852), fontSize = 18.sp)
@@ -208,7 +221,7 @@ fun HelpCenterScreen(navigator: AppNavigator) {
                     Button(
                         onClick = { navigator.navigateTo(Screen.RaiseTicket) },
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4B79E6))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF034094))
                     ) {
                         Text(strings.contactSupport, fontWeight = FontWeight.SemiBold)
                     }
@@ -218,9 +231,9 @@ fun HelpCenterScreen(navigator: AppNavigator) {
             }
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(12.dp)),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF1FF))
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(strings.supportResources, color = Color(0xFF6E7991), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
@@ -243,12 +256,12 @@ private fun HelpCategoryCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.clickable { onClick() },
+        modifier = modifier.cardSurfaceShadow(RoundedCornerShape(10.dp)).clickable { onClick() },
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0x33A6D2F3))
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(icon, contentDescription = null, tint = Color(0xFF4B79E6), modifier = Modifier.size(16.dp))
+            Icon(icon, contentDescription = null, tint = Color(0xFF034094), modifier = Modifier.size(16.dp))
             Text(title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF2C3852), lineHeight = 20.sp)
             Text(subtitle, color = Color(0xFF6E7991), fontSize = 12.sp, lineHeight = 16.sp)
         }
@@ -274,7 +287,7 @@ fun HelpTopicScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { navigator.goBack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF034094))
             }
             Text(title, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -287,12 +300,12 @@ fun HelpTopicScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(12.dp)),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0x33A6D2F3))
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Overview", color = Color(0xFF4B79E6), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Overview", color = Color(0xFF034094), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Text(summary, color = Color(0xFF2C3852), fontSize = 16.sp, lineHeight = 22.sp)
                 }
             }
@@ -309,7 +322,7 @@ fun HelpTopicScreen(
                         verticalAlignment = Alignment.Top,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("•", color = Color(0xFF4B79E6), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("•", color = Color(0xFF034094), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Text(tip, color = Color(0xFF4A556F), fontSize = 14.sp, lineHeight = 20.sp)
                     }
                 }
@@ -318,7 +331,7 @@ fun HelpTopicScreen(
             Button(
                 onClick = { navigator.navigateTo(Screen.HelpContactSupport) },
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4B79E6)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF034094)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Contact Support", fontWeight = FontWeight.SemiBold)
@@ -342,7 +355,7 @@ fun ContactSupportScreen(navigator: AppNavigator) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { navigator.goBack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF034094))
             }
             Text("Contact Support", fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -355,12 +368,12 @@ fun ContactSupportScreen(navigator: AppNavigator) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(12.dp)),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0x33A6D2F3))
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("We are here to help", color = Color(0xFF4B79E6), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("We are here to help", color = Color(0xFF034094), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Text(
                         "Choose the quickest way to reach support. For urgent incidents, use SOS immediately.",
                         color = Color(0xFF2C3852),
@@ -397,7 +410,7 @@ fun ContactSupportScreen(navigator: AppNavigator) {
             Button(
                 onClick = { navigator.navigateTo(Screen.RaiseTicket) },
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4B79E6)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF034094)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Raise Ticket", fontWeight = FontWeight.SemiBold)
@@ -438,9 +451,9 @@ private fun ResourceRow(label: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.clickable { onClick() }
     ) {
-        Icon(Icons.Filled.Description, contentDescription = null, tint = Color(0xFF7FA1E7), modifier = Modifier.size(14.dp))
+        Icon(Icons.Filled.Description, contentDescription = null, tint = Color(0xFF034094), modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(8.dp))
-        Text(label, color = Color(0xFF4B79E6), fontSize = 13.sp)
+        Text(label, color = Color(0xFF034094), fontSize = 13.sp)
     }
 }
 
@@ -458,7 +471,7 @@ fun DriverHandbookScreen(navigator: AppNavigator) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { navigator.goBack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF034094))
             }
             Text("Driver Handbook", fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -471,12 +484,12 @@ fun DriverHandbookScreen(navigator: AppNavigator) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(12.dp)),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0x33A6D2F3))
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Overview", color = Color(0xFF4B79E6), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Overview", color = Color(0xFF034094), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Text(
                         "This handbook covers delivery standards, compliance, and safety practices for daily operations.",
                         color = Color(0xFF2C3852),
@@ -511,7 +524,7 @@ fun DriverHandbookScreen(navigator: AppNavigator) {
             Button(
                 onClick = { navigator.navigateTo(Screen.HelpContactSupport) },
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4B79E6)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF034094)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Contact Support", fontWeight = FontWeight.SemiBold)
@@ -553,7 +566,7 @@ fun HandbookDetailScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { navigator.goBack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF4B79E6))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF034094))
             }
             Text(title, fontWeight = FontWeight.SemiBold, color = Color(0xFF1F2635), fontSize = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -576,7 +589,7 @@ fun HandbookDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Text("${index + 1}.", color = Color(0xFF4B79E6), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("${index + 1}.", color = Color(0xFF034094), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Text(point, color = Color(0xFF4A556F), fontSize = 14.sp, lineHeight = 20.sp)
                     }
                 }
@@ -585,7 +598,7 @@ fun HandbookDetailScreen(
             Button(
                 onClick = { navigator.navigateTo(Screen.HelpContactSupport) },
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4B79E6)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF034094)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Contact Support", fontWeight = FontWeight.SemiBold)

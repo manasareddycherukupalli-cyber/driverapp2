@@ -76,7 +76,7 @@ import org.jetbrains.compose.resources.painterResource
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val NavBlue = Color(0xFF2F80ED)
+private val NavBlue = Color(0xFF034094)
 private val NavSoft = Color(0x4DA6D2F3)
 private val NavWhite = Color(0xFFFFFFFF)
 private val NavBlack = Color(0xFF000000)

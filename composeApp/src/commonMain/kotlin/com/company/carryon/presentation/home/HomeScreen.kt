@@ -99,7 +99,7 @@ import kotlin.math.round
 import kotlin.math.roundToInt
 import kotlin.time.Clock
 
-private val HomeBlue = Color(0xFF2F80ED)
+private val HomeBlue = Color(0xFF034094)
 private val HomeDarkBlue = Color(0xFF000000)
 private val GlassBlue = Color(0x4DA6D2F3)
 private val SoftBlue20 = Color(0x4DA6D2F3)

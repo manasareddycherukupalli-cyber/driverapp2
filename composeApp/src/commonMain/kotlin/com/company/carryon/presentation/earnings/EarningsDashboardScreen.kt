@@ -37,8 +37,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,10 +51,19 @@ import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import kotlin.math.round
 
-private val BrandBlue = Color(0xFF2F80ED)
-private val LightBlue = Color(0xFFA6D2F3)
+private val BrandBlue = Color(0xFF034094)
+private val LightBlue = Color.White
 private val TextPrimary = Color(0xFF181C23)
 private val TextMuted = Color(0xFF414755)
+private val SurfaceShadow = Color(0x26000000)
+
+private fun Modifier.cardSurfaceShadow(shape: Shape): Modifier =
+    shadow(
+        elevation = 8.dp,
+        shape = shape,
+        ambientColor = SurfaceShadow,
+        spotColor = SurfaceShadow
+    )
 
 @Composable
 fun EarningsDashboardScreen(navigator: AppNavigator) {
@@ -323,7 +334,7 @@ private fun WeeklyBarChart(chart: List<EarningsChartPoint>, modifier: Modifier =
 @Composable
 private fun StatChip(label: String, value: String, icon: @Composable () -> Unit, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier,
+        modifier = modifier.cardSurfaceShadow(RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = LightBlue),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -344,7 +355,7 @@ private fun StatChip(label: String, value: String, icon: @Composable () -> Unit,
 @Composable
 private fun TripCard(trip: EarningsTripUi) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(12.dp)),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -364,6 +375,7 @@ private fun TripCard(trip: EarningsTripUi) {
                 Box(
                     modifier = Modifier
                         .size(42.dp)
+                        .cardSurfaceShadow(CircleShape)
                         .clip(CircleShape)
                         .background(LightBlue),
                     contentAlignment = Alignment.Center
@@ -389,6 +401,7 @@ private fun TripCard(trip: EarningsTripUi) {
                 Text("+RM ${formatMoney(trip.amount)}", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 18.sp / 1.05f)
                 Box(
                     modifier = Modifier
+                        .cardSurfaceShadow(RoundedCornerShape(999.dp))
                         .clip(RoundedCornerShape(999.dp))
                         .background(LightBlue)
                         .padding(horizontal = 8.dp, vertical = 2.dp)

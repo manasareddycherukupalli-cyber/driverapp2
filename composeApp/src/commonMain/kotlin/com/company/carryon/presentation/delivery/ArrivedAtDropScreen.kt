@@ -60,7 +60,7 @@ import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.util.telUriFor
 
-private val DropBlue = Color(0xFF2F80ED)
+private val DropBlue = Color(0xFF034094)
 private val DropSoft = Color(0x4DA6D2F3)
 private val DropWhite = Color(0xFFFFFFFF)
 private val DropBlack = Color(0xFF000000)
