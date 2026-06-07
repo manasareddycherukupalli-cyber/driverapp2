@@ -62,10 +62,10 @@ import com.company.carryon.presentation.util.toImageBitmap
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 
-private val EditBg = Color.White
-private val EditBlue = Color(0xFF034094)
-private val EditBody = Color(0xFF414755)
-private val EditInputBg = Color.White
+internal val EditBg = Color.White
+internal val EditBlue = Color(0xFF034094)
+internal val EditBody = Color(0xFF414755)
+internal val EditInputBg = Color.White
 private val SurfaceShadow = Color(0x26000000)
 
 private fun Modifier.cardSurfaceShadow(shape: Shape): Modifier =
