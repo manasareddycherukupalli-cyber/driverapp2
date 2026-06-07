@@ -33,7 +33,7 @@ import kotlin.math.round
 
 private val WalletBlue = Color(0xFF034094)
 private val WalletBlueDark = Color(0xFF1A6ED4)
-private val WalletBg = Color(0xFFF9F9FF)
+private val WalletBg = Color.White
 private val TransactionCardBg = Color(0xFFA6D2F3).copy(alpha = 0.2f)
 
 /**

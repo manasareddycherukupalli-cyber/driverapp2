@@ -42,7 +42,7 @@ import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
 private val Blue = Color(0xFF034094)
-private val Bg = Color(0xFFF9F9FF)
+private val Bg = Color.White
 private val Soft = Color(0x33A6D2F3)
 
 @Composable

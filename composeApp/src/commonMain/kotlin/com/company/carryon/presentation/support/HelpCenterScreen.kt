@@ -95,7 +95,7 @@ fun HelpCenterScreen(navigator: AppNavigator) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F7FB))
+            .background(Color.White)
     ) {
         Row(
             modifier = Modifier
@@ -278,7 +278,7 @@ fun HelpTopicScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F7FB))
+            .background(Color.White)
     ) {
         Row(
             modifier = Modifier
@@ -346,7 +346,7 @@ fun ContactSupportScreen(navigator: AppNavigator) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F7FB))
+            .background(Color.White)
     ) {
         Row(
             modifier = Modifier
@@ -462,7 +462,7 @@ fun DriverHandbookScreen(navigator: AppNavigator) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F7FB))
+            .background(Color.White)
     ) {
         Row(
             modifier = Modifier
@@ -557,7 +557,7 @@ fun HandbookDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F7FB))
+            .background(Color.White)
     ) {
         Row(
             modifier = Modifier

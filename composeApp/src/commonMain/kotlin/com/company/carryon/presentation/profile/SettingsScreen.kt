@@ -80,7 +80,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF9F9FF))
+            .background(Color.White)
     ) {
         DriveAppTopBar(
             title = "Profile",
