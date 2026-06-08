@@ -49,6 +49,8 @@ import org.jetbrains.compose.resources.painterResource
 import kotlinx.coroutines.launch
 
 private val SurfaceShadow = Color(0x26000000)
+private val BrandBlue = Color(0xFF034094)
+private val CardStrokeColor = Color(0x1F034094)
 
 private fun Modifier.cardSurfaceShadow(shape: Shape): Modifier =
     shadow(
@@ -224,8 +226,8 @@ private fun NotificationCard(
                     checkedThumbColor = Color.White,
                     checkedTrackColor = Color(0xFF034094),
                     uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color.White,
-                    uncheckedBorderColor = SurfaceShadow
+                    uncheckedTrackColor = Color(0xFF034094),
+                    uncheckedBorderColor = Color(0xFF034094)
                 )
             )
         }
@@ -279,7 +281,10 @@ fun LanguageScreen(
                         },
                     shape = cardShape,
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF034094)) else null
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) BrandBlue else CardStrokeColor
+                    )
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
@@ -350,7 +355,8 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
             Card(
                 modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(14.dp)),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
             ) {
                 Row(
                     modifier = Modifier
@@ -420,7 +426,8 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
             Card(
                 modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(14.dp)),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(14.dp),
@@ -468,21 +475,22 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
             Card(
                 modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(12.dp)),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = BrandBlue),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
             ) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .size(64.dp)
-                            .background(Color(0x0D034094), CircleShape)
+                            .background(Color.White.copy(alpha = 0.12f), CircleShape)
                     )
                     Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text("Current Capacity Utilization", fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 28.sp, color = Color(0xFF181C23))
+                        Text("Current Capacity Utilization", fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 28.sp, color = Color.White)
                         Text(
                             "Live telemetry is not available for this vehicle yet. Once dispatch tracking is enabled, utilization and reserved capacity will appear here.",
                             fontSize = 14.sp,
-                            color = Color(0xFF414755),
+                            color = Color.White.copy(alpha = 0.86f),
                             lineHeight = 20.sp
                         )
                         Box(
@@ -490,6 +498,7 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                                 .fillMaxWidth()
                                 .cardSurfaceShadow(RoundedCornerShape(10.dp))
                                 .background(Color.White, RoundedCornerShape(10.dp))
+                                .border(1.dp, CardStrokeColor, RoundedCornerShape(10.dp))
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
@@ -510,11 +519,12 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF034094))
             ) { Text("Track Vehicle Location", fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(8.dp))
-            Button(
+            OutlinedButton(
                 onClick = { navigator.navigateTo(Screen.DocumentsHub) },
                 modifier = Modifier.fillMaxWidth().height(48.dp).cardSurfaceShadow(RoundedCornerShape(10.dp)),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF034094))
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = BrandBlue),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
             ) { Text("View Vehicle Manifest", fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.height(14.dp))
         }
@@ -524,7 +534,12 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
 
 @Composable
 private fun VehicleSpecCard(label: String, value: String, iconRes: DrawableResource, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.cardSurfaceShadow(RoundedCornerShape(12.dp)), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+    Card(
+        modifier = modifier.cardSurfaceShadow(RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
+    ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Image(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(16.dp))
             Text(label, color = Color(0xFF78839A), fontSize = 9.sp, letterSpacing = 0.8.sp, fontWeight = FontWeight.SemiBold)
@@ -562,7 +577,12 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 12.dp)
         ) {
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
+            ) {
                 Column(Modifier.padding(14.dp)) {
                     Text("Compliance Status", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, lineHeight = 34.sp, color = Color(0xFF242C3E))
                     Spacer(Modifier.height(6.dp))
@@ -632,7 +652,12 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
                 DocumentRow(type = type, document = docsByType[type])
             }
             Spacer(Modifier.height(16.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
+            ) {
                 Column(Modifier.padding(14.dp)) {
                     Text("History", fontWeight = FontWeight.SemiBold, color = Color(0xFF2C3852))
                     Text(
@@ -643,7 +668,12 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
+            ) {
                 Column(Modifier.padding(14.dp)) {
                     Text("Need help?", fontWeight = FontWeight.SemiBold, color = Color(0xFF2C3852))
                     Text("Having trouble scanning your documents? Contact support team for manual verification.", fontSize = 11.sp, color = Color(0xFF7B88A2))
@@ -669,20 +699,25 @@ private fun DocumentRow(type: DocumentType, document: Document?) {
         else -> "Uploaded: ${document.uploadedAt.take(10)}"
     }
 
-    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).cardSurfaceShadow(RoundedCornerShape(10.dp)), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(10.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).cardSurfaceShadow(RoundedCornerShape(10.dp)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(10.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
+    ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column {
                 Text(type.displayName, fontWeight = FontWeight.Bold, color = Color(0xFF2C3852), fontSize = 14.sp)
                 Text(subtitle, color = Color(0xFF6D7890), fontSize = 12.sp)
             }
             val pillColor = when (document?.status) {
-                DocumentStatus.APPROVED -> Color.White
+                DocumentStatus.APPROVED -> Color(0xFF034094)
                 DocumentStatus.PENDING -> Color.White
                 DocumentStatus.REJECTED -> Color(0xFFFFE2E2)
                 null -> Color(0xFFE5E7EB)
             }
             val textColor = when (document?.status) {
-                DocumentStatus.APPROVED -> Color(0xFF034094)
+                DocumentStatus.APPROVED -> Color.White
                 DocumentStatus.PENDING -> Color(0xFF034094)
                 DocumentStatus.REJECTED -> Color(0xFFB42318)
                 null -> Color(0xFF6B7280)
@@ -730,7 +765,12 @@ fun TermsOfServiceScreen(navigator: AppNavigator) {
 
 @Composable
 private fun TermsCard(title: String, content: String) {
-    Card(modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(10.dp)), shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+    Card(
+        modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(10.dp)),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
+    ) {
         Column(Modifier.padding(14.dp)) {
             Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF2C3852))
             Spacer(Modifier.height(6.dp))
@@ -757,7 +797,12 @@ fun PrivacyPolicyScreen(navigator: AppNavigator) {
             Spacer(Modifier.height(6.dp))
             Text("Last updated: October 24, 2023. This policy describes how Cargo Stream collects, uses, and protects your information as a professional driver.", color = Color(0xFF6D7890), lineHeight = 18.sp, fontSize = 12.sp)
             Spacer(Modifier.height(12.dp))
-            Card(modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(10.dp)), shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(10.dp)),
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
+            ) {
                 Column(Modifier.padding(14.dp)) {
                     Text("Data Collection", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.height(8.dp))
@@ -797,14 +842,19 @@ fun PrivacyPolicyScreen(navigator: AppNavigator) {
             Bullet("Multi-factor authentication requirements.")
             Bullet("24/7 security operations monitoring.")
             Spacer(Modifier.height(12.dp))
-            Card(modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(10.dp)), shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(10.dp)),
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = BrandBlue),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
+            ) {
                 Column(Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Still have questions?", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("Still have questions?", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Spacer(Modifier.height(6.dp))
-                    Text("Our dedicated privacy officer is here to help you understand your data usage.", textAlign = TextAlign.Center, color = Color(0xFF6D7890), fontSize = 12.sp)
+                    Text("Our dedicated privacy officer is here to help you understand your data usage.", textAlign = TextAlign.Center, color = Color.White.copy(alpha = 0.86f), fontSize = 12.sp)
                     Spacer(Modifier.height(10.dp))
-                    Button(onClick = { navigator.navigateTo(Screen.HelpCenter) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF034094))) {
-                        Text("Contact Privacy Officer")
+                    Button(onClick = { navigator.navigateTo(Screen.HelpCenter) }, colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = BrandBlue)) {
+                        Text("Contact Privacy Officer", color = BrandBlue)
                     }
                 }
             }
@@ -815,8 +865,8 @@ fun PrivacyPolicyScreen(navigator: AppNavigator) {
 
 @Composable
 private fun Chip(text: String) {
-    Box(Modifier.cardSurfaceShadow(RoundedCornerShape(999.dp)).background(Color.White, RoundedCornerShape(999.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-        Text(text, color = Color(0xFF034094), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+    Box(Modifier.cardSurfaceShadow(RoundedCornerShape(999.dp)).background(Color(0xFF034094), RoundedCornerShape(999.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Text(text, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

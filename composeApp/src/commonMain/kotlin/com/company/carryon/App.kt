@@ -1,6 +1,10 @@
 package com.company.carryon
 
 import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import com.company.carryon.i18n.currentLanguageOrDefault
 import com.company.carryon.i18n.hasStoredLanguagePreference
 import com.company.carryon.i18n.LocalStrings
@@ -30,19 +34,24 @@ fun App() {
 
     CompositionLocalProvider(LocalStrings provides strings) {
         DriveAppTheme {
-            AppNavHost(
-                navigator = navigator,
-                currentLanguage = currentLanguage,
-                onLanguageChanged = { currentLanguage = it }
-            )
-            if (showLanguageDialog) {
-                LanguageSelectionDialog(
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                AppNavHost(
+                    navigator = navigator,
+                    currentLanguage = currentLanguage,
+                    onLanguageChanged = { currentLanguage = it }
+                )
+                if (showLanguageDialog) {
+                    LanguageSelectionDialog(
                     currentLanguage = currentLanguage,
                     onLanguageSelected = { code ->
                         currentLanguage = storeLanguagePreference(code)
                         showLanguageDialog = false
                     }
                 )
+                }
             }
         }
     }

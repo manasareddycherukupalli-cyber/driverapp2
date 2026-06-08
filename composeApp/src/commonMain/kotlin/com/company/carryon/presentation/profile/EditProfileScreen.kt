@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
@@ -168,6 +169,15 @@ fun EditProfileScreen(navigator: AppNavigator) {
                                 contentDescription = "Profile Photo",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.Person,
+                                contentDescription = "Profile Photo",
+                                tint = EditBlue,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .size(40.dp)
                             )
                         }
                     }

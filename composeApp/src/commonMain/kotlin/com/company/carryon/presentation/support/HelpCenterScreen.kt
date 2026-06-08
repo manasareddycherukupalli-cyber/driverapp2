@@ -256,9 +256,10 @@ private fun HelpCategoryCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.cardSurfaceShadow(RoundedCornerShape(10.dp)).clickable { onClick() },
+        modifier = modifier.height(116.dp).cardSurfaceShadow(RoundedCornerShape(10.dp)).clickable { onClick() },
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x1F034094))
     ) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(icon, contentDescription = null, tint = Color(0xFF034094), modifier = Modifier.size(16.dp))

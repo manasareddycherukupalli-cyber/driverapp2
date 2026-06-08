@@ -279,7 +279,7 @@ private fun RegInputField(
     Spacer(Modifier.height(8.dp))
     Surface(
         shape           = RoundedCornerShape(10.dp),
-        shadowElevation = 4.dp,
+        shadowElevation = 1.2.dp,
         tonalElevation  = 0.dp,
         color           = Color.White,
         modifier        = Modifier

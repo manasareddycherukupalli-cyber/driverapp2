@@ -56,6 +56,7 @@ private val LightBlue = Color.White
 private val TextPrimary = Color(0xFF181C23)
 private val TextMuted = Color(0xFF414755)
 private val SurfaceShadow = Color(0x26000000)
+private val CardStrokeColor = Color(0x1F034094)
 
 private fun Modifier.cardSurfaceShadow(shape: Shape): Modifier =
     shadow(
@@ -337,6 +338,7 @@ private fun StatChip(label: String, value: String, icon: @Composable () -> Unit,
         modifier = modifier.cardSurfaceShadow(RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = LightBlue),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(

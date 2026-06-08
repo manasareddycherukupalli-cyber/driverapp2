@@ -3,5 +3,10 @@
     <style name="Theme.CarryOn" parent="android:Theme.Material.Light.NoActionBar">
         <!-- Block system force-dark so Compose handles all colors -->
         <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowBackground">#FFFFFF</item>
+        <item name="android:statusBarColor">#FFFFFF</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

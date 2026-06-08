@@ -32,6 +32,7 @@ import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
 private val SurfaceShadow = Color(0x26000000)
+private val CardStrokeColor = Color(0x1F034094)
 
 private fun Modifier.cardSurfaceShadow(shape: Shape): Modifier =
     shadow(
@@ -101,7 +102,8 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(12.dp)),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
             ) {
                 Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                     AvatarCircle(initials = driverInitials, size = 72.dp)
@@ -150,7 +152,8 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = sectionBg)
+                colors = CardDefaults.cardColors(containerColor = sectionBg),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
             ) {
                 Column(Modifier.padding(8.dp)) {
                     PrefComingSoonRow(strings.darkMode, Icons.Filled.Brightness2)
@@ -290,7 +293,8 @@ private fun SettingsNavRow(
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).cardSurfaceShadow(RoundedCornerShape(12.dp)).clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = background)
+        colors = CardDefaults.cardColors(containerColor = background),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),

@@ -53,7 +53,7 @@ import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
 private val JobsBlue = Color(0xFF034094)
-private val JobsBg = Color(0xFFF4F5F8)
+private val JobsBg = Color.White
 private val JobsText = Color(0xFF202124)
 private val JobsMuted = Color(0xFF7A8499)
 private val JobsDivider = Color(0x1A000000)

@@ -1,6 +1,7 @@
 package com.company.carryon.presentation.navigation
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -8,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.auth.*
 import com.company.carryon.presentation.chat.*
@@ -64,6 +66,7 @@ fun AppNavHost(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         bottomBar = {
             if (showBottomBar) {
                 DriveAppBottomBar(navigator, bottomNavItems)
@@ -73,6 +76,7 @@ fun AppNavHost(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(paddingValues)
         ) {
             AnimatedContent(
@@ -244,7 +248,8 @@ fun rememberDriveBottomNavItems(): List<BottomNavItem> {
 fun DriveAppBottomBar(navigator: AppNavigator, items: List<BottomNavItem>) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        windowInsets = WindowInsets(0.dp)
     ) {
         items.forEach { item ->
             val isSelected = navigator.currentScreen == item.screen
