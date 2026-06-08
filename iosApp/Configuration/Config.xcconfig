@@ -1,4 +1,5 @@
-TEAM_ID=JCV8T238TB
+// Use the team selected in Xcode instead of tying the project to one account.
+TEAM_ID=$(DEVELOPMENT_TEAM)
 
 PRODUCT_NAME=Drive_app
 PRODUCT_BUNDLE_IDENTIFIER=com.company.carryon.DriveApp$(TEAM_ID)

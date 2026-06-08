@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -21,9 +22,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.UiState
@@ -31,6 +34,7 @@ import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.carryOnWordmarkFontFamily
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // ── Figma design tokens ──────────────────────────────────────
@@ -51,9 +55,17 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val wordmarkFontFamily = carryOnWordmarkFontFamily()
+    val focusManager = LocalFocusManager.current
 
     val otpSendState by authViewModel.otpSendState.collectAsState()
     val otpVerifyState by authViewModel.otpVerifyState.collectAsState()
+
+    LaunchedEffect(phone, name) {
+        if (name.isNotBlank() && isValidPhoneInput(phone)) {
+            delay(700)
+            focusManager.clearFocus()
+        }
+    }
 
     LaunchedEffect(Unit) {
         authViewModel.resetOtpState()
@@ -97,6 +109,7 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
     ) {
@@ -166,7 +179,8 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             label         = strings.name,
             value         = name,
             onValueChange = { name = it },
-            placeholder   = strings.enterYourName
+            placeholder   = strings.enterYourName,
+            imeAction     = ImeAction.Next
         )
 
         Spacer(Modifier.height(25.dp))
@@ -177,7 +191,9 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
             value         = phone,
             onValueChange = { phone = it },
             placeholder   = strings.phonePlaceholder,
-            keyboardType  = KeyboardType.Phone
+            keyboardType  = KeyboardType.Phone,
+            imeAction     = ImeAction.Done,
+            onImeAction   = { focusManager.clearFocus() }
         )
 
         Spacer(Modifier.height(8.dp))
@@ -248,6 +264,8 @@ private fun RegInputField(
     onValueChange    : (String) -> Unit,
     placeholder      : String,
     keyboardType     : KeyboardType = KeyboardType.Text,
+    imeAction        : ImeAction = ImeAction.Default,
+    onImeAction      : () -> Unit = {},
     isPassword       : Boolean      = false,
     passwordVisible  : Boolean      = false,
     onTogglePassword : (() -> Unit)? = null
@@ -276,7 +294,8 @@ private fun RegInputField(
             },
             modifier             = Modifier.fillMaxSize(),
             singleLine           = true,
-            keyboardOptions      = KeyboardOptions(keyboardType = keyboardType),
+            keyboardOptions      = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+            keyboardActions      = KeyboardActions(onDone = { onImeAction() }),
             visualTransformation = if (isPassword && !passwordVisible)
                 PasswordVisualTransformation() else VisualTransformation.None,
             trailingIcon = if (isPassword) {{
@@ -303,4 +322,3 @@ private fun RegInputField(
         )
     }
 }
-

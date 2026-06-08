@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -56,9 +58,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,6 +91,7 @@ import com.company.carryon.presentation.theme.Gray900
 import com.company.carryon.presentation.theme.Orange100
 import com.company.carryon.presentation.theme.Orange500
 import com.company.carryon.presentation.util.rememberImagePickerLauncher
+import kotlinx.coroutines.delay
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -165,6 +171,7 @@ fun DriverOnboardingFlowScreen(
             val currentStep = draft.currentStep
             val contentScrollState = rememberScrollState()
             val scope = rememberCoroutineScope()
+            val focusManager = LocalFocusManager.current
 
             LaunchedEffect(submitState) {
                 when (submitState) {
@@ -198,6 +205,7 @@ fun DriverOnboardingFlowScreen(
                         hasBlockingErrors = blockingErrors.isNotEmpty(),
                         submitError = (submitState as? UiState.Error)?.message,
                         onBack = {
+                            focusManager.clearFocus()
                             if (currentStep == 1) {
                                 navigator.navigateAndClearStack(Screen.Login)
                             } else {
@@ -205,6 +213,7 @@ fun DriverOnboardingFlowScreen(
                             }
                         },
                         onNext = {
+                            focusManager.clearFocus()
                             if (currentStep == DriverOnboardingViewModel.TOTAL_STEPS) {
                                 if (submitState is UiState.Error) {
                                     // Testing shortcut: allow opening status screen even when submission is blocked by backend errors.
@@ -445,7 +454,7 @@ private fun FooterActions(
     onNext: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().background(Color.White).padding(16.dp),
+        modifier = Modifier.fillMaxWidth().imePadding().background(Color.White).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         submitError?.let { message ->
@@ -503,7 +512,8 @@ private fun PhoneStep(
             error = errorFor(messages, "phone"),
             labelColor = Color(0xFF000000),
             borderColor = Blue,
-            valueColor = FieldTextBlack
+            valueColor = FieldTextBlack,
+            autoDismissWhen = { it.filter(Char::isDigit).length >= 8 }
         )
     }
 }
@@ -549,7 +559,8 @@ private fun IdentityStep(
             keyboardType = KeyboardType.Number,
             error = errorFor(messages, "mykadNumber"),
             borderColor = Blue,
-            valueColor = Blue
+            valueColor = Blue,
+            autoDismissWhen = { it.length == 12 }
         )
         UploadField(
             label = "MyKad front",
@@ -557,7 +568,6 @@ private fun IdentityStep(
             localUrl = identityUrl(draft, DocumentType.MYKAD_FRONT),
             serverDocument = serverDocuments[DocumentType.MYKAD_FRONT],
             error = errorFor(messages, "mykadFront"),
-            containerColor = Color(0x33A6D2F3),
             onUpload = { launchUpload(DocumentType.MYKAD_FRONT, null) }
         )
         UploadField(
@@ -566,7 +576,6 @@ private fun IdentityStep(
             localUrl = identityUrl(draft, DocumentType.MYKAD_BACK),
             serverDocument = serverDocuments[DocumentType.MYKAD_BACK],
             error = errorFor(messages, "mykadBack"),
-            containerColor = Color(0x33A6D2F3),
             onUpload = { launchUpload(DocumentType.MYKAD_BACK, null) }
         )
         UploadField(
@@ -575,7 +584,6 @@ private fun IdentityStep(
             localUrl = identityUrl(draft, DocumentType.SELFIE),
             serverDocument = serverDocuments[DocumentType.SELFIE],
             error = errorFor(messages, "selfie"),
-            containerColor = Color(0x33A6D2F3),
             onUpload = { launchUpload(DocumentType.SELFIE, null) }
         )
     }
@@ -658,7 +666,8 @@ private fun PersonalStep(
             keyboardType = KeyboardType.Number,
             error = errorFor(messages, "postcode"),
             borderColor = FieldBlue,
-            valueColor = FieldTextBlack
+            valueColor = FieldTextBlack,
+            autoDismissWhen = { it.length == 5 }
         )
         EnumDropdownBlock(
             label = "State",
@@ -696,7 +705,8 @@ private fun PersonalStep(
             keyboardType = KeyboardType.Phone,
             error = errorFor(messages, "emergencyContactPhone"),
             borderColor = FieldBlue,
-            valueColor = FieldTextBlack
+            valueColor = FieldTextBlack,
+            autoDismissWhen = { it.filter(Char::isDigit).length >= 8 }
         )
     }
 }
@@ -737,7 +747,6 @@ private fun LicenseStep(
             localUrl = draft.driversLicenseFrontUrl,
             serverDocument = serverDocuments[DocumentType.DRIVERS_LICENSE],
             error = errorFor(messages, "driversLicenseFront"),
-            containerColor = Color(0x33A6D2F3),
             onUpload = { launchUpload(DocumentType.DRIVERS_LICENSE, draft.licenseExpiry.takeIf { it.isNotBlank() }) }
         )
         UploadField(
@@ -746,7 +755,6 @@ private fun LicenseStep(
             localUrl = draft.driversLicenseBackUrl,
             serverDocument = serverDocuments[DocumentType.DRIVERS_LICENSE_BACK],
             error = errorFor(messages, "driversLicenseBack"),
-            containerColor = Color(0x33A6D2F3),
             onUpload = { launchUpload(DocumentType.DRIVERS_LICENSE_BACK, draft.licenseExpiry.takeIf { it.isNotBlank() }) }
         )
         CheckboxRow(
@@ -763,7 +771,6 @@ private fun LicenseStep(
                 localUrl = draft.gdlUrl,
                 serverDocument = serverDocuments[DocumentType.GDL],
                 error = errorFor(messages, "gdlUrl"),
-                containerColor = Color(0x33A6D2F3),
                 onUpload = { launchUpload(DocumentType.GDL, draft.gdlExpiry.takeIf { it.isNotBlank() }) }
             )
         }
@@ -807,7 +814,7 @@ private fun VehicleDetailsStep(
             onSelected = onModelChanged,
             error = errorFor(messages, "vehicleModel")
         )
-        TextFieldBlock("Year", draft.vehicleYear, onYearChanged, placeholder = "2022", keyboardType = KeyboardType.Number, error = errorFor(messages, "vehicleYear"))
+        TextFieldBlock("Year", draft.vehicleYear, onYearChanged, placeholder = "2022", keyboardType = KeyboardType.Number, error = errorFor(messages, "vehicleYear"), autoDismissWhen = { it.length == 4 })
         TextFieldBlock("License plate", draft.vehiclePlate, onPlateChanged, placeholder = "WXY1234", error = errorFor(messages, "vehiclePlate"))
         TextFieldBlock("Color", draft.vehicleColor, onColorChanged, placeholder = "White", error = errorFor(messages, "vehicleColor"))
         EnumDropdownBlock(
@@ -909,7 +916,11 @@ private fun ReviewStep(
             "Background check consent: ${if (draft.backgroundCheckConsent) "Yes" else "No"}",
             "No offences declared: ${if (draft.noOffencesDeclared) "Yes" else "No"}"
         ))
-        Card(colors = CardDefaults.cardColors(containerColor = BlueTint)) {
+        Card(
+            modifier = Modifier.verificationShadow(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(12.dp)
+        ) {
             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Agreement version: $DRIVER_ONBOARDING_AGREEMENT_VERSION", fontWeight = FontWeight.SemiBold, color = TextPrimary)
                 CheckboxRow(
@@ -965,7 +976,7 @@ private fun SelectionCard(
 ) {
     Card(
         modifier = modifier.clickable(onClick = onClick).border(1.dp, if (selected) Blue else Gray300, RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = if (selected) BlueTint else Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(title, fontWeight = FontWeight.Bold, color = TextPrimary)
@@ -973,6 +984,15 @@ private fun SelectionCard(
         }
     }
 }
+
+private fun Modifier.verificationShadow(
+    shape: RoundedCornerShape = RoundedCornerShape(12.dp)
+): Modifier = shadow(
+    elevation = 8.dp,
+    shape = shape,
+    ambientColor = Color.Black.copy(alpha = 0.15f),
+    spotColor = Color.Black.copy(alpha = 0.15f)
+)
 
 @Composable
 private fun TextFieldBlock(
@@ -986,8 +1006,18 @@ private fun TextFieldBlock(
     labelColor: Color = TextPrimary,
     borderColor: Color = FieldBlue,
     valueColor: Color? = null,
-    errorColor: Color = Danger
+    errorColor: Color = Danger,
+    autoDismissWhen: (String) -> Boolean = { false }
 ) {
+    val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(value) {
+        if (autoDismissWhen(value)) {
+            delay(500)
+            focusManager.clearFocus()
+        }
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = labelColor, fontWeight = FontWeight.Medium)
         OutlinedTextField(
@@ -995,7 +1025,8 @@ private fun TextFieldBlock(
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
             placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant) },
             colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = borderColor,
@@ -1186,11 +1217,15 @@ private fun UploadField(
     localUrl: String,
     serverDocument: Document?,
     error: String?,
-    containerColor: Color = Color(0x33A6D2F3),
     errorColor: Color = Danger,
     onUpload: () -> Unit
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = containerColor)) {
+    val cardShape = RoundedCornerShape(12.dp)
+    Card(
+        modifier = Modifier.verificationShadow(cardShape),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = cardShape
+    ) {
         Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(label, fontWeight = FontWeight.SemiBold, color = TextPrimary)
@@ -1228,13 +1263,18 @@ private fun StatusChip(localUrl: String, serverDocument: Document?) {
         localUrl.isNotBlank() || serverDocument != null -> "Uploaded" to Blue
         else -> "Required" to Blue
     }
+    val chipBackground = when (label) {
+        "Required" -> Blue.copy(alpha = 0.5f)
+        "Uploaded" -> Color.White
+        else -> color.copy(alpha = 0.12f)
+    }
+    val chipTextColor = if (label == "Required") Color.White else color
     Box(
-        modifier = Modifier.background(
-            if (label == "Uploaded" || label == "Required") Color.White else color.copy(alpha = 0.12f),
-            RoundedCornerShape(999.dp)
-        ).padding(horizontal = 10.dp, vertical = 4.dp)
+        modifier = Modifier
+            .background(chipBackground, RoundedCornerShape(999.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
-        Text(label, color = color, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = chipTextColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

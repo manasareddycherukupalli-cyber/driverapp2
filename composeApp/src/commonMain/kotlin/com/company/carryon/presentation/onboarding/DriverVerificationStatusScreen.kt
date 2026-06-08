@@ -37,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -204,9 +205,16 @@ private fun FailedVerificationScreen(
             }
         }
 
+        val helpCardShape = RoundedCornerShape(14.dp)
         Card(
-            colors = CardDefaults.cardColors(containerColor = SoftBlue),
-            shape = RoundedCornerShape(14.dp)
+            modifier = Modifier.shadow(
+                elevation = 8.dp,
+                shape = helpCardShape,
+                ambientColor = Color.Black.copy(alpha = 0.15f),
+                spotColor = Color.Black.copy(alpha = 0.15f)
+            ),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = helpCardShape
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Need help with documents?", color = VerifyText, fontWeight = FontWeight.Bold)

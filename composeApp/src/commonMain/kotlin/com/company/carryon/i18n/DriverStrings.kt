@@ -57,6 +57,9 @@ interface DriverStrings {
     // ── Onboarding ───────────────────────────────────────────────
     val welcome: String get() = "Welcome"
     val haveBetterExperience: String get() = "Have a Better Experience with "
+    val pickupToDoorstep: String get() = "Pickup to doorstep"
+    val sendPackagesWithEase: String get() = "Send packages with ease"
+    val onboardingDescription: String get() = "Book a trusted driver, schedule a pickup,\nand track your delivery in real time."
     val createAccount: String get() = "Create an account"
     val logIn: String get() = "Log In"
 

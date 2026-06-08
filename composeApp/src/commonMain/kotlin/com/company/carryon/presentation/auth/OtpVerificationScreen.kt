@@ -223,7 +223,8 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFFF5F5F5))
-                .padding(bottom = 16.dp)
+                .navigationBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             val keys = listOf(
                 listOf("1", "2", "3"),
@@ -233,11 +234,13 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
             )
             keys.forEach { row ->
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
                 ) {
                     row.forEach { key ->
                         KeypadButton(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             label = key,
                             onClick = {
                                 when (key) {
@@ -265,10 +268,13 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
 }
 
 @Composable
-private fun KeypadButton(label: String, onClick: () -> Unit) {
+private fun KeypadButton(
+    modifier: Modifier = Modifier,
+    label: String,
+    onClick: () -> Unit
+) {
     Box(
-        modifier = Modifier
-            .size(width = 120.dp, height = 64.dp)
+        modifier = modifier
             .clickable(enabled = label.isNotEmpty()) { onClick() },
         contentAlignment = Alignment.Center
     ) {
