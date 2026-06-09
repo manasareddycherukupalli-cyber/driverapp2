@@ -22,6 +22,7 @@ import com.company.carryon.data.network.initTokenStorage
 import com.company.carryon.data.network.savePushToken
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
+import com.company.carryon.update.initAppUpdatePlatform
 
 class MainActivity : ComponentActivity() {
 
@@ -49,6 +50,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.light(Color.WHITE, Color.WHITE)
         )
         initTokenStorage(applicationContext)
+        initAppUpdatePlatform(applicationContext)
         initLocationProvider(this)
         createNotificationChannel()
         window.decorView.post {

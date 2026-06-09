@@ -15,6 +15,7 @@ import com.company.carryon.presentation.navigation.AppNavHost
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.theme.DriveAppTheme
+import com.company.carryon.update.AppUpdateGate
 
 /**
  * App.kt — Root composable entry point for the DriveApp.
@@ -22,6 +23,13 @@ import com.company.carryon.presentation.theme.DriveAppTheme
  */
 @Composable
 fun App() {
+    AppUpdateGate {
+        AppContent()
+    }
+}
+
+@Composable
+private fun AppContent() {
     val navigator = remember { AppNavigator() }
     var currentLanguage by remember { mutableStateOf(currentLanguageOrDefault()) }
     var showLanguageDialog by remember { mutableStateOf(!hasStoredLanguagePreference()) }
