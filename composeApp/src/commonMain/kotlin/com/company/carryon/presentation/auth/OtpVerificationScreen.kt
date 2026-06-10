@@ -224,7 +224,8 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
                 .fillMaxWidth()
                 .background(Color(0xFFF5F5F5))
                 .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             val keys = listOf(
                 listOf("1", "2", "3"),
@@ -234,14 +235,14 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
             )
             keys.forEach { row ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     row.forEach { key ->
                         KeypadButton(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            modifier = Modifier.weight(1f).height(60.dp),
                             label = key,
+                            accentColor = otpBlue,
                             onClick = {
                                 when (key) {
                                     "⌫" -> {
@@ -271,37 +272,41 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
 private fun KeypadButton(
     modifier: Modifier = Modifier,
     label: String,
+    accentColor: Color,
     onClick: () -> Unit
 ) {
+    val isDelete = label == "⌫"
+    val isEmpty = label.isEmpty()
+
     Box(
         modifier = modifier
-            .clickable(enabled = label.isNotEmpty()) { onClick() },
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                when {
+                    isDelete -> accentColor
+                    isEmpty -> Color.Transparent
+                    else -> Color.White
+                }
+            )
+            .then(
+                if (!isEmpty) Modifier.clickable { onClick() } else Modifier
+            ),
         contentAlignment = Alignment.Center
     ) {
         when {
-            label == "⌫" -> Icon(
+            isDelete -> Icon(
                 Icons.AutoMirrored.Filled.Backspace,
                 contentDescription = "Delete",
-                tint = Color(0xFF1A1A2E),
+                tint = Color.White,
                 modifier = Modifier.size(24.dp)
             )
-            label.isEmpty() -> {}
-            else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = label,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF1A1A2E)
-                )
-                val subLabel = when (label) {
-                    "2" -> "ABC"; "3" -> "DEF"; "4" -> "GHI"; "5" -> "JKL"
-                    "6" -> "MNO"; "7" -> "PQRS"; "8" -> "TUV"; "9" -> "WXYZ"
-                    else -> ""
-                }
-                if (subLabel.isNotEmpty()) {
-                    Text(text = subLabel, fontSize = 9.sp, color = Color(0xFF9E9E9E), letterSpacing = 1.sp)
-                }
-            }
+            isEmpty -> {}
+            else -> Text(
+                text = label,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF1A1A2E)
+            )
         }
     }
 }
