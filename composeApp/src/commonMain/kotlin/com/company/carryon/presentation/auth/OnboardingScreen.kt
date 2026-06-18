@@ -74,14 +74,14 @@ fun OnboardingScreen(navigator: AppNavigator) {
             )
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(72.dp))
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
                 onClick = { navigator.navigateTo(Screen.Registration) },
