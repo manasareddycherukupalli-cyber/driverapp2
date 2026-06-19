@@ -17,6 +17,16 @@ enum class WindowWidthClass { Compact, Medium, Expanded }
 
 val LocalWindowWidthClass = compositionLocalOf { WindowWidthClass.Medium }
 
+/** Maximum width for phone-style, single-pane content on larger displays. */
+val ExpandedContentMaxWidth = 840.dp
+
+/** Kept outside composition so width-class boundaries can be unit tested. */
+fun windowWidthClassFor(width: Dp): WindowWidthClass = when {
+    width < 360.dp -> WindowWidthClass.Compact
+    width < 600.dp -> WindowWidthClass.Medium
+    else -> WindowWidthClass.Expanded
+}
+
 // ─── Responsive scale factors ────────────────────────────────────
 
 /**

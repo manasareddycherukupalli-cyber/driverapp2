@@ -35,8 +35,6 @@ import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.carryOnWordmarkFontFamily
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 // ── Figma design tokens (node 1:258) ────────────────────────
 // Black: #16161E | Blue: #034094 | Gray: #828282
@@ -54,19 +52,11 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
     var phone           by remember { mutableStateOf("") }
     var isLoading       by remember { mutableStateOf(false) }
     var errorMessage    by remember { mutableStateOf<String?>(null) }
-    val coroutineScope  = rememberCoroutineScope()
     val normalizedPhone = normalizePhoneInput(phone)
     val wordmarkFontFamily = carryOnWordmarkFontFamily()
     val focusManager = LocalFocusManager.current
 
     val otpVerifyState by authViewModel.otpVerifyState.collectAsState()
-
-    LaunchedEffect(phone) {
-        if (isValidPhoneInput(phone)) {
-            delay(700)
-            focusManager.clearFocus()
-        }
-    }
 
     // Reset stale OTP state first, then collect future emissions to avoid navigating
     // to OTP with a Success value left over from a previous login session (e.g. after logout).

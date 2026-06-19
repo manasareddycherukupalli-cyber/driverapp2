@@ -124,11 +124,7 @@ fun DriveAppTheme(
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     BoxWithConstraints {
-        val widthClass = when {
-            maxWidth < 360.dp -> WindowWidthClass.Compact
-            maxWidth < 600.dp -> WindowWidthClass.Medium
-            else -> WindowWidthClass.Expanded
-        }
+        val widthClass = windowWidthClassFor(maxWidth)
         CompositionLocalProvider(LocalWindowWidthClass provides widthClass) {
             MaterialTheme(
                 colorScheme = colorScheme,

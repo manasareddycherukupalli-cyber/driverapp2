@@ -3,6 +3,8 @@ package com.company.carryon.presentation.auth
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -23,6 +25,16 @@ import com.company.carryon.presentation.navigation.Screen
 import drive_app.composeapp.generated.resources.Res
 import drive_app.composeapp.generated.resources.truck_illustration
 import org.jetbrains.compose.resources.painterResource
+import kotlin.math.min
+
+private const val ONBOARDING_HERO_ASPECT_RATIO = 1.096f
+private const val ONBOARDING_HERO_MAX_HEIGHT_FRACTION = 0.60f
+
+internal fun onboardingHeroHeight(availableWidth: androidx.compose.ui.unit.Dp, availableHeight: androidx.compose.ui.unit.Dp) =
+    min(
+        availableWidth.value / ONBOARDING_HERO_ASPECT_RATIO,
+        availableHeight.value * ONBOARDING_HERO_MAX_HEIGHT_FRACTION
+    ).dp
 
 /**
  * OnboardingScreen — Welcome screen with Carry On branding and truck illustration.
@@ -33,74 +45,90 @@ fun OnboardingScreen(navigator: AppNavigator) {
     val strings = LocalStrings.current
     val brandBlue = Color(0xFF034094)
 
-    Column(
+    Box(
+        modifier = Modifier.fillMaxSize().background(Color.White),
+        contentAlignment = Alignment.TopCenter
+    ) {
+    BoxWithConstraints(
         modifier = Modifier
-            .fillMaxSize()
+            .widthIn(max = 600.dp)
+            .fillMaxHeight()
             .background(Color.White)
     ) {
-        Image(
-            painter = painterResource(Res.drawable.truck_illustration),
-            contentDescription = "Carry On delivery driver and van",
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1.096f),
-            contentScale = ContentScale.Crop
-        )
+        val shortViewport = maxHeight < 700.dp
+        val heroHeight = onboardingHeroHeight(maxWidth, maxHeight)
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp)
-                .padding(top = 24.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                text = strings.welcome,
-                fontSize = 22.sp,
-                lineHeight = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
+            Image(
+                painter = painterResource(Res.drawable.truck_illustration),
+                contentDescription = "Carry On delivery driver and van",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .height(heroHeight),
+                contentScale = ContentScale.FillBounds
             )
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = buildAnnotatedString {
-                    append(strings.haveBetterExperience)
-                    withStyle(SpanStyle(color = brandBlue, fontWeight = FontWeight.SemiBold)) {
-                        append("Carry On")
-                    }
-                },
-                fontSize = 16.sp,
-                lineHeight = 22.sp,
-                color = Color(0xFF666666)
-            )
-        }
 
-        Spacer(Modifier.height(72.dp))
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Button(
-                onClick = { navigator.navigateTo(Screen.Registration) },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = brandBlue)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+                    .padding(top = if (shortViewport) 16.dp else 24.dp)
             ) {
-                Text(strings.createAccount, fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    text = strings.welcome,
+                    fontSize = 22.sp,
+                    lineHeight = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = buildAnnotatedString {
+                        append(strings.haveBetterExperience)
+                        withStyle(SpanStyle(color = brandBlue, fontWeight = FontWeight.SemiBold)) {
+                            append("Carry On")
+                        }
+                    },
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    color = Color(0xFF666666)
+                )
             }
 
-            OutlinedButton(
-                onClick = { navigator.navigateTo(Screen.Login) },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.dp, brandBlue),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = brandBlue)
+            Spacer(Modifier.height(if (shortViewport) 24.dp else 48.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(strings.logIn, fontWeight = FontWeight.Medium, fontSize = 17.sp)
+                Button(
+                    onClick = { navigator.navigateTo(Screen.Registration) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = brandBlue)
+                ) {
+                    Text(strings.createAccount, fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                }
+
+                OutlinedButton(
+                    onClick = { navigator.navigateTo(Screen.Login) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, brandBlue),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = brandBlue)
+                ) {
+                    Text(strings.logIn, fontWeight = FontWeight.Medium, fontSize = 17.sp)
+                }
             }
         }
+    }
     }
 }

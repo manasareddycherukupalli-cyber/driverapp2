@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -67,23 +68,25 @@ fun AppNavHost(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
-        bottomBar = {
-            if (showBottomBar) {
-                DriveAppBottomBar(navigator, bottomNavItems)
-            }
-        }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(paddingValues)
         ) {
-            AnimatedContent(
-                targetState = currentScreen,
-                transitionSpec = { fadeIn() togetherWith fadeOut() }
-            ) { screen ->
-                when (screen) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                AnimatedContent(
+                    targetState = currentScreen,
+                    modifier = Modifier.fillMaxSize(),
+                    transitionSpec = { fadeIn() togetherWith fadeOut() }
+                ) { screen ->
+                    when (screen) {
                     // ---- Splash ----
                     Screen.Splash -> SplashScreen(navigator, authViewModel)
 
@@ -222,6 +225,10 @@ fun AppNavHost(
                     Screen.Sos -> SosScreen(navigator)
                     Screen.Notifications -> NotificationsScreen(navigator)
                 }
+            }
+            }
+            if (showBottomBar) {
+                DriveAppBottomBar(navigator, bottomNavItems)
             }
         }
     }
