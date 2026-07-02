@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -55,6 +57,11 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
             .fillMaxSize()
             .background(Color.White)
     ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
         // ---- Back Arrow ----
         Box(
             modifier = Modifier
@@ -216,7 +223,8 @@ fun OtpVerificationScreen(navigator: AppNavigator, authViewModel: AuthViewModel)
             }
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(16.dp))
+        }
 
         // ---- Custom Phone Keypad ----
         Column(

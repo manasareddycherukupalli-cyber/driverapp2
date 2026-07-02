@@ -2,6 +2,8 @@ package com.company.carryon.presentation.delivery
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -161,6 +163,12 @@ private fun ArrivedAtDropContent(
             }
         }
 
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("STEP 4 OF 4", color = DropBlue.copy(alpha = 0.75f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             Text("ARRIVAL CONFIRMED", color = DropBlue.copy(alpha = 0.75f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
@@ -273,8 +281,7 @@ private fun ArrivedAtDropContent(
         ) {
             Text("Proceed to Delivery Proof", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
-
-        Spacer(Modifier.weight(1f))
+        }
 
         Row(
             modifier = Modifier

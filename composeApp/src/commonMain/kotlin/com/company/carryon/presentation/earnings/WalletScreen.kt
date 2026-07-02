@@ -70,6 +70,7 @@ fun WalletScreen(navigator: AppNavigator) {
         )
 
         LazyColumn(
+            modifier = Modifier.imePadding(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {

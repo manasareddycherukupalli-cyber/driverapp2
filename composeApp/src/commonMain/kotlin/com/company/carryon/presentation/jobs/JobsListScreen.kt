@@ -52,8 +52,8 @@ import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
-private val JobsBlue = Color(0xFF034094)
-private val JobsBg = Color.White
+private val JobsBlue = Color(0xFF2F80ED)
+private val JobsBg = Color(0xFFF4F5F8)
 private val JobsText = Color(0xFF202124)
 private val JobsMuted = Color(0xFF7A8499)
 private val JobsDivider = Color(0x1A000000)
@@ -67,7 +67,7 @@ fun JobsListScreen(navigator: AppNavigator) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(JobsBg)
+            .background(Color.White)
     ) {
         DriveAppTopBar(
             title = "Past Jobs",
@@ -198,9 +198,7 @@ private fun PastJobCard(job: DeliveryJob, onClick: () -> Unit) {
                             job.displayOrderId.let { if (it.isNotBlank()) if (it.startsWith("#")) it else "#$it" else "#${job.id.takeLast(8).uppercase()}" },
                             color = JobsBlue,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            fontSize = 14.sp
                         )
                         if (job.isSettlementEligible) {
                             val date = job.completedAt ?: job.deliveredAt ?: ""

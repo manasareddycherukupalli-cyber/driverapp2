@@ -25,6 +25,7 @@ private const val KEY_DELIVERY_RESUME_JOB_ID = "delivery_resume_job_id"
 private const val KEY_PUSH_TOKEN = "push_token"
 private const val KEY_PUSH_DEVICE_ID = "push_device_id"
 private const val KEY_PENDING_INCOMING_JOB = "pending_incoming_job"
+private const val KEY_ASKED_NOTIFICATION_PERMISSION = "asked_notification_permission"
 
 private var securePrefs: SharedPreferences? = null
 private var plainPrefs: SharedPreferences? = null
@@ -136,6 +137,14 @@ actual fun consumePendingIncomingJob(): Boolean {
         prefs.edit().remove(KEY_PENDING_INCOMING_JOB).apply()
     }
     return pending
+}
+
+actual fun hasAskedNotificationPermission(): Boolean {
+    return plainPrefs?.getBoolean(KEY_ASKED_NOTIFICATION_PERMISSION, false) ?: false
+}
+
+actual fun markAskedNotificationPermission() {
+    plainPrefs?.edit()?.putBoolean(KEY_ASKED_NOTIFICATION_PERMISSION, true)?.apply()
 }
 
 private fun putEncrypted(key: String, value: String) {

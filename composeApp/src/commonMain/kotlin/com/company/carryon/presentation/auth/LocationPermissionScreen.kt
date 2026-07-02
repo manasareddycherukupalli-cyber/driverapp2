@@ -3,6 +3,8 @@ package com.company.carryon.presentation.auth
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -60,40 +62,50 @@ fun LocationPermissionScreen(navigator: AppNavigator, authViewModel: AuthViewMod
             showTitle = false
         )
 
-        Spacer(Modifier.height(24.dp))
-
-        // ---- Illustration ----
-        Image(
-            painter = painterResource(Res.drawable.location_illustration),
-            contentDescription = "Enable location illustration",
+        // Image, title, and buttons are centered together as one group so
+        // tall/medium screens don't leave a large dead gap above bottom-pinned
+        // buttons; short screens scroll instead of clipping.
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .height(300.dp),
-            contentScale = ContentScale.Fit
-        )
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(Modifier.height(24.dp))
 
-        Spacer(Modifier.height(48.dp))
+            // ---- Illustration ----
+            Image(
+                painter = painterResource(Res.drawable.location_illustration),
+                contentDescription = "Enable location illustration",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .heightIn(max = 300.dp),
+                contentScale = ContentScale.Fit
+            )
 
-        // ---- Title ----
-        Text(
-            text = strings.enableYourLocation,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Orange500,
-            textAlign = TextAlign.Center,
-            lineHeight = 36.sp,
-            modifier = Modifier.fillMaxWidth()
-        )
+            Spacer(Modifier.height(48.dp))
 
-        Spacer(Modifier.weight(1f))
+            // ---- Title ----
+            Text(
+                text = strings.enableYourLocation,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Orange500,
+                textAlign = TextAlign.Center,
+                lineHeight = 36.sp,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(40.dp))
 
         // ---- Buttons ----
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 40.dp),
+                .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Use current location — filled
@@ -171,6 +183,7 @@ fun LocationPermissionScreen(navigator: AppNavigator, authViewModel: AuthViewMod
                     fontWeight = FontWeight.Medium
                 )
             }
+        }
         }
     }
 }

@@ -2,6 +2,8 @@ package com.company.carryon.presentation.earnings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
@@ -88,6 +90,12 @@ private fun TransactionDetailContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         // Amount card
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -146,8 +154,7 @@ private fun TransactionDetailContent(
                 DetailRow("Type", transaction.type.displayName)
             }
         }
-
-        Spacer(Modifier.weight(1f))
+        }
 
         // Download invoice button
         val isLoading = invoiceLinkState is UiState.Loading
@@ -207,11 +214,14 @@ private fun DetailRow(label: String, value: String) {
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Spacer(Modifier.width(16.dp))
         Text(
             text = value,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = androidx.compose.ui.text.style.TextAlign.End,
+            modifier = Modifier.weight(1f)
         )
     }
 }

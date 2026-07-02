@@ -5,12 +5,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.company.carryon.data.network.hasAskedNotificationPermission
+import com.company.carryon.data.network.markAskedNotificationPermission
+import com.company.carryon.data.network.requestNotificationPermission
 import com.company.carryon.i18n.currentLanguageOrDefault
 import com.company.carryon.i18n.hasStoredLanguagePreference
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.i18n.getStringsForLanguage
 import com.company.carryon.i18n.storeLanguagePreference
 import com.company.carryon.presentation.components.LanguageSelectionDialog
+import com.company.carryon.presentation.components.NotificationPermissionDialog
 import com.company.carryon.presentation.navigation.AppNavHost
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
@@ -33,6 +37,9 @@ private fun AppContent() {
     val navigator = remember { AppNavigator() }
     var currentLanguage by remember { mutableStateOf(currentLanguageOrDefault()) }
     var showLanguageDialog by remember { mutableStateOf(!hasStoredLanguagePreference()) }
+    var showNotificationPrimer by remember {
+        mutableStateOf(!showLanguageDialog && !hasAskedNotificationPermission())
+    }
 
     LaunchedEffect(Unit) {
         navigator.navigateAndClearStack(Screen.Splash)
@@ -53,12 +60,25 @@ private fun AppContent() {
                 )
                 if (showLanguageDialog) {
                     LanguageSelectionDialog(
-                    currentLanguage = currentLanguage,
-                    onLanguageSelected = { code ->
-                        currentLanguage = storeLanguagePreference(code)
-                        showLanguageDialog = false
-                    }
-                )
+                        currentLanguage = currentLanguage,
+                        onLanguageSelected = { code ->
+                            currentLanguage = storeLanguagePreference(code)
+                            showLanguageDialog = false
+                            showNotificationPrimer = !hasAskedNotificationPermission()
+                        }
+                    )
+                } else if (showNotificationPrimer) {
+                    NotificationPermissionDialog(
+                        onAllow = {
+                            markAskedNotificationPermission()
+                            showNotificationPrimer = false
+                            requestNotificationPermission { }
+                        },
+                        onDismiss = {
+                            markAskedNotificationPermission()
+                            showNotificationPrimer = false
+                        }
+                    )
                 }
             }
         }

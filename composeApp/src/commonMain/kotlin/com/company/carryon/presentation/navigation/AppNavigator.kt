@@ -79,6 +79,13 @@ sealed interface Screen {
 /** Screens that show the bottom navigation bar */
 val mainTabScreens = setOf(Screen.Home, Screen.Jobs, Screen.Earnings, Screen.Profile)
 
+/**
+ * Map-led screens render edge-to-edge and should use the full canvas on wide
+ * displays instead of being constrained to phone-style content width.
+ */
+fun Screen.usesFullCanvas(): Boolean =
+    this == Screen.MapNavigation || this == Screen.InTransitNavigation || this == Screen.StartDelivery
+
 val deliveryFlowScreens = setOf(
     Screen.JobDetails,
     Screen.MapNavigation,

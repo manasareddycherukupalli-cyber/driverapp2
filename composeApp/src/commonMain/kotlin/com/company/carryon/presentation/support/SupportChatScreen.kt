@@ -54,6 +54,7 @@ fun SupportChatScreen(navigator: AppNavigator) {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .imePadding()
     ) {
         DriveAppTopBar(
             title = "Support Chat",
