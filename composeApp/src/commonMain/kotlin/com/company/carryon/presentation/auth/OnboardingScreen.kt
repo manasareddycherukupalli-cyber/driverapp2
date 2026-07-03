@@ -15,11 +15,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.i18n.LocalStrings
+import com.company.carryon.presentation.components.carryOnWordmarkFontFamily
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import drive_app.composeapp.generated.resources.Res
@@ -44,6 +46,7 @@ internal fun onboardingHeroHeight(availableWidth: androidx.compose.ui.unit.Dp, a
 fun OnboardingScreen(navigator: AppNavigator) {
     val strings = LocalStrings.current
     val brandBlue = Color(0xFF034094)
+    val wordmarkFontFamily = carryOnWordmarkFontFamily()
 
     Box(
         modifier = Modifier.fillMaxSize().background(Color.White),
@@ -90,8 +93,28 @@ fun OnboardingScreen(navigator: AppNavigator) {
                 Text(
                     text = buildAnnotatedString {
                         append(strings.haveBetterExperience)
-                        withStyle(SpanStyle(color = brandBlue, fontWeight = FontWeight.SemiBold)) {
-                            append("Carry On")
+                        withStyle(
+                            SpanStyle(
+                                color = Color(0xFF2F80ED),
+                                fontWeight = FontWeight.ExtraBold,
+                                fontStyle = FontStyle.Italic,
+                                fontFamily = wordmarkFontFamily
+                            )
+                        ) {
+                            append("CARRY ")
+                        }
+                        withStyle(
+                            SpanStyle(
+                                color = brandBlue,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontStyle = FontStyle.Italic,
+                                fontFamily = wordmarkFontFamily
+                            )
+                        ) {
+                            append("ON")
+                        }
+                        withStyle(SpanStyle(color = Color(0xFF333333), fontWeight = FontWeight.Bold)) {
+                            append("!")
                         }
                     },
                     fontSize = 16.sp,

@@ -125,7 +125,12 @@ fun DriverVerificationStatusScreen(
                 )
                 VerificationStatus.PENDING,
                 VerificationStatus.IN_REVIEW -> PendingVerificationScreen(
-                    onRefresh = { viewModel.refreshVerificationStatus() }
+                    onRefresh = { viewModel.refreshVerificationStatus() },
+                    onSignOut = {
+                        viewModel.logout {
+                            navigator.navigateAndClearStack(Screen.Login)
+                        }
+                    }
                 )
             }
         }
@@ -224,7 +229,7 @@ private fun FailedVerificationScreen(
         }
 
         Button(
-            onClick = { navigator.navigateAndClearStack(Screen.DriverOnboarding) },
+            onClick = { navigator.navigateAndClearStack(Screen.DriverOnboarding()) },
             modifier = Modifier.fillMaxWidth().height(54.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue)
@@ -245,7 +250,8 @@ private fun FailedVerificationScreen(
 
 @Composable
 private fun PendingVerificationScreen(
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onSignOut: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -262,8 +268,21 @@ private fun PendingVerificationScreen(
             color = VerifyMuted,
             textAlign = TextAlign.Center
         )
-        Button(onClick = onRefresh, colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue)) {
+        Button(
+            onClick = onRefresh,
+            modifier = Modifier.fillMaxWidth(0.58f).height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = VerifyBlue)
+        ) {
             Text("Refresh status")
+        }
+        OutlinedButton(
+            onClick = onSignOut,
+            modifier = Modifier.fillMaxWidth(0.58f).height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = VerifyBlue)
+        ) {
+            Text("Sign out", fontWeight = FontWeight.SemiBold)
         }
     }
 }

@@ -45,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -222,7 +223,19 @@ private fun PickupInstructionsContent(
             }
         }
 
-        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PickSoft), modifier = Modifier.fillMaxWidth()) {
+        val instructionsShape = RoundedCornerShape(14.dp)
+        Card(
+            shape = instructionsShape,
+            colors = CardDefaults.cardColors(containerColor = PickWhite),
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = 10.dp,
+                    shape = instructionsShape,
+                    ambientColor = Color.Black.copy(alpha = 0.35f),
+                    spotColor = Color.Black.copy(alpha = 0.35f)
+                )
+        ) {
             Row(modifier = Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(modifier = Modifier.size(30.dp).background(PickBlue.copy(alpha = 0.15f), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                     Icon(Icons.Filled.WarningAmber, contentDescription = null, tint = PickBlue, modifier = Modifier.size(16.dp))
@@ -244,8 +257,8 @@ private fun PickupInstructionsContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Verification Checklist", color = PickBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Spacer(Modifier.width(8.dp))
-                    Box(modifier = Modifier.background(PickSoft, RoundedCornerShape(999.dp)).padding(horizontal = 8.dp, vertical = 2.dp)) {
-                        Text("MANDATORY", color = PickBlue, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                    Box(modifier = Modifier.background(PickBlue, RoundedCornerShape(999.dp)).padding(horizontal = 8.dp, vertical = 2.dp)) {
+                        Text("MANDATORY", color = PickWhite, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 CheckRow("Package sealed securely", checks[0]) { checks[0] = !checks[0] }

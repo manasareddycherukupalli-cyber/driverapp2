@@ -13,4 +13,11 @@ class ResponsiveNavigationTest {
         assertFalse(Screen.Login.usesFullCanvas())
         assertFalse(Screen.JobDetails.usesFullCanvas())
     }
+
+    @Test
+    fun deliveryInstructionUsesTheSharedBottomNavigation() {
+        assertTrue(Screen.MapNavigation.showsStandardBottomBar())
+        assertTrue(Screen.Home.showsStandardBottomBar())
+        assertFalse(Screen.JobDetails.showsStandardBottomBar())
+    }
 }

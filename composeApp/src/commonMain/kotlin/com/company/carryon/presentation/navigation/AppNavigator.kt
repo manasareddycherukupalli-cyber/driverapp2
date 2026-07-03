@@ -20,7 +20,7 @@ sealed interface Screen {
     data object Login : Screen
     data object OtpVerification : Screen
     data object Registration : Screen
-    data object DriverOnboarding : Screen
+    data class DriverOnboarding(val initialStep: Int? = null) : Screen
     data object PersonalIdentity : Screen
     data object DocumentUpload : Screen
     data object VehicleDetailsInput : Screen
@@ -78,6 +78,9 @@ sealed interface Screen {
 
 /** Screens that show the bottom navigation bar */
 val mainTabScreens = setOf(Screen.Home, Screen.Jobs, Screen.Earnings, Screen.Profile)
+
+fun Screen.showsStandardBottomBar(): Boolean =
+    this in mainTabScreens || this == Screen.MapNavigation
 
 /**
  * Map-led screens render edge-to-edge and should use the full canvas on wide

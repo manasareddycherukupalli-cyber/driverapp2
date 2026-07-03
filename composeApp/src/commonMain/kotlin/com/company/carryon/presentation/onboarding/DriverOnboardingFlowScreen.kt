@@ -126,7 +126,8 @@ private val stepTitles = listOf(
 @Composable
 fun DriverOnboardingFlowScreen(
     navigator: AppNavigator,
-    viewModel: DriverOnboardingViewModel
+    viewModel: DriverOnboardingViewModel,
+    initialStep: Int? = null
 ) {
     val initialLoadState by viewModel.initialLoadState.collectAsState()
     val draft by viewModel.draftState.collectAsState()
@@ -147,8 +148,8 @@ fun DriverOnboardingFlowScreen(
         picker.launch()
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.initialize()
+    LaunchedEffect(initialStep) {
+        viewModel.initialize(requestedStep = initialStep)
     }
 
     when (initialLoadState) {
@@ -188,7 +189,9 @@ fun DriverOnboardingFlowScreen(
                     DriveAppTopBar(
                         title = "Driver verification",
                         onBackClick = {
-                            if (currentStep == 1) {
+                            if (initialStep != null && currentStep == initialStep) {
+                                navigator.goBack()
+                            } else if (currentStep == 1) {
                                 navigator.navigateAndClearStack(Screen.Login)
                             } else {
                                 viewModel.goBack()
@@ -207,7 +210,9 @@ fun DriverOnboardingFlowScreen(
                         submitError = (submitState as? UiState.Error)?.message,
                         onBack = {
                             focusManager.clearFocus()
-                            if (currentStep == 1) {
+                            if (initialStep != null && currentStep == initialStep) {
+                                navigator.goBack()
+                            } else if (currentStep == 1) {
                                 navigator.navigateAndClearStack(Screen.Login)
                             } else {
                                 viewModel.goBack()

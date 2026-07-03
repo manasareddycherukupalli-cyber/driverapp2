@@ -67,6 +67,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -95,6 +96,7 @@ import com.company.carryon.presentation.components.MapViewComposable
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.navigation.mapJobStatusToResumeScreen
+import com.company.carryon.presentation.onboarding.DriverOnboardingViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -271,7 +273,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(horizontal = 16.dp, vertical = 78.dp),
-                onSetup = { navigator.navigateTo(Screen.Wallet) },
+                onSetup = { navigator.navigateTo(payoutSetupDestination()) },
                 onSkip = { viewModel.skipStripeInterstitial() }
             )
         }
@@ -292,7 +294,7 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
                 when (blocker) {
                     is OnlineGateBlocker.StripePayoutsDisabled -> navigator.navigateTo(Screen.Wallet)
                     is OnlineGateBlocker.DocumentMissing,
-                    is OnlineGateBlocker.DocumentExpired -> navigator.navigateTo(Screen.DriverOnboarding)
+                    is OnlineGateBlocker.DocumentExpired -> navigator.navigateTo(Screen.DriverOnboarding())
                     is OnlineGateBlocker.AdminApprovalRequired -> Unit
                 }
             }
@@ -303,6 +305,10 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
 internal fun acceptedJobDeliveryEntryScreen(job: DeliveryJob): Screen {
     return mapJobStatusToResumeScreen(job.status) ?: Screen.MapNavigation
 }
+
+internal fun payoutSetupDestination(): Screen = Screen.DriverOnboarding(
+    initialStep = DriverOnboardingViewModel.BANK_PAYOUT_STEP
+)
 
 @Composable
 private fun FinalHomeDashboard(
@@ -1099,10 +1105,17 @@ private fun IncomingJobCard(
     val strings = LocalStrings.current
     val distanceFormatted = ((job.distance * 10.0).roundToInt() / 10.0).toString()
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(16.dp),
+                ambientColor = Color(0x40000000),
+                spotColor = Color(0x40000000)
+            ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = androidx.compose.foundation.BorderStroke(1.5.dp, Orange500.copy(alpha = 0.35f))
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

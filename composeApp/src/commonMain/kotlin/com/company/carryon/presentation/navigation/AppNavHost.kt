@@ -49,7 +49,7 @@ fun AppNavHost(
     onLanguageChanged: (String) -> Unit = {}
 ) {
     val currentScreen = navigator.currentScreen
-    val showBottomBar = currentScreen in mainTabScreens
+    val showBottomBar = currentScreen.showsStandardBottomBar()
     val authViewModel = remember { AuthViewModel() }
     val onboardingViewModel = remember(authViewModel) { DriverOnboardingViewModel(authViewModel) }
     val deliveryViewModel = remember { DeliveryViewModel() }
@@ -113,7 +113,11 @@ fun AppNavHost(
                     Screen.Login -> LoginScreen(navigator, authViewModel)
                     Screen.OtpVerification -> OtpVerificationScreen(navigator, authViewModel)
                     Screen.Registration -> RegistrationScreen(navigator, authViewModel)
-                    Screen.DriverOnboarding -> DriverOnboardingFlowScreen(navigator, onboardingViewModel)
+                    is Screen.DriverOnboarding -> DriverOnboardingFlowScreen(
+                        navigator = navigator,
+                        viewModel = onboardingViewModel,
+                        initialStep = screen.initialStep
+                    )
                     Screen.PersonalIdentity -> DriverOnboardingFlowScreen(navigator, onboardingViewModel)
                     Screen.DocumentUpload -> DriverOnboardingFlowScreen(navigator, onboardingViewModel)
                     Screen.VehicleDetailsInput -> DriverOnboardingFlowScreen(navigator, onboardingViewModel)

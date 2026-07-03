@@ -22,6 +22,19 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
+internal fun shouldShowPayoutInterstitial(driver: Driver?, skipped: Boolean): Boolean {
+    if (driver?.verificationStatus != VerificationStatus.APPROVED || skipped) return false
+
+    val hasSubmittedBankDetails = driver.bankName.isNotBlank() &&
+        driver.bankAccountHolder.isNotBlank() &&
+        driver.bankAccountNumber.isNotBlank() &&
+        !driver.bankDetailsStatus.equals("REJECTED", ignoreCase = true)
+
+    return !driver.stripePayoutsEnabled &&
+        !driver.stripeDetailsSubmitted &&
+        !hasSubmittedBankDetails
+}
+
 /**
  * HomeViewModel — Manages home dashboard state.
  * Handles online/offline toggle, earnings summary, active jobs, and notifications.
@@ -110,9 +123,7 @@ class HomeViewModel : ViewModel() {
 
     private val skippedStripeInterstitial = MutableStateFlow(false)
     val showStripeInterstitial: StateFlow<Boolean> = combine(currentDriver, skippedStripeInterstitial) { driver, skipped ->
-        driver?.verificationStatus == VerificationStatus.APPROVED &&
-            driver.stripePayoutsEnabled != true &&
-            !skipped
+        shouldShowPayoutInterstitial(driver, skipped)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     // Notifications
@@ -125,6 +136,7 @@ class HomeViewModel : ViewModel() {
 
     init {
         initLocationProvider()
+        refreshCurrentDriver()
         loadDashboardData()
         collectRealtimeJobs()
         collectIncomingSignals()
@@ -132,6 +144,12 @@ class HomeViewModel : ViewModel() {
         initOnlineStatusFromDriver()
         loadMapConfig()
         refreshDriverLocation()
+    }
+
+    private fun refreshCurrentDriver() {
+        viewModelScope.launch {
+            authRepository.syncDriver()
+        }
     }
 
     /** Initialize and continuously sync online status from the driver's server-side state */

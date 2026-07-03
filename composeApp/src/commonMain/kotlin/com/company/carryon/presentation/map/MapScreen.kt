@@ -35,10 +35,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -82,7 +80,6 @@ private val NavWhite = Color(0xFFFFFFFF)
 private val NavBlack = Color(0xFF000000)
 private val DefaultCenter = LatLng(12.9716, 77.5946)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
     val jobId = navigator.selectedJobId
@@ -161,8 +158,6 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
     val earningsLabel = currentJob?.estimatedEarnings?.let { "RM${it.toInt()}" } ?: "--"
     val distanceLabel = currentJob?.distance?.takeIf { it > 0 }?.let { "${formatOneDecimal(it)} km" } ?: "--"
     val destinationTelUri = telUriFor(currentJob?.contactPhoneForCurrentDestination())
-    var activeSheet by remember { mutableStateOf<String?>(null) }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -371,7 +366,7 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 76.dp),
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = NavWhite)
         ) {
@@ -470,56 +465,6 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
             }
         }
 
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(NavWhite, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BottomTab("ROUTE", true) { activeSheet = "ROUTE" }
-            BottomTab("EARNINGS", false) { activeSheet = "EARNINGS" }
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .background(NavBlue, CircleShape)
-                    .clickable {
-                        destination?.let {
-                            uriHandler.openUri(
-                                "https://www.google.com/maps/dir/?api=1&destination=${it.latitude},${it.longitude}&travelmode=driving"
-                            )
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Filled.Navigation, contentDescription = "Navigate", tint = NavWhite)
-            }
-            BottomTab("INBOX", false) {
-                currentJob?.let { job ->
-                    navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
-                }
-            }
-            BottomTab("ACCOUNT", false) { navigator.navigateTo(Screen.Profile) }
-        }
-    }
-
-    if (activeSheet == "ROUTE") {
-        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
-            NavRouteSheet(
-                pickupAddress = currentJob?.pickup?.shortAddress?.ifBlank { currentJob?.pickup?.address } ?: "--",
-                dropoffAddress = currentJob?.dropoff?.shortAddress?.ifBlank { currentJob?.dropoff?.address } ?: "--"
-            )
-        }
-    }
-    if (activeSheet == "EARNINGS") {
-        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
-            NavEarningsSheet(
-                earnings = currentJob?.estimatedEarnings ?: 0.0,
-                orderId = currentJob?.id ?: ""
-            )
-        }
     }
 }
 
@@ -540,55 +485,5 @@ private fun ChipText(text: String) {
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
         Text(text, color = NavBlue, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-    }
-}
-
-@Composable
-private fun BottomTab(label: String, selected: Boolean, onClick: () -> Unit = {}) {
-    Text(
-        text = label,
-        color = if (selected) NavBlue else NavBlack.copy(alpha = 0.55f),
-        fontSize = 10.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.clickable { onClick() }
-    )
-}
-
-@Composable
-private fun NavRouteSheet(pickupAddress: String, dropoffAddress: String) {
-    Column(
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text("Delivery Route", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = NavBlack)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(modifier = Modifier.size(10.dp).background(NavBlue, CircleShape))
-            Column {
-                Text("PICKUP", fontSize = 10.sp, color = NavBlack.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
-                Text(pickupAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NavBlack)
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(modifier = Modifier.size(10.dp).background(Color(0xFFE53935), CircleShape))
-            Column {
-                Text("DROP-OFF", fontSize = 10.sp, color = NavBlack.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
-                Text(dropoffAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NavBlack)
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun NavEarningsSheet(earnings: Double, orderId: String) {
-    Column(
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text("Job Earnings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = NavBlack)
-        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = NavBlue, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text("Order #${orderId.takeLast(8).uppercase()}", color = NavBlack.copy(alpha = 0.5f), fontSize = 13.sp)
-        Text("Final amount confirmed after delivery completion.", fontSize = 12.sp, color = NavBlack.copy(alpha = 0.4f))
-        Spacer(Modifier.height(16.dp))
     }
 }

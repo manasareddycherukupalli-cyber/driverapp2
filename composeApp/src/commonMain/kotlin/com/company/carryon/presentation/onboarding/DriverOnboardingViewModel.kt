@@ -78,10 +78,20 @@ class DriverOnboardingViewModel(
 
     private var initializedDriverId: String? = null
     private var verificationMonitorJob: Job? = null
+    private var requestedInitialStep: Int? = null
 
-    fun initialize(force: Boolean = false) {
+    fun initialize(force: Boolean = false, requestedStep: Int? = null) {
+        requestedStep?.let { requestedInitialStep = it.coerceIn(1, TOTAL_STEPS) }
         val driverId = currentDriverId() ?: return
-        if (!force && initializedDriverId == driverId && _initialLoadState.value !is UiState.Error) return
+        if (!force && initializedDriverId == driverId && _initialLoadState.value !is UiState.Error) {
+            if (_initialLoadState.value is UiState.Success) {
+                requestedInitialStep?.let { step ->
+                    updateDraft { it.copy(currentStep = step) }
+                    requestedInitialStep = null
+                }
+            }
+            return
+        }
 
         initializedDriverId = driverId
         viewModelScope.launch {
@@ -97,7 +107,9 @@ class DriverOnboardingViewModel(
 
             val merged = hydrateDraft(localDraft, profile, vehicle, verification)
             val completedSteps = computeCompletedSteps(merged)
-            val resumedStep = resolveCurrentStep(merged.currentStep, completedSteps)
+            val resumedStep = requestedInitialStep
+                ?: resolveCurrentStep(merged.currentStep, completedSteps)
+            requestedInitialStep = null
             val resolvedDraft = merged.copy(
                 completedSteps = completedSteps,
                 currentStep = resumedStep
@@ -321,10 +333,11 @@ class DriverOnboardingViewModel(
         verificationMonitorJob = null
     }
 
-    fun logout() {
+    fun logout(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             currentDriverId()?.let { clearOnboardingDraft(it) }
             authRepository.logout()
+            onComplete()
         }
     }
 
@@ -356,6 +369,9 @@ class DriverOnboardingViewModel(
                         agreementAccepted = draft.agreementAccepted
                     )
                 ).getOrThrow()
+                // Refresh the shared authenticated-driver cache before returning to Home.
+                // This makes newly submitted bank details immediately visible to payout UI.
+                authRepository.syncDriver()
                 api.getVerificationStatus().getOrThrow()
             }
 
@@ -704,6 +720,7 @@ class DriverOnboardingViewModel(
 
     companion object {
         const val TOTAL_STEPS = 11
+        const val BANK_PAYOUT_STEP = 10
 
         val states = MalaysianState.entries
         val vehicleTypes = VehicleType.entries.filterNot { it == VehicleType.VAN || it == VehicleType.TRUCK }

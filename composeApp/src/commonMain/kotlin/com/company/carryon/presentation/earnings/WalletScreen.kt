@@ -28,6 +28,7 @@ import com.company.carryon.presentation.components.*
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.onboarding.DriverOnboardingViewModel
 import com.company.carryon.presentation.theme.*
 import kotlin.math.round
 
@@ -82,7 +83,11 @@ fun WalletScreen(navigator: AppNavigator) {
                         wallet = state.data,
                         payoutStatus = (payoutStatus as? UiState.Success)?.data,
                         onWithdraw = { showWithdrawDialog = true },
-                        onSetupPayouts = { navigator.navigateTo(Screen.DriverOnboarding) }
+                        onSetupPayouts = {
+                            navigator.navigateTo(
+                                Screen.DriverOnboarding(initialStep = DriverOnboardingViewModel.BANK_PAYOUT_STEP)
+                            )
+                        }
                     )
                     is UiState.Loading -> LoadingScreen()
                     else -> {}

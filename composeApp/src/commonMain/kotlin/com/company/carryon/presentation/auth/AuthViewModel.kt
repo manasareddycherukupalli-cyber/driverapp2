@@ -412,7 +412,7 @@ class AuthViewModel : ViewModel() {
     }
 
     private fun determineNextRequiredScreen(response: AuthResponse): Screen {
-        val rawDriver = response.driver ?: return Screen.DriverOnboarding
+        val rawDriver = response.driver ?: return Screen.DriverOnboarding()
         val mergedByType = linkedMapOf<DocumentType, Document>()
         rawDriver.documents.forEach { mergedByType[it.type] = it }
         _uploadedDocuments.value.forEach { mergedByType[it.type] = it }
@@ -436,7 +436,7 @@ class AuthViewModel : ViewModel() {
             return Screen.VerificationStatus
         }
 
-        return Screen.DriverOnboarding
+        return Screen.DriverOnboarding()
     }
 
     private fun isPersonalIdentitySubmitted(driver: Driver): Boolean {
