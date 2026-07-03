@@ -60,15 +60,21 @@ import com.company.carryon.presentation.components.MapViewComposable
 import com.company.carryon.presentation.components.MarkerColor
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.theme.CarryBlue
+import com.company.carryon.presentation.theme.CarryBlueLight
+import com.company.carryon.presentation.theme.Gray900
+import com.company.carryon.presentation.theme.Green500
+import com.company.carryon.presentation.theme.Red500
 import com.company.carryon.presentation.util.telUriFor
 import com.company.carryon.presentation.util.rememberImagePickerLauncher
 import com.company.carryon.presentation.util.toImageBitmap
 
-private val PODBlue = Color(0xFF5A86E8)
-private val PODSoft = Color(0xFFD9E5F7)
-private val PODCard = Color(0xFFC9D3E0)
-private val PODWhite = Color(0xFFFFFFFF)
-private val PODBlack = Color(0xFF1E2530)
+private val PODBlue = CarryBlue
+private val PODSoft = CarryBlueLight
+private val PODCard = CarryBlueLight
+private val PODWhite = Color.White
+private val PODBlack = Gray900
+private val PODBackIcon = Color(0xFF5E6470)
 
 @Composable
 fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
@@ -143,8 +149,10 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel)
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                tint = PODBlue,
-                modifier = Modifier.clickable { navigator.goBack() }
+                tint = PODBackIcon,
+                modifier = Modifier
+                    .size(22.dp)
+                    .clickable { navigator.goBack() }
             )
             Spacer(Modifier.width(10.dp))
             Text("Proof of Delivery", color = PODBlack, fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -239,7 +247,7 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel)
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Box(modifier = Modifier.size(44.dp).background(Color(0xFF4CAF50), CircleShape), contentAlignment = Alignment.Center) {
+                                Box(modifier = Modifier.size(44.dp).background(Green500, CircleShape), contentAlignment = Alignment.Center) {
                                     Icon(Icons.Filled.Check, contentDescription = null, tint = PODWhite, modifier = Modifier.size(26.dp))
                                 }
                                 Text("Uploaded", color = PODWhite, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -255,7 +263,7 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel)
             is UiState.Success -> if (uploadState.data.jobId == jobId) {
                 Text(
                     "Photo uploaded. Tap photo area to retake.",
-                    color = Color(0xFF4CAF50),
+                    color = Green500,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -263,7 +271,7 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel)
             is UiState.Error -> {
                 Text(
                     uploadState.message,
-                    color = Color(0xFFCC3D3D),
+                    color = Red500,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -272,7 +280,7 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel)
                 if (!captureErrorMessage.isNullOrBlank()) {
                     Text(
                         captureErrorMessage!!,
-                        color = Color(0xFFCC3D3D),
+                        color = Red500,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -317,7 +325,7 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel)
 
         Card(
             shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F5FD)),
+            colors = CardDefaults.cardColors(containerColor = PODSoft),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(150.dp)
@@ -404,7 +412,7 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel)
         }
 
         when (val state = proofState) {
-            is UiState.Error -> Text(state.message, color = Color(0xFFCC3D3D), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            is UiState.Error -> Text(state.message, color = Red500, fontSize = 11.sp, fontWeight = FontWeight.Medium)
             else -> Unit
         }
 
@@ -418,7 +426,7 @@ private fun RecipientContactCard(name: String, phone: String?) {
     val telUri = telUriFor(phone)
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F5FD)),
+        colors = CardDefaults.cardColors(containerColor = PODSoft),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(

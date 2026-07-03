@@ -24,6 +24,22 @@ class HomeRoutingTest {
     }
 
     @Test
+    fun homeSummaryShowsActiveJobsBeforeCompletedJobs() {
+        val active = DeliveryJob(id = "active-1", status = JobStatus.IN_TRANSIT)
+        val completed = DeliveryJob(id = "done-1", status = JobStatus.DELIVERED)
+
+        assertEquals(listOf(active, completed), homeSummaryJobs(listOf(active), listOf(completed)))
+    }
+
+    @Test
+    fun homeSummaryDoesNotDuplicateActiveAndCompletedJobs() {
+        val sameJobActive = DeliveryJob(id = "job-1", status = JobStatus.IN_TRANSIT)
+        val sameJobCompleted = sameJobActive.copy(status = JobStatus.DELIVERED)
+
+        assertEquals(listOf(sameJobActive), homeSummaryJobs(listOf(sameJobActive), listOf(sameJobCompleted)))
+    }
+
+    @Test
     fun payoutSetupOpensBankDetailsStepDirectly() {
         assertEquals(
             Screen.DriverOnboarding(initialStep = 10),

@@ -17,6 +17,7 @@ class ResponsiveNavigationTest {
     @Test
     fun deliveryInstructionUsesTheSharedBottomNavigation() {
         assertTrue(Screen.MapNavigation.showsStandardBottomBar())
+        assertTrue(Screen.ArrivedAtDrop.showsStandardBottomBar())
         assertTrue(Screen.Home.showsStandardBottomBar())
         assertFalse(Screen.JobDetails.showsStandardBottomBar())
     }

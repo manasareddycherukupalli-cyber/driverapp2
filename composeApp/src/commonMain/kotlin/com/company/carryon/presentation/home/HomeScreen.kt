@@ -266,7 +266,11 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             },
             onOpenAppSettings = { openAppSettings() },
             onLiveNavigationClick = { showLiveQueue = true },
-            onViewAll = { navigator.switchToJobsTab(2) }
+            onViewAll = { navigator.switchToJobsTab(2) },
+            onSummaryJobClick = { job ->
+                navigator.selectedJobId = job.id
+                navigator.navigateAndClearStack(acceptedJobDeliveryEntryScreen(job))
+            }
         )
         if (showStripeInterstitial) {
             StripePayoutInterstitial(
@@ -306,6 +310,15 @@ internal fun acceptedJobDeliveryEntryScreen(job: DeliveryJob): Screen {
     return mapJobStatusToResumeScreen(job.status) ?: Screen.MapNavigation
 }
 
+internal fun homeSummaryJobs(activeJobs: List<DeliveryJob>, completedJobs: List<DeliveryJob>, limit: Int = 2): List<DeliveryJob> {
+    val resumableActiveJobs = activeJobs.filter { job ->
+        job.status != JobStatus.DELIVERED && mapJobStatusToResumeScreen(job.status) != null
+    }
+    return (resumableActiveJobs + completedJobs)
+        .distinctBy { it.id }
+        .take(limit)
+}
+
 internal fun payoutSetupDestination(): Screen = Screen.DriverOnboarding(
     initialStep = DriverOnboardingViewModel.BANK_PAYOUT_STEP
 )
@@ -331,12 +344,17 @@ private fun FinalHomeDashboard(
     onRequestLocationPermission: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onLiveNavigationClick: () -> Unit,
-    onViewAll: () -> Unit
+    onViewAll: () -> Unit,
+    onSummaryJobClick: (DeliveryJob) -> Unit
 ) {
     val strings = LocalStrings.current
     val todayEarnings = (earningsState as? UiState.Success)?.data?.todayEarnings
     val deliveries = (earningsState as? UiState.Success)?.data?.todayDeliveries
-    val jobs = (todayCompletedJobsState as? UiState.Success)?.data.orEmpty().take(2)
+    val jobs = homeSummaryJobs(
+        activeJobs = (activeJobsState as? UiState.Success)?.data.orEmpty(),
+        completedJobs = (todayCompletedJobsState as? UiState.Success)?.data.orEmpty(),
+        limit = 2
+    )
 
     Column(
         modifier = Modifier
@@ -531,9 +549,10 @@ private fun FinalHomeDashboard(
             jobs.forEach { job ->
                 SummaryItem(
                     id = job.displayOrderId.ifBlank { job.id.takeLast(6) },
-                    subtitle = "Delivered to ${job.dropoff.shortAddress}",
+                    subtitle = summarySubtitle(job),
                     amount = "RM ${formatTwoDecimals(job.estimatedEarnings)}",
-                    status = "COMPLETED"
+                    status = summaryStatus(job),
+                    onClick = { onSummaryJobClick(job) }
                 )
             }
         }
@@ -742,10 +761,35 @@ private fun QuickActionImage(label: String, drawableRes: DrawableResource) {
     }
 }
 
+private fun summarySubtitle(job: DeliveryJob): String {
+    val pickup = job.pickup.shortAddress.ifBlank { job.pickup.address }
+    val dropoff = job.dropoff.shortAddress.ifBlank { job.dropoff.address }
+    return when (job.status) {
+        JobStatus.ACCEPTED,
+        JobStatus.HEADING_TO_PICKUP,
+        JobStatus.ARRIVED_AT_PICKUP -> "${job.status.displayName} - pickup at ${pickup.ifBlank { "--" }}"
+        JobStatus.PICKED_UP,
+        JobStatus.IN_TRANSIT,
+        JobStatus.ARRIVED_AT_DROP -> "${job.status.displayName} - drop at ${dropoff.ifBlank { "--" }}"
+        JobStatus.DELIVERED -> "Delivered to ${dropoff.ifBlank { "--" }}"
+        else -> job.status.displayName
+    }
+}
+
+private fun summaryStatus(job: DeliveryJob): String {
+    return if (job.status == JobStatus.DELIVERED) {
+        "COMPLETED"
+    } else {
+        job.status.displayName.uppercase()
+    }
+}
+
 @Composable
-private fun SummaryItem(id: String, subtitle: String, amount: String, status: String) {
+private fun SummaryItem(id: String, subtitle: String, amount: String, status: String, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = White)
     ) {

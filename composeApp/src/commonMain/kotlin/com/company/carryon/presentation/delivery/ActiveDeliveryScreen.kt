@@ -57,6 +57,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -162,6 +163,7 @@ private fun ActiveDeliveryContent(
     var activeSheet by remember { mutableStateOf<String?>(null) }
     val uriHandler = LocalUriHandler.current
     val senderTelUri = telUriFor(job.senderPhoneForPickup())
+    val detailsCardShape = RoundedCornerShape(18.dp)
 
     LaunchedEffect(canCancelJob) {
         if (!canCancelJob) {
@@ -287,9 +289,18 @@ private fun ActiveDeliveryContent(
             )
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = ArriveSoft)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 12.dp,
+                        shape = detailsCardShape,
+                        clip = false,
+                        ambientColor = Color.Black.copy(alpha = 0.35f),
+                        spotColor = Color.Black.copy(alpha = 0.35f)
+                    ),
+                shape = detailsCardShape,
+                colors = CardDefaults.cardColors(containerColor = ArriveWhite),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

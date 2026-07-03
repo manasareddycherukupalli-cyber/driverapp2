@@ -52,7 +52,7 @@ import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 
-private val JobsBlue = Color(0xFF2F80ED)
+private val JobsBlue = Color(0xFF034094)
 private val JobsBg = Color(0xFFF4F5F8)
 private val JobsText = Color(0xFF202124)
 private val JobsMuted = Color(0xFF7A8499)

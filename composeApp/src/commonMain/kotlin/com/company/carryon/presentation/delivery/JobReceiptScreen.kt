@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -25,8 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,6 +47,7 @@ import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.displayDurationMinutes
 import com.company.carryon.data.model.isSettlementEligible
 import com.company.carryon.data.network.LocationApi
+import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.components.ErrorState
 import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.components.MapMarker
@@ -59,19 +57,13 @@ import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.util.rememberImagePickerLauncher
 
-private val ReceiptBlue = Color(0xFF5A86E8)
-private val ReceiptBg = Color(0xFFF7F8FC)
-private val ReceiptCard = Color(0xFFEFF4FF)
-private val ReceiptMuted = Color(0xFF7A8499)
-private val ReceiptDivider = Color(0xFFE0E8F5)
-private val ReceiptText = Color(0xFF242A36)
-
 @Composable
 fun JobReceiptScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
     val jobState by viewModel.currentJob.collectAsState()
     val extraChargeProofState by viewModel.extraChargeProofState.collectAsState()
     val extraChargeSubmitState by viewModel.extraChargeSubmitState.collectAsState()
     val jobId = navigator.selectedJobId
+    val colors = MaterialTheme.colorScheme
 
     if (jobId == null) {
         ErrorState("No job selected") { navigator.goBack() }
@@ -146,26 +138,14 @@ fun JobReceiptScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ReceiptBg)
+            .background(colors.background)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { navigator.goBack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = ReceiptBlue)
-            }
-            Text(
-                "Receipt",
-                color = ReceiptBlue,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally)
-            )
-            Spacer(Modifier.width(48.dp))
-        }
+        DriveAppTopBar(
+            title = "Receipt",
+            onBackClick = { navigator.goBack() },
+            onNotificationClick = { navigator.navigateTo(Screen.Notifications) },
+            onProfileClick = { navigator.navigateTo(Screen.Profile) }
+        )
 
         Column(
             modifier = Modifier
@@ -178,17 +158,17 @@ fun JobReceiptScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text("ORDER RECEIPT", color = ReceiptMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("ORDER RECEIPT", color = colors.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Text(
                         "#${job.id.takeLast(8).uppercase()}",
-                        color = ReceiptBlue,
+                        color = colors.primary,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 22.sp,
                         maxLines = 1,
@@ -196,7 +176,7 @@ fun JobReceiptScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
                     )
                     val dateStr = job.completedAt ?: job.deliveredAt
                     if (!dateStr.isNullOrBlank()) {
-                        Text(dateStr, color = ReceiptMuted, fontSize = 12.sp)
+                        Text(dateStr, color = colors.onSurfaceVariant, fontSize = 12.sp)
                     }
                 }
             }
@@ -221,7 +201,7 @@ fun JobReceiptScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = colors.surface),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(
@@ -229,7 +209,7 @@ fun JobReceiptScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ReceiptDetailRow("From", job.pickup.address.ifBlank { "—" })
-                    HorizontalDivider(color = ReceiptDivider)
+                    HorizontalDivider(color = colors.outlineVariant)
                     ReceiptDetailRow("To", job.dropoff.address.ifBlank { "—" })
                 }
             }
@@ -237,21 +217,21 @@ fun JobReceiptScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = ReceiptCard),
+                colors = CardDefaults.cardColors(containerColor = colors.primaryContainer),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("SUMMARY", color = ReceiptMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("SUMMARY", color = colors.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     ReceiptDetailRow(
                         "Earnings",
                         if (job.isSettlementEligible) "RM ${job.estimatedEarnings.toInt()}" else "Pending handover",
-                        valueColor = ReceiptBlue,
+                        valueColor = colors.primary,
                         valueBold = true
                     )
-                    HorizontalDivider(color = ReceiptDivider)
+                    HorizontalDivider(color = colors.outlineVariant)
                     ReceiptDetailRow("Distance", "${job.distance.toInt()} km")
                     ReceiptDetailRow("Duration", "${job.displayDurationMinutes} min")
                     if (job.packageType.isNotBlank()) {
@@ -298,15 +278,16 @@ fun JobReceiptScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
 private fun ReceiptDetailRow(
     label: String,
     value: String,
-    valueColor: Color = ReceiptText,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
     valueBold: Boolean = false
 ) {
+    val colors = MaterialTheme.colorScheme
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top
     ) {
-        Text(label, color = ReceiptMuted, fontSize = 13.sp)
+        Text(label, color = colors.onSurfaceVariant, fontSize = 13.sp)
         Text(
             value,
             color = valueColor,
@@ -340,25 +321,26 @@ private fun ExtraChargeSubmissionCard(
         ?: (submitState as? UiState.Error)?.message
         ?: (proofState as? UiState.Error)?.message
     val proofUrl = (proofState as? UiState.Success)?.data.orEmpty()
+    val colors = MaterialTheme.colorScheme
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("TOLL / PARKING", color = ReceiptMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Text("Submit approved pass-through charges with receipt proof.", color = ReceiptText, fontSize = 13.sp)
+            Text("TOLL / PARKING", color = colors.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("Submit approved pass-through charges with receipt proof.", color = colors.onSurface, fontSize = 13.sp)
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Type", color = ReceiptMuted, fontSize = 12.sp)
+                    Text("Type", color = colors.onSurfaceVariant, fontSize = 12.sp)
                     TextButton(onClick = { onMenuExpandedChange(true) }) {
-                        Text(selectedType.displayName, color = ReceiptBlue, fontWeight = FontWeight.Bold)
+                        Text(selectedType.displayName, color = colors.primary, fontWeight = FontWeight.Bold)
                     }
                     DropdownMenu(
                         expanded = menuExpanded,
@@ -392,11 +374,14 @@ private fun ExtraChargeSubmissionCard(
             Button(
                 onClick = onPickReceipt,
                 enabled = !isUploading && !isSubmitting,
-                colors = ButtonDefaults.buttonColors(containerColor = ReceiptCard, contentColor = ReceiptBlue),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.primaryContainer,
+                    contentColor = colors.primary
+                ),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isUploading) {
-                    CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp, color = ReceiptBlue)
+                    CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp, color = colors.primary)
                     Spacer(Modifier.width(8.dp))
                     Text("Uploading receipt")
                 } else {
@@ -405,12 +390,12 @@ private fun ExtraChargeSubmissionCard(
             }
 
             if (!errorText.isNullOrBlank()) {
-                Text(errorText, color = Color(0xFFD32F2F), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(errorText, color = colors.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
             if (submittedCharge != null) {
                 Text(
                     "Submitted for admin review: ${submittedCharge.type.displayName} RM ${submittedCharge.amount}",
-                    color = ReceiptBlue,
+                    color = colors.primary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -419,11 +404,11 @@ private fun ExtraChargeSubmissionCard(
             Button(
                 onClick = onSubmit,
                 enabled = !isSubmitting && !isUploading && submittedCharge == null,
-                colors = ButtonDefaults.buttonColors(containerColor = ReceiptBlue),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (isSubmitting) {
-                    CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp, color = Color.White)
+                    CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), strokeWidth = 2.dp, color = colors.onPrimary)
                     Spacer(Modifier.width(8.dp))
                     Text("Submitting")
                 } else {

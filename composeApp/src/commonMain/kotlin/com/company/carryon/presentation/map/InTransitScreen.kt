@@ -25,18 +25,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,7 +65,6 @@ private val ITWhite = Color(0xFFFFFFFF)
 private val ITBlack = Color(0xFF000000)
 private val DefaultCenter = LatLng(12.9716, 77.5946)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InTransitScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
     val strings = LocalStrings.current
@@ -131,7 +126,6 @@ fun InTransitScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewMode
         else -> 0.55f
     }
 
-    var activeSheet by remember { mutableStateOf<String?>(null) }
     val uriHandler = LocalUriHandler.current
 
     Box(modifier = Modifier.fillMaxSize().background(ITWhite)) {
@@ -214,7 +208,7 @@ fun InTransitScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewMode
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 64.dp),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = ITWhite)
         ) {
@@ -312,57 +306,12 @@ fun InTransitScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewMode
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 248.dp)
+                .padding(end = 20.dp, bottom = 204.dp)
                 .size(36.dp)
                 .background(ITWhite, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(Icons.Filled.GpsFixed, contentDescription = null, tint = ITBlue, modifier = Modifier.size(16.dp))
-        }
-
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(ITWhite, RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            DeliveryBottomTab("ROUTE", true) { activeSheet = "ROUTE" }
-            DeliveryBottomTab("EARNINGS", false) { activeSheet = "EARNINGS" }
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .background(ITBlue, CircleShape)
-                    .clickable {
-                        uriHandler.openUri(
-                            "https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}&travelmode=driving"
-                        )
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Filled.Navigation, contentDescription = "Navigate", tint = ITWhite)
-            }
-            DeliveryBottomTab("INBOX", false) {
-                navigator.openCustomerChat(job.id, job.customerName.ifBlank { "Customer" })
-            }
-            DeliveryBottomTab("ACCOUNT", false) { navigator.navigateTo(Screen.Profile) }
-        }
-    }
-
-    if (activeSheet == "ROUTE") {
-        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
-            DeliveryRouteSheet(
-                pickupAddress = job.pickup.shortAddress.ifBlank { job.pickup.address },
-                dropoffAddress = job.dropoff.shortAddress.ifBlank { job.dropoff.address },
-                blue = ITBlue, black = ITBlack
-            )
-        }
-    }
-    if (activeSheet == "EARNINGS") {
-        ModalBottomSheet(onDismissRequest = { activeSheet = null }) {
-            DeliveryEarningsSheet(earnings = job.estimatedEarnings, orderId = job.id, blue = ITBlue, black = ITBlack)
         }
     }
 }
@@ -374,54 +323,4 @@ private fun formatOneDecimal(value: Double): String {
     val fraction = absScaled % 10
     val sign = if (scaled < 0) "-" else ""
     return "$sign$whole.$fraction"
-}
-
-@Composable
-private fun DeliveryBottomTab(label: String, selected: Boolean, onClick: () -> Unit = {}) {
-    Text(
-        text = label,
-        color = if (selected) ITBlue else ITBlack.copy(alpha = 0.55f),
-        fontSize = 10.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.clickable { onClick() }
-    )
-}
-
-@Composable
-private fun DeliveryRouteSheet(pickupAddress: String, dropoffAddress: String, blue: Color, black: Color) {
-    Column(
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text("Delivery Route", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(modifier = Modifier.size(10.dp).background(blue, CircleShape))
-            Column {
-                Text("PICKUP", fontSize = 10.sp, color = black.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
-                Text(pickupAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = black)
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(modifier = Modifier.size(10.dp).background(Color(0xFFE53935), CircleShape))
-            Column {
-                Text("DROP-OFF", fontSize = 10.sp, color = black.copy(alpha = 0.5f), fontWeight = FontWeight.SemiBold)
-                Text(dropoffAddress.ifBlank { "--" }, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = black)
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun DeliveryEarningsSheet(earnings: Double, orderId: String, blue: Color, black: Color) {
-    Column(
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text("Job Earnings", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = black)
-        Text("RM ${earnings.toInt()}", fontSize = 36.sp, fontWeight = FontWeight.ExtraBold, color = blue, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text("Order #${orderId.takeLast(8).uppercase()}", color = black.copy(alpha = 0.5f), fontSize = 13.sp)
-        Text("Final amount confirmed after delivery completion.", fontSize = 12.sp, color = black.copy(alpha = 0.4f))
-        Spacer(Modifier.height(16.dp))
-    }
 }

@@ -80,7 +80,10 @@ sealed interface Screen {
 val mainTabScreens = setOf(Screen.Home, Screen.Jobs, Screen.Earnings, Screen.Profile)
 
 fun Screen.showsStandardBottomBar(): Boolean =
-    this in mainTabScreens || this == Screen.MapNavigation
+    this in mainTabScreens ||
+        this == Screen.MapNavigation ||
+        this == Screen.ArrivedAtDrop ||
+        this == Screen.DeliveryComplete
 
 /**
  * Map-led screens render edge-to-edge and should use the full canvas on wide

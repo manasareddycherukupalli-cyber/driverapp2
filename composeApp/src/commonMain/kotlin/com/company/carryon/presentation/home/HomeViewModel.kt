@@ -614,6 +614,11 @@ class HomeViewModel : ViewModel() {
             val result = jobRepository.acceptJob(job.id)
             result
                 .onSuccess { acceptedJob ->
+                    val currentActiveJobs = (_activeJobs.value as? UiState.Success)?.data.orEmpty()
+                    _activeJobs.value = UiState.Success(
+                        (listOf(acceptedJob) + currentActiveJobs)
+                            .distinctBy { it.id }
+                    )
                     loadActiveJobs()
                     onAccepted?.invoke(acceptedJob)
                 }
