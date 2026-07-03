@@ -290,10 +290,13 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             onPrimary = {
                 viewModel.dismissOnlineGate()
                 when (blocker) {
-                    is OnlineGateBlocker.StripePayoutsDisabled -> navigator.navigateTo(Screen.Wallet)
+                    is OnlineGateBlocker.StripePayoutsDisabled -> {
+                        if (blocker.requiresSetup) navigator.navigateTo(Screen.Wallet)
+                    }
                     is OnlineGateBlocker.DocumentMissing,
                     is OnlineGateBlocker.DocumentExpired -> navigator.navigateTo(Screen.DriverOnboarding)
-                    is OnlineGateBlocker.AdminApprovalRequired -> Unit
+                    is OnlineGateBlocker.AdminApprovalRequired,
+                    is OnlineGateBlocker.DocumentsUnderReview -> Unit
                 }
             }
         )
@@ -656,15 +659,17 @@ private fun OnlineGateDialog(
     val strings = LocalStrings.current
     val title = when (blocker) {
         is OnlineGateBlocker.AdminApprovalRequired -> "Approval required"
+        is OnlineGateBlocker.DocumentsUnderReview -> "Documents under review"
         is OnlineGateBlocker.DocumentMissing -> "Document required"
         is OnlineGateBlocker.DocumentExpired -> "Document expired"
         is OnlineGateBlocker.StripePayoutsDisabled -> strings.stripePayoutSetupRequired
     }
     val primaryLabel = when (blocker) {
-        is OnlineGateBlocker.StripePayoutsDisabled -> strings.setUpPayouts
+        is OnlineGateBlocker.StripePayoutsDisabled -> if (blocker.requiresSetup) strings.setUpPayouts else strings.ok
         is OnlineGateBlocker.DocumentMissing,
         is OnlineGateBlocker.DocumentExpired -> "Update documents"
-        is OnlineGateBlocker.AdminApprovalRequired -> strings.ok
+        is OnlineGateBlocker.AdminApprovalRequired,
+        is OnlineGateBlocker.DocumentsUnderReview -> strings.ok
     }
 
     AlertDialog(
@@ -684,7 +689,11 @@ private fun OnlineGateDialog(
             }
         },
         dismissButton = {
-            if (blocker !is OnlineGateBlocker.AdminApprovalRequired) {
+            if (
+                blocker !is OnlineGateBlocker.AdminApprovalRequired &&
+                blocker !is OnlineGateBlocker.DocumentsUnderReview &&
+                (blocker !is OnlineGateBlocker.StripePayoutsDisabled || blocker.requiresSetup)
+            ) {
                 TextButton(onClick = onDismiss) {
                     Text(strings.cancel)
                 }

@@ -187,7 +187,7 @@ private fun parseOnlineGateBlockers(details: JsonObject): List<OnlineGateBlocker
         val message = obj["message"]?.jsonPrimitive?.contentOrNull ?: "Complete setup before going online."
         val documentType = obj["documentType"]?.jsonPrimitive?.contentOrNull.orEmpty()
         when (code) {
-            "ADMIN_APPROVAL_REQUIRED" -> OnlineGateBlocker.AdminApprovalRequired(message)
+            "ADMIN_APPROVAL_REQUIRED" -> OnlineGateBlocker.DocumentsUnderReview(message)
             "REQUIRED_DOCUMENT_MISSING" -> OnlineGateBlocker.DocumentMissing(documentType, message)
             "REQUIRED_DOCUMENT_EXPIRED" -> OnlineGateBlocker.DocumentExpired(documentType, message)
             "STRIPE_PAYOUTS_DISABLED", "BANK_DETAILS_NOT_APPROVED" -> OnlineGateBlocker.StripePayoutsDisabled(

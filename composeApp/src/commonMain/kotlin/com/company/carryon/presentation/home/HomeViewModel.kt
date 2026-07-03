@@ -112,6 +112,7 @@ class HomeViewModel : ViewModel() {
     val showStripeInterstitial: StateFlow<Boolean> = combine(currentDriver, skippedStripeInterstitial) { driver, skipped ->
         driver?.verificationStatus == VerificationStatus.APPROVED &&
             driver.stripePayoutsEnabled != true &&
+            (!driver.stripeDetailsSubmitted || driver.bankDetailsStatus.equals("REJECTED", ignoreCase = true)) &&
             !skipped
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -139,14 +140,22 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             authRepository.currentDriver
                 .filterNotNull()
-                .distinctUntilChanged { old, new -> old.isOnline == new.isOnline }
+                .distinctUntilChanged { old, new ->
+                    old.isOnline == new.isOnline &&
+                        old.isVerified == new.isVerified &&
+                        old.verificationStatus == new.verificationStatus &&
+                        old.stripeDetailsSubmitted == new.stripeDetailsSubmitted &&
+                        old.stripePayoutsEnabled == new.stripePayoutsEnabled &&
+                        old.bankDetailsStatus == new.bankDetailsStatus
+                }
                 .collect { driver ->
                     // Skip update while a toggle request is in-flight to avoid race condition
                     if (_isTogglingOnline.value) return@collect
-                    _isOnline.value = driver.isOnline
+                    val eligibleOnline = driver.isOnline && isDriverEligibleForOnline(driver)
+                    _isOnline.value = eligibleOnline
                     // Driver became available/refreshed — refresh dashboard data so stale errors clear.
                     loadDashboardData()
-                    if (driver.isOnline) {
+                    if (eligibleOnline) {
                         startRealtimeSubscription(driver.id)
                         registerFcmToken()
                         startLocationTracking()
@@ -166,10 +175,17 @@ class HomeViewModel : ViewModel() {
 
     /** Load all dashboard data */
     fun loadDashboardData() {
+        refreshDriverProfile()
         loadEarnings()
         loadActiveJobs()
         loadTodayCompletedJobs()
         loadNotifications()
+    }
+
+    private fun refreshDriverProfile() {
+        viewModelScope.launch {
+            authRepository.syncDriver()
+        }
     }
 
     /** Toggle driver online/offline status */
@@ -177,6 +193,7 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             if (_isTogglingOnline.value) return@launch
             val newStatus = !_isOnline.value
+            if (newStatus && !canCurrentDriverGoOnline()) return@launch
             _isTogglingOnline.value = true
 
             try {
@@ -218,6 +235,52 @@ class HomeViewModel : ViewModel() {
                 _isTogglingOnline.value = false
             }
         }
+    }
+
+    private fun canCurrentDriverGoOnline(): Boolean {
+        val driver = currentDriver.value ?: return true
+        if (!isDriverApproved(driver)) {
+            val message = when (driver.verificationStatus) {
+                VerificationStatus.REJECTED -> "Your driver documents were rejected. Please update the required documents for review."
+                else -> "Your documents are under review. You can go online after admin approval."
+            }
+            _onlineGateBlocker.value = OnlineGateBlocker.DocumentsUnderReview(message)
+            _toastError.tryEmit(message)
+            return false
+        }
+        val bankDetailsSubmitted = hasSubmittedBankDetails(driver)
+        val bankApproved = hasApprovedBankDetails(driver)
+        if (!bankDetailsSubmitted || !bankApproved) {
+            val message = if (!bankDetailsSubmitted) {
+                "Add bank payout details before going online."
+            } else {
+                "Your bank payout details are under review. You can go online after admin approval."
+            }
+            _onlineGateBlocker.value = OnlineGateBlocker.StripePayoutsDisabled(
+                requiresSetup = !bankDetailsSubmitted || driver.bankDetailsStatus.equals("REJECTED", ignoreCase = true),
+                message = message
+            )
+            _toastError.tryEmit(message)
+            return false
+        }
+        return true
+    }
+
+    private fun isDriverEligibleForOnline(driver: Driver): Boolean {
+        return isDriverApproved(driver) && hasSubmittedBankDetails(driver) && hasApprovedBankDetails(driver)
+    }
+
+    private fun isDriverApproved(driver: Driver): Boolean {
+        return driver.verificationStatus == VerificationStatus.APPROVED && driver.isVerified
+    }
+
+    private fun hasSubmittedBankDetails(driver: Driver): Boolean {
+        return driver.stripeDetailsSubmitted ||
+            (driver.bankName.isNotBlank() && driver.bankAccountHolder.isNotBlank() && driver.bankAccountNumber.isNotBlank())
+    }
+
+    private fun hasApprovedBankDetails(driver: Driver): Boolean {
+        return driver.stripePayoutsEnabled || driver.bankDetailsStatus.equals("APPROVED", ignoreCase = true)
     }
 
     private fun handleOnlineToggleFailure(error: Throwable) {
@@ -433,7 +496,6 @@ class HomeViewModel : ViewModel() {
             DeepLinkBus.events.collect { event ->
                 if (event is DeepLinkEvent.PayoutUpdate) {
                     loadDashboardData()
-                    authRepository.syncDriver()
                     if (event.notificationType == "PAYOUT_SETUP_NEEDED") {
                         skippedStripeInterstitial.value = false
                     }

@@ -1,6 +1,7 @@
 package com.company.carryon.presentation.auth
 
 import com.company.carryon.data.network.AuthSessionManager
+import com.company.carryon.data.network.AuthenticationException
 import com.company.carryon.data.network.SupabaseConfig
 import io.github.jan.supabase.auth.auth
 
@@ -39,6 +40,10 @@ fun isValidPhoneInput(value: String): Boolean {
 suspend fun clearStaleAuthSessionForOtp() {
     AuthSessionManager.clearAccessToken()
     runCatching { SupabaseConfig.client.auth.clearSession() }
+}
+
+fun shouldClearStoredAuthAfterSessionSyncFailure(error: Throwable): Boolean {
+    return error is AuthenticationException
 }
 
 fun mapAuthErrorMessage(error: Throwable): String {

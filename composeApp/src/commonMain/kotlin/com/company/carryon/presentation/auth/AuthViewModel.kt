@@ -87,17 +87,23 @@ class AuthViewModel : ViewModel() {
     private fun checkExistingSupabaseSession() {
         viewModelScope.launch {
             try {
+                val existingToken = AuthSessionManager.currentAccessToken()
+                if (!existingToken.isNullOrBlank()) {
+                    _hasValidSession.value = true
+                }
+
                 // First try the current session
                 var session = SupabaseConfig.client.auth.currentSessionOrNull()
 
-                // If no current session, try refreshing (handles app restart with expired access token)
+                // If no current session, try refreshing Supabase-owned auth state.
+                // Driver OTP login can still be valid through the backend JWT fallback.
                 if (session == null) {
                     try {
                         SupabaseConfig.client.auth.refreshCurrentSession()
                         session = SupabaseConfig.client.auth.currentSessionOrNull()
                     } catch (_: Exception) {
-                        // Refresh failed — no valid session
-                        clearStaleAuthSessionForOtp()
+                        // Refresh failure only proves Supabase has no refreshable session.
+                        // Do not clear the backend JWT used by the current driver auth flow.
                     }
                 }
 
@@ -468,9 +474,11 @@ class AuthViewModel : ViewModel() {
                     response.driver?.let { hydrateIdentityFallbacks(it) }
                     _sessionSyncState.value = UiState.Success(response)
                 }
-                .onFailure {
-                    clearStaleAuthSessionForOtp()
-                    _sessionSyncState.value = UiState.Error(it.message ?: "Sync failed")
+                .onFailure { error ->
+                    if (shouldClearStoredAuthAfterSessionSyncFailure(error)) {
+                        clearStaleAuthSessionForOtp()
+                    }
+                    _sessionSyncState.value = UiState.Error(error.message ?: "Sync failed")
                 }
         }
     }

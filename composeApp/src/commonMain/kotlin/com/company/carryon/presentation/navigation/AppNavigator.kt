@@ -215,6 +215,7 @@ class AppNavigator {
 
     fun clearPersistedDeliveryState() {
         clearDeliveryResumeState()
+        selectedJobIdState = null
     }
 
     private fun syncDeliveryResumeState() {
