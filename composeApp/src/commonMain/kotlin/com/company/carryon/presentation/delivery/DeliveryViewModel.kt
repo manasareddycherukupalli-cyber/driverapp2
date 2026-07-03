@@ -123,6 +123,10 @@ class DeliveryViewModel : ViewModel() {
         return canRun(DeliveryLifecycleCommand.CANCEL_BEFORE_PICKUP, job)
     }
 
+    fun resetCancelState() {
+        _cancelState.value = UiState.Idle
+    }
+
     /** Load job details for active delivery */
     fun loadJob(jobId: String) {
         viewModelScope.launch {

@@ -15,6 +15,10 @@ sealed class OnlineGateBlocker(open val message: String) {
         override val message: String
     ) : OnlineGateBlocker(message)
 
+    data class DocumentsUnderReview(
+        override val message: String = "Your documents are under review. You can go online after admin approval."
+    ) : OnlineGateBlocker(message)
+
     data class StripePayoutsDisabled(
         val requiresSetup: Boolean,
         override val message: String = "Approved bank payout details are required before going online."

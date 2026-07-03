@@ -97,12 +97,20 @@ fun ActiveDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) 
         viewModel.cancelCompletedEvents.collect {
             navigator.clearPersistedDeliveryState()
             navigator.navigateAndClearStack(Screen.Home)
+            viewModel.resetCancelState()
         }
     }
 
     LaunchedEffect(cancelState) {
-        val state = cancelState as? UiState.Error ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(state.message)
+        when (val state = cancelState) {
+            is UiState.Success -> {
+                navigator.clearPersistedDeliveryState()
+                navigator.navigateAndClearStack(Screen.Home)
+                viewModel.resetCancelState()
+            }
+            is UiState.Error -> snackbarHostState.showSnackbar(state.message)
+            else -> Unit
+        }
     }
 
     LaunchedEffect(jobState) {

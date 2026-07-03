@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.util.Log
 import java.security.KeyStore
 import java.security.SecureRandom
 import javax.crypto.Cipher
@@ -19,6 +20,7 @@ private const val KEYSTORE_ALIAS = "carryon_driver_token_key"
 private const val GCM_TAG_LENGTH_BITS = 128
 private const val GCM_IV_LENGTH_BYTES = 12
 private const val KEY_TOKEN = "jwt_token"
+private const val KEY_TOKEN_BACKUP = "jwt_token_backup"
 private const val KEY_LANGUAGE = "user_language"
 private const val KEY_DELIVERY_RESUME_SCREEN = "delivery_resume_screen"
 private const val KEY_DELIVERY_RESUME_JOB_ID = "delivery_resume_job_id"
@@ -29,6 +31,7 @@ private const val KEY_ASKED_NOTIFICATION_PERMISSION = "asked_notification_permis
 
 private var securePrefs: SharedPreferences? = null
 private var plainPrefs: SharedPreferences? = null
+private const val TAG = "TokenStorage"
 
 fun initTokenStorage(context: Context) {
     if (securePrefs == null) {
@@ -45,21 +48,49 @@ private fun migrateFromPlainPrefs() {
     val oldPrefs = plainPrefs ?: return
     val oldToken = oldPrefs.getString(KEY_TOKEN, null)
     if (oldToken != null) {
-        putEncrypted(KEY_TOKEN, oldToken)
-        oldPrefs.edit().remove(KEY_TOKEN).commit()
+        val encryptedSaved = putEncrypted(KEY_TOKEN, oldToken)
+        val backupSaved = oldPrefs.edit()
+            .putString(KEY_TOKEN_BACKUP, oldToken)
+            .remove(KEY_TOKEN)
+            .commit()
+        Log.d(TAG, "Migrated legacy auth token. encrypted=$encryptedSaved backup=$backupSaved")
     }
 }
 
 actual fun saveToken(token: String) {
-    putEncrypted(KEY_TOKEN, token)
+    val encryptedSaved = putEncrypted(KEY_TOKEN, token)
+    val backupSaved = plainPrefs
+        ?.edit()
+        ?.putString(KEY_TOKEN_BACKUP, token)
+        ?.commit() == true
+    Log.d(TAG, "Saved auth token. encrypted=$encryptedSaved backup=$backupSaved")
 }
 
 actual fun getToken(): String? {
-    return getEncrypted(KEY_TOKEN)
+    getEncrypted(KEY_TOKEN)?.let {
+        Log.d(TAG, "Loaded auth token from encrypted storage.")
+        return it
+    }
+
+    val backup = plainPrefs?.getString(KEY_TOKEN_BACKUP, null)
+        ?: plainPrefs?.getString(KEY_TOKEN, null)
+    if (!backup.isNullOrBlank()) {
+        val encryptedSaved = putEncrypted(KEY_TOKEN, backup)
+        Log.d(TAG, "Loaded auth token from backup storage. encryptedRestored=$encryptedSaved")
+        return backup
+    }
+
+    Log.d(TAG, "No stored auth token found.")
+    return null
 }
 
 actual fun clearToken() {
-    securePrefs?.edit()?.remove(KEY_TOKEN)?.apply()
+    securePrefs?.edit()?.remove(KEY_TOKEN)?.commit()
+    plainPrefs?.edit()
+        ?.remove(KEY_TOKEN)
+        ?.remove(KEY_TOKEN_BACKUP)
+        ?.commit()
+    Log.d(TAG, "Cleared stored auth token.")
 }
 
 actual fun saveLanguage(language: String) {
@@ -147,20 +178,24 @@ actual fun markAskedNotificationPermission() {
     plainPrefs?.edit()?.putBoolean(KEY_ASKED_NOTIFICATION_PERMISSION, true)?.apply()
 }
 
-private fun putEncrypted(key: String, value: String) {
-    val prefs = securePrefs ?: return
-    runCatching {
-        prefs.edit().putString(key, encrypt(value)).apply()
+private fun putEncrypted(key: String, value: String): Boolean {
+    val prefs = securePrefs ?: return false
+    return runCatching {
+        prefs.edit().putString(key, encrypt(value)).commit()
     }.onFailure {
-        prefs.edit().remove(key).apply()
-    }
+        prefs.edit().remove(key).commit()
+        Log.w(TAG, "Failed to save encrypted value for key=$key", it)
+    }.getOrDefault(false)
 }
 
 private fun getEncrypted(key: String): String? {
     val prefs = securePrefs ?: return null
     val encrypted = prefs.getString(key, null) ?: return null
     return runCatching { decrypt(encrypted) }
-        .onFailure { prefs.edit().remove(key).apply() }
+        .onFailure {
+            prefs.edit().remove(key).commit()
+            Log.w(TAG, "Failed to read encrypted value for key=$key", it)
+        }
         .getOrNull()
 }
 

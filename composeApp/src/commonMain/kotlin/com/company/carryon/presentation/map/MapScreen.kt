@@ -114,6 +114,15 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
         deliveryViewModel.cancelCompletedEvents.collect {
             navigator.clearPersistedDeliveryState()
             navigator.navigateAndClearStack(Screen.Home)
+            deliveryViewModel.resetCancelState()
+        }
+    }
+
+    LaunchedEffect(cancelState) {
+        if (cancelState is UiState.Success) {
+            navigator.clearPersistedDeliveryState()
+            navigator.navigateAndClearStack(Screen.Home)
+            deliveryViewModel.resetCancelState()
         }
     }
 
