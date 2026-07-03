@@ -23,6 +23,9 @@ import com.company.carryon.presentation.onboarding.*
 import com.company.carryon.presentation.profile.*
 import com.company.carryon.presentation.ratings.*
 import com.company.carryon.presentation.support.*
+import com.company.carryon.presentation.theme.ExpandedContentMaxWidth
+import com.company.carryon.presentation.theme.LocalWindowWidthClass
+import com.company.carryon.presentation.theme.WindowWidthClass
 
 // ============================================================
 // BOTTOM NAV ITEMS
@@ -86,6 +89,21 @@ fun AppNavHost(
                     modifier = Modifier.fillMaxSize(),
                     transitionSpec = { fadeIn() togetherWith fadeOut() }
                 ) { screen ->
+                    // On tablets/foldables, cap phone-style screens to a readable
+                    // width; map-led screens keep the full canvas.
+                    val constrainWidth = LocalWindowWidthClass.current == WindowWidthClass.Expanded &&
+                        !screen.usesFullCanvas()
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                    Box(
+                        modifier = if (constrainWidth) {
+                            Modifier.fillMaxHeight().widthIn(max = ExpandedContentMaxWidth)
+                        } else {
+                            Modifier.fillMaxSize()
+                        }
+                    ) {
                     when (screen) {
                     // ---- Splash ----
                     Screen.Splash -> SplashScreen(navigator, authViewModel)
@@ -224,11 +242,28 @@ fun AppNavHost(
                     Screen.CustomerChat -> CustomerChatScreen(navigator)
                     Screen.Sos -> SosScreen(navigator)
                     Screen.Notifications -> NotificationsScreen(navigator)
+                    }
+                    }
                 }
             }
             }
             if (showBottomBar) {
-                DriveAppBottomBar(navigator, bottomNavItems)
+                // Match the same width cap as the content above so the bar
+                // doesn't stretch full-width while the screen stays centered.
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    Box(
+                        modifier = if (LocalWindowWidthClass.current == WindowWidthClass.Expanded) {
+                            Modifier.widthIn(max = ExpandedContentMaxWidth)
+                        } else {
+                            Modifier.fillMaxWidth()
+                        }
+                    ) {
+                        DriveAppBottomBar(navigator, bottomNavItems)
+                    }
+                }
             }
         }
     }

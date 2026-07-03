@@ -17,7 +17,7 @@ sealed class OnlineGateBlocker(open val message: String) {
 
     data class StripePayoutsDisabled(
         val requiresSetup: Boolean,
-        override val message: String = "Set up Stripe payouts before going online."
+        override val message: String = "Approved bank payout details are required before going online."
     ) : OnlineGateBlocker(message)
 }
 

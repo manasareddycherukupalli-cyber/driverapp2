@@ -23,6 +23,9 @@ import com.company.carryon.data.network.PayoutRefreshGuard
 import com.company.carryon.data.network.handleLocationPermissionResult
 import com.company.carryon.data.network.initTokenStorage
 import com.company.carryon.data.network.savePushToken
+import com.company.carryon.data.network.deliverNotificationPermissionResult
+import com.company.carryon.data.network.initNotificationPermissionHost
+import com.company.carryon.data.network.notificationPermissionLauncherTrigger
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import com.company.carryon.update.initAppUpdatePlatform
@@ -35,9 +38,10 @@ class MainActivity : ComponentActivity() {
         getSharedPreferences("carryon_permissions", MODE_PRIVATE)
     }
 
-    private val requestNotificationPermission =
+    private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             Log.d("MainActivity", "POST_NOTIFICATIONS permission granted: $granted")
+            deliverNotificationPermissionResult(granted)
         }
 
     private val requestStartupPermissions =
@@ -58,6 +62,10 @@ class MainActivity : ComponentActivity() {
         initTokenStorage(applicationContext)
         initAppUpdatePlatform(applicationContext)
         initLocationProvider(this)
+        initNotificationPermissionHost(applicationContext)
+        notificationPermissionLauncherTrigger = {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
         createNotificationChannel()
         window.decorView.post {
             requestInitialPermissionsIfNeeded()
@@ -88,7 +96,8 @@ class MainActivity : ComponentActivity() {
     private fun requestInitialPermissionsIfNeeded() {
         if (permissionPrefs.getBoolean(KEY_INITIAL_PERMISSIONS_REQUESTED, false)) return
 
-        requestNotificationPermissionIfNeeded()
+        // Notification permission is requested from Compose (see NotificationPermissionDialog)
+        // after the user opts in via our own themed screen, not automatically here.
 
         val permissionsToRequest = buildList {
             add(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -109,17 +118,6 @@ class MainActivity : ComponentActivity() {
         permissionPrefs.edit()
             .putBoolean(KEY_INITIAL_PERMISSIONS_REQUESTED, true)
             .apply()
-    }
-
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val alreadyGranted = ContextCompat.checkSelfPermission(
-                this, Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-            if (!alreadyGranted) {
-                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
     }
 
     private fun createNotificationChannel() {

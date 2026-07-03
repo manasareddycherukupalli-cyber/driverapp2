@@ -17,9 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -104,38 +101,42 @@ fun LoginScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         Spacer(Modifier.height(60.dp))
 
         // ── Heading ────────────────────────────────────────────
-        Text(
-            text = buildAnnotatedString {
-                withStyle(SpanStyle(color = DesignBlack, fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
-                    append(strings.welcomeTo)
-                }
-                withStyle(
-                    SpanStyle(
-                        color = Color(0xFF2F80ED),
-                        fontWeight = FontWeight.ExtraBold,
-                        fontStyle = FontStyle.Italic,
-                        fontFamily = wordmarkFontFamily,
-                        fontSize = 30.sp,
-                        letterSpacing = 0.sp
-                    )
-                ) { append("CARRY ") }
-                withStyle(
-                    SpanStyle(
-                        color = Color(0xFF034094),
-                        fontWeight = FontWeight.ExtraBold,
-                        fontStyle = FontStyle.Italic,
-                        fontFamily = wordmarkFontFamily,
-                        fontSize = 30.sp,
-                        letterSpacing = 0.sp
-                    )
-                ) { append("ON") }
-                withStyle(SpanStyle(color = Color(0xFF333333), fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
-                    append("!")
-                }
-            },
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
+        // Whole heading is one Row (never wraps) at a reduced font size so
+        // "Welcome to CARRY ON!" always fits on a single line.
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = strings.welcomeTo,
+                color = DesignBlack,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                softWrap = false
+            )
+            Text(
+                text = "CARRY ",
+                color = Color(0xFF2F80ED),
+                fontWeight = FontWeight.ExtraBold,
+                fontStyle = FontStyle.Italic,
+                fontFamily = wordmarkFontFamily,
+                fontSize = 20.sp,
+                softWrap = false
+            )
+            Text(
+                text = "ON",
+                color = Color(0xFF034094),
+                fontWeight = FontWeight.ExtraBold,
+                fontStyle = FontStyle.Italic,
+                fontFamily = wordmarkFontFamily,
+                fontSize = 20.sp,
+                softWrap = false
+            )
+            Text(
+                text = "!",
+                color = Color(0xFF333333),
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                softWrap = false
+            )
+        }
 
         Spacer(Modifier.height(8.dp))
 

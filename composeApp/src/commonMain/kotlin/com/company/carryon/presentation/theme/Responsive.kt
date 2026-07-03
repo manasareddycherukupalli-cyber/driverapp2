@@ -27,6 +27,20 @@ fun windowWidthClassFor(width: Dp): WindowWidthClass = when {
     else -> WindowWidthClass.Expanded
 }
 
+// ─── Global adaptive density scaling ─────────────────────────────
+
+/** Width (dp) the screens were designed against. */
+const val DesignScreenWidthDp = 390f
+
+/**
+ * Scale applied to [androidx.compose.ui.unit.Density] app-wide so fixed dp/sp
+ * values shrink proportionally on phones narrower than the design baseline.
+ * Never upscales (screens >= 390 dp render exactly as designed); the floor
+ * keeps touch targets usable on very narrow displays.
+ */
+fun adaptiveDensityScaleFor(screenWidth: Dp): Float =
+    (screenWidth.value / DesignScreenWidthDp).coerceIn(0.85f, 1f)
+
 // ─── Responsive scale factors ────────────────────────────────────
 
 /**

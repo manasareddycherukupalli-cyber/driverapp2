@@ -6,6 +6,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 
 // ============================================================
@@ -125,7 +127,15 @@ fun DriveAppTheme(
 
     BoxWithConstraints {
         val widthClass = windowWidthClassFor(maxWidth)
-        CompositionLocalProvider(LocalWindowWidthClass provides widthClass) {
+        val baseDensity = LocalDensity.current
+        val scaledDensity = Density(
+            density = baseDensity.density * adaptiveDensityScaleFor(maxWidth),
+            fontScale = baseDensity.fontScale
+        )
+        CompositionLocalProvider(
+            LocalWindowWidthClass provides widthClass,
+            LocalDensity provides scaledDensity
+        ) {
             MaterialTheme(
                 colorScheme = colorScheme,
                 typography = Typography(),

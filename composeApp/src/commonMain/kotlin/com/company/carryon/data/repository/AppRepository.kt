@@ -190,7 +190,7 @@ private fun parseOnlineGateBlockers(details: JsonObject): List<OnlineGateBlocker
             "ADMIN_APPROVAL_REQUIRED" -> OnlineGateBlocker.AdminApprovalRequired(message)
             "REQUIRED_DOCUMENT_MISSING" -> OnlineGateBlocker.DocumentMissing(documentType, message)
             "REQUIRED_DOCUMENT_EXPIRED" -> OnlineGateBlocker.DocumentExpired(documentType, message)
-            "STRIPE_PAYOUTS_DISABLED" -> OnlineGateBlocker.StripePayoutsDisabled(
+            "STRIPE_PAYOUTS_DISABLED", "BANK_DETAILS_NOT_APPROVED" -> OnlineGateBlocker.StripePayoutsDisabled(
                 requiresSetup = true,
                 message = message
             )

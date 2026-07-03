@@ -1,6 +1,8 @@
 package com.company.carryon.presentation.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,9 +45,15 @@ fun ReadyToDriveScreen(navigator: AppNavigator) {
     var accepted by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(Bg).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        modifier = Modifier.fillMaxSize().background(Bg).padding(24.dp)
     ) {
+        // Content and the Continue button are centered together as one group so
+        // tall/medium screens don't leave a large dead gap above a bottom-pinned
+        // button; short screens scroll instead of clipping.
+        Column(
+            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)
+        ) {
         Spacer(Modifier.height(36.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.align(Alignment.CenterHorizontally)) {
             repeat(3) {
@@ -79,5 +87,6 @@ fun ReadyToDriveScreen(navigator: AppNavigator) {
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Blue)
         ) { Text("Continue", fontSize = 18.sp) }
+        }
     }
 }

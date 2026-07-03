@@ -2,6 +2,8 @@ package com.company.carryon.presentation.earnings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
@@ -101,6 +103,12 @@ private fun TransactionDetailContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         // Amount card
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -168,6 +176,7 @@ private fun TransactionDetailContent(
         }
 
         Spacer(Modifier.weight(1f))
+        }
 
         // Download invoice button
         val isLoading = invoiceLinkState is UiState.Loading
@@ -250,8 +259,10 @@ private fun PayoutBreakdownSection(
                 DetailRow(strings.feeAmount, "RM ${formatDetailMoney(feeAmount)}")
             }
             DetailRow(strings.transferAmount, "RM ${formatDetailMoney(transferAmount)}", highlight = true)
-            transaction.stripeTransferId?.takeIf { it.isNotBlank() }?.let { transferId ->
-                CopyableDetailRow(strings.stripeTransferId, transferId, onCopyStripeId)
+            val payoutReference = transaction.manualReference?.takeIf { it.isNotBlank() }
+                ?: transaction.stripeTransferId?.takeIf { it.isNotBlank() }
+            payoutReference?.let { reference ->
+                CopyableDetailRow(strings.stripeTransferId, reference, onCopyStripeId)
             }
             if (transaction.status.name == "FAILED" && !transaction.failureMessage.isNullOrBlank()) {
                 DetailRow(strings.failureReason, transaction.failureMessage, isError = true)
@@ -273,6 +284,7 @@ private fun DetailRow(label: String, value: String, highlight: Boolean = false, 
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Spacer(Modifier.width(16.dp))
         Text(
             text = value,
             modifier = Modifier.weight(0.58f),

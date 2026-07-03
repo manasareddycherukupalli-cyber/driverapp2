@@ -2,6 +2,8 @@ package com.company.carryon.presentation.delivery
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -104,6 +106,12 @@ fun DeliveryCompleteScreen(navigator: AppNavigator, viewModel: DeliveryViewModel
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -222,8 +230,7 @@ fun DeliveryCompleteScreen(navigator: AppNavigator, viewModel: DeliveryViewModel
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF3EA))
         ) {}
-
-        Spacer(Modifier.weight(1f))
+        }
 
         Row(
             modifier = Modifier

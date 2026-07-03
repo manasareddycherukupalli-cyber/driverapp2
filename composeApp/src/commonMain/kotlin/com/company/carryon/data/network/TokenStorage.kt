@@ -19,3 +19,5 @@ expect fun clearPushToken()
 expect fun getOrCreateDeviceId(): String
 expect fun markPendingIncomingJob()
 expect fun consumePendingIncomingJob(): Boolean
+expect fun hasAskedNotificationPermission(): Boolean
+expect fun markAskedNotificationPermission()

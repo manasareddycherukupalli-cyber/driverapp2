@@ -118,6 +118,7 @@ private val stepTitles = listOf(
     "Vehicle Docs",
     "Vehicle Photos",
     "Background",
+    "Payout",
     "Review"
 )
 
@@ -343,7 +344,15 @@ fun DriverOnboardingFlowScreen(
                             onBackgroundConsentChanged = { value -> viewModel.updateDraft { it.copy(backgroundCheckConsent = value) } },
                             onNoOffencesChanged = { value -> viewModel.updateDraft { it.copy(noOffencesDeclared = value) } }
                         )
-                        10 -> ReviewStep(
+                        10 -> BankPayoutStep(
+                            draft = draft,
+                            messages = messages,
+                            onBankChanged = { value -> viewModel.updateDraft { it.copy(bankName = value) } },
+                            onAccountHolderChanged = { value -> viewModel.updateDraft { it.copy(bankAccountHolder = value) } },
+                            onAccountNumberChanged = { value -> viewModel.updateDraft { it.copy(bankAccountNumber = value.filter(Char::isDigit)) } },
+                            onDuitNowChanged = { value -> viewModel.updateDraft { it.copy(duitNowId = value) } }
+                        )
+                        11 -> ReviewStep(
                             draft = draft,
                             messages = messages,
                             onAgreementChanged = { value -> viewModel.updateDraft { it.copy(agreementAccepted = value) } }
@@ -879,6 +888,47 @@ private fun BackgroundStep(
 }
 
 @Composable
+private fun BankPayoutStep(
+    draft: DriverOnboardingDraft,
+    messages: List<ValidationMessage>,
+    onBankChanged: (String) -> Unit,
+    onAccountHolderChanged: (String) -> Unit,
+    onAccountNumberChanged: (String) -> Unit,
+    onDuitNowChanged: (String) -> Unit
+) {
+    SectionCard(title = "Bank payout details", description = "CarryOn operations will use these details to process wallet withdrawals after admin approval.") {
+        DropdownBlock(
+            label = "Bank",
+            value = draft.bankName,
+            options = DriverOnboardingViewModel.banks,
+            onSelected = onBankChanged,
+            error = errorFor(messages, "bankName")
+        )
+        TextFieldBlock(
+            label = "Account holder name",
+            value = draft.bankAccountHolder,
+            onValueChange = onAccountHolderChanged,
+            placeholder = "Name as shown on bank account",
+            error = errorFor(messages, "bankAccountHolder")
+        )
+        TextFieldBlock(
+            label = "Account number",
+            value = draft.bankAccountNumber,
+            onValueChange = onAccountNumberChanged,
+            placeholder = "Bank account number",
+            keyboardType = KeyboardType.Number,
+            error = errorFor(messages, "bankAccountNumber")
+        )
+        TextFieldBlock(
+            label = "DuitNow ID (optional)",
+            value = draft.duitNowId,
+            onValueChange = onDuitNowChanged,
+            placeholder = "Phone, NRIC, or business registration ID"
+        )
+    }
+}
+
+@Composable
 private fun ReviewStep(
     draft: DriverOnboardingDraft,
     messages: List<ValidationMessage>,
@@ -910,7 +960,12 @@ private fun ReviewStep(
             draft.vehiclePlate.takeIf { it.isNotBlank() }?.let { "Plate: $it" },
             draft.vehicleOwnership?.let { "Ownership: ${ownershipLabel(it)}" }
         ))
-        ReviewCard("Payout", listOf("Stripe payout setup happens after approval from the Wallet screen. Drivers cannot go online until Stripe payouts are enabled."))
+        ReviewCard("Payout", listOfNotNull(
+            "Bank: ${draft.bankName}",
+            "Account holder: ${draft.bankAccountHolder}",
+            draft.bankAccountNumber.takeIf { it.isNotBlank() }?.let { "Account: ${maskAccount(it)}" },
+            draft.duitNowId.takeIf { it.isNotBlank() }?.let { "DuitNow: ${maskAccount(it)}" }
+        ))
         ReviewCard("Declarations", listOf(
             "PDPA consent: ${if (draft.pdpaConsent) "Yes" else "No"}",
             "Background check consent: ${if (draft.backgroundCheckConsent) "Yes" else "No"}",
@@ -1325,6 +1380,11 @@ private fun identityUrl(draft: DriverOnboardingDraft, type: DocumentType): Strin
 private fun enumLabel(state: MalaysianState): String = state.name.replace('_', ' ')
 private fun vehicleLabel(type: VehicleType): String = type.displayName
 private fun ownershipLabel(ownership: VehicleOwnership): String = ownership.name.replace('_', ' ')
+private fun maskAccount(value: String): String {
+    val raw = value.trim()
+    if (raw.length <= 4) return "*".repeat(raw.length)
+    return "*".repeat((raw.length - 4).coerceAtLeast(4)) + raw.takeLast(4)
+}
 
 private fun formatDate(millis: Long): String {
     val localDate = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date

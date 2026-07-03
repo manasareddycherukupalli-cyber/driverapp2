@@ -71,6 +71,7 @@ fun WalletScreen(navigator: AppNavigator) {
         )
 
         LazyColumn(
+            modifier = Modifier.imePadding(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -81,7 +82,7 @@ fun WalletScreen(navigator: AppNavigator) {
                         wallet = state.data,
                         payoutStatus = (payoutStatus as? UiState.Success)?.data,
                         onWithdraw = { showWithdrawDialog = true },
-                        onSetupPayouts = { viewModel.createPayoutOnboardingLink() }
+                        onSetupPayouts = { navigator.navigateTo(Screen.DriverOnboarding) }
                     )
                     is UiState.Loading -> LoadingScreen()
                     else -> {}
@@ -160,7 +161,7 @@ private fun WalletBalanceCard(
 ) {
     val strings = LocalStrings.current
     val payoutsEnabled = payoutStatus?.payoutsEnabled ?: wallet.stripePayoutsEnabled
-    val hasAccount = payoutStatus?.accountId != null || wallet.stripeAccountId != null
+    val bankDetailsSubmitted = payoutStatus?.detailsSubmitted ?: wallet.stripeDetailsSubmitted
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -205,7 +206,7 @@ private fun WalletBalanceCard(
                     Icon(Icons.Filled.AccountBalance, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (payoutsEnabled) strings.withdrawToBank else if (hasAccount) strings.continuePayoutSetup else strings.setUpPayouts,
+                        if (payoutsEnabled) strings.withdrawToBank else if (bankDetailsSubmitted) strings.continuePayoutSetup else strings.setUpPayouts,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -216,7 +217,7 @@ private fun WalletBalanceCard(
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 12.sp
                     )
-                } else if (hasAccount) {
+                } else if (bankDetailsSubmitted) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = strings.payoutsAlmostThere,
@@ -247,7 +248,7 @@ private fun PayoutMessage(
                     payoutStatus.data.payoutsEnabled -> "${strings.payoutSetupComplete}. Minimum withdrawal: RM ${formatWalletMoney(payoutStatus.data.minimumWithdrawalAmount)}"
                     requirements?.pastDue?.isNotEmpty() == true -> "${strings.updatePayoutDetails}: ${requirements.pastDue.take(2).joinToString()}"
                     requirements?.currentlyDue?.isNotEmpty() == true -> "${strings.updatePayoutDetails}: ${requirements.currentlyDue.take(2).joinToString()}"
-                    payoutStatus.data.accountId != null -> strings.continuePayoutSetup
+                    payoutStatus.data.detailsSubmitted -> strings.continuePayoutSetup
                     else -> strings.stripePayoutSetupRequired
                 }
             }

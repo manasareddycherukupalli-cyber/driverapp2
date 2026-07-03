@@ -131,38 +131,42 @@ fun RegistrationScreen(navigator: AppNavigator, authViewModel: AuthViewModel) {
         Spacer(Modifier.height(12.dp))
 
         // ── Heading ────────────────────────────────────────────
-        Text(
-            text = buildAnnotatedString {
-                withStyle(SpanStyle(color = RegBlack, fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
-                    append(strings.welcomeTo)
-                }
-                withStyle(
-                    SpanStyle(
-                        color = Color(0xFF2F80ED),
-                        fontWeight = FontWeight.ExtraBold,
-                        fontStyle = FontStyle.Italic,
-                        fontFamily = wordmarkFontFamily,
-                        fontSize = 30.sp,
-                        letterSpacing = 0.sp
-                    )
-                ) { append("CARRY ") }
-                withStyle(
-                    SpanStyle(
-                        color = Color(0xFF034094),
-                        fontWeight = FontWeight.ExtraBold,
-                        fontStyle = FontStyle.Italic,
-                        fontFamily = wordmarkFontFamily,
-                        fontSize = 30.sp,
-                        letterSpacing = 0.sp
-                    )
-                ) { append("ON") }
-                withStyle(SpanStyle(color = Color(0xFF333333), fontWeight = FontWeight.Bold, fontSize = 30.sp)) {
-                    append("!")
-                }
-            },
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
+        // Whole heading is one Row (never wraps) at a reduced font size so
+        // "Welcome to CARRY ON!" always fits on a single line.
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = strings.welcomeTo,
+                color = RegBlack,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                softWrap = false
+            )
+            Text(
+                text = "CARRY ",
+                color = Color(0xFF2F80ED),
+                fontWeight = FontWeight.ExtraBold,
+                fontStyle = FontStyle.Italic,
+                fontFamily = wordmarkFontFamily,
+                fontSize = 20.sp,
+                softWrap = false
+            )
+            Text(
+                text = "ON",
+                color = Color(0xFF034094),
+                fontWeight = FontWeight.ExtraBold,
+                fontStyle = FontStyle.Italic,
+                fontFamily = wordmarkFontFamily,
+                fontSize = 20.sp,
+                softWrap = false
+            )
+            Text(
+                text = "!",
+                color = Color(0xFF333333),
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                softWrap = false
+            )
+        }
 
         Spacer(Modifier.height(8.dp))
 

@@ -257,6 +257,11 @@ class DriverOnboardingViewModel(
                 if (!draft.noOffencesDeclared) messages += ValidationMessage("noOffencesDeclared", "You must declare no disqualifying offences.")
             }
             10 -> {
+                if (draft.bankName.isBlank()) messages += ValidationMessage("bankName", "Select your payout bank.")
+                if (draft.bankAccountHolder.isBlank()) messages += ValidationMessage("bankAccountHolder", "Enter the account holder name.")
+                if (draft.bankAccountNumber.isBlank()) messages += ValidationMessage("bankAccountNumber", "Enter the bank account number.")
+            }
+            11 -> {
                 if (!draft.agreementAccepted) {
                     messages += ValidationMessage("agreementAccepted", "Accept the partner terms to submit.")
                 }
@@ -488,11 +493,11 @@ class DriverOnboardingViewModel(
             insuranceExpiry = "",
             insuranceUrl = "",
             hasCommercialCover = false,
-            bankName = "",
-            bankAccountNumber = "",
-            bankAccountHolder = "",
+            bankName = draft.bankName.ifBlank { profile?.bankName.orEmpty() },
+            bankAccountNumber = draft.bankAccountNumber.ifBlank { profile?.bankAccountNumber.orEmpty() },
+            bankAccountHolder = draft.bankAccountHolder.ifBlank { profile?.bankAccountHolder.orEmpty() },
             bankStatementUrl = "",
-            duitNowId = "",
+            duitNowId = draft.duitNowId.ifBlank { profile?.duitNowId.orEmpty() },
             tngEwalletId = "",
             lhdnTaxNumber = "",
             sstNumber = draft.sstNumber.ifBlank { profile?.sstNumber.orEmpty() },
@@ -637,10 +642,10 @@ class DriverOnboardingViewModel(
             emergencyContactName = emergencyContactName,
             emergencyContactRelation = emergencyContactRelation,
             emergencyContactPhone = emergencyContactPhone,
-            bankName = "",
-            bankAccountNumber = "",
-            bankAccountHolder = "",
-            duitNowId = null,
+            bankName = bankName,
+            bankAccountNumber = bankAccountNumber,
+            bankAccountHolder = bankAccountHolder,
+            duitNowId = duitNowId.takeIf { it.isNotBlank() },
             tngEwalletId = null,
             lhdnTaxNumber = null,
             sstNumber = null,
@@ -698,7 +703,7 @@ class DriverOnboardingViewModel(
     private fun currentYear(): Int = today().year
 
     companion object {
-        const val TOTAL_STEPS = 10
+        const val TOTAL_STEPS = 11
 
         val states = MalaysianState.entries
         val vehicleTypes = VehicleType.entries.filterNot { it == VehicleType.VAN || it == VehicleType.TRUCK }

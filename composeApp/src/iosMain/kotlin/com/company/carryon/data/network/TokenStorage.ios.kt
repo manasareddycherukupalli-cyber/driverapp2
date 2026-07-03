@@ -41,6 +41,7 @@ private const val KEY_DELIVERY_RESUME_JOB_ID = "delivery_resume_job_id"
 private const val KEY_PUSH_TOKEN = "push_token"
 private const val KEY_PUSH_DEVICE_ID = "push_device_id"
 private const val KEY_PENDING_INCOMING_JOB = "pending_incoming_job"
+private const val KEY_ASKED_NOTIFICATION_PERMISSION = "asked_notification_permission"
 
 @OptIn(ExperimentalForeignApi::class)
 private fun keychainSave(key: String, value: String) {
@@ -182,4 +183,12 @@ actual fun consumePendingIncomingJob(): Boolean {
         defaults.removeObjectForKey(KEY_PENDING_INCOMING_JOB)
     }
     return pending
+}
+
+actual fun hasAskedNotificationPermission(): Boolean {
+    return NSUserDefaults.standardUserDefaults.boolForKey(KEY_ASKED_NOTIFICATION_PERMISSION)
+}
+
+actual fun markAskedNotificationPermission() {
+    NSUserDefaults.standardUserDefaults.setBool(true, forKey = KEY_ASKED_NOTIFICATION_PERMISSION)
 }

@@ -626,7 +626,7 @@ private fun StripePayoutInterstitial(
         ) {
             Text(strings.stripePayoutSetupRequired, color = Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Text(
-                "Set up payouts to receive your withdrawals.",
+                "Add approved bank payout details to receive withdrawals.",
                 color = Black.copy(alpha = 0.68f),
                 fontSize = 13.sp,
                 lineHeight = 18.sp
