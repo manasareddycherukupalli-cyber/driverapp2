@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.*
 import com.company.carryon.data.network.AuthenticationException
+import com.company.carryon.data.network.DeepLinkBus
+import com.company.carryon.data.network.DeepLinkEvent
 import com.company.carryon.data.network.IncomingJobSignal
 import com.company.carryon.data.network.LocationApi
 import kotlin.math.*
@@ -103,6 +105,16 @@ class HomeViewModel : ViewModel() {
     private val _toastError = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val toastError: SharedFlow<String> = _toastError.asSharedFlow()
 
+    private val _onlineGateBlocker = MutableStateFlow<OnlineGateBlocker?>(null)
+    val onlineGateBlocker: StateFlow<OnlineGateBlocker?> = _onlineGateBlocker.asStateFlow()
+
+    private val skippedStripeInterstitial = MutableStateFlow(false)
+    val showStripeInterstitial: StateFlow<Boolean> = combine(currentDriver, skippedStripeInterstitial) { driver, skipped ->
+        driver?.verificationStatus == VerificationStatus.APPROVED &&
+            driver.stripePayoutsEnabled != true &&
+            !skipped
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     // Notifications
     private val _notifications = MutableStateFlow<List<AppNotification>>(emptyList())
     val notifications: StateFlow<List<AppNotification>> = _notifications.asStateFlow()
@@ -116,6 +128,7 @@ class HomeViewModel : ViewModel() {
         loadDashboardData()
         collectRealtimeJobs()
         collectIncomingSignals()
+        collectPayoutSignals()
         initOnlineStatusFromDriver()
         loadMapConfig()
         refreshDriverLocation()
@@ -198,13 +211,30 @@ class HomeViewModel : ViewModel() {
                             clearIncomingOffers()
                         }
                     }
-                    .onFailure { _toastError.tryEmit(it.message ?: "Failed to update status") }
+                    .onFailure { handleOnlineToggleFailure(it) }
             } catch (e: Exception) {
-                _toastError.tryEmit(e.message ?: "Failed to update status")
+                handleOnlineToggleFailure(e)
             } finally {
                 _isTogglingOnline.value = false
             }
         }
+    }
+
+    private fun handleOnlineToggleFailure(error: Throwable) {
+        if (error is OnlineGateException) {
+            _onlineGateBlocker.value = error.blockers.firstOrNull()
+            _toastError.tryEmit(error.message ?: "Complete setup before going online")
+        } else {
+            _toastError.tryEmit(error.message ?: "Failed to update status")
+        }
+    }
+
+    fun dismissOnlineGate() {
+        _onlineGateBlocker.value = null
+    }
+
+    fun skipStripeInterstitial() {
+        skippedStripeInterstitial.value = true
     }
 
     private fun registerFcmToken() {
@@ -393,6 +423,20 @@ class HomeViewModel : ViewModel() {
             IncomingJobSignal.events.collect {
                 if (_isOnline.value) {
                     refreshIncomingOffers()
+                }
+            }
+        }
+    }
+
+    private fun collectPayoutSignals() {
+        viewModelScope.launch {
+            DeepLinkBus.events.collect { event ->
+                if (event is DeepLinkEvent.PayoutUpdate) {
+                    loadDashboardData()
+                    authRepository.syncDriver()
+                    if (event.notificationType == "PAYOUT_SETUP_NEEDED") {
+                        skippedStripeInterstitial.value = false
+                    }
                 }
             }
         }

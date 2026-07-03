@@ -48,6 +48,7 @@ fun WalletScreen(navigator: AppNavigator) {
     val withdrawalState by viewModel.withdrawalState.collectAsState()
     val payoutStatus by viewModel.payoutStatus.collectAsState()
     val onboardingLink by viewModel.onboardingLink.collectAsState()
+    val payoutBanner by viewModel.payoutBanner.collectAsState()
     val uriHandler = LocalUriHandler.current
 
     var showWithdrawDialog by remember { mutableStateOf(false) }
@@ -91,7 +92,8 @@ fun WalletScreen(navigator: AppNavigator) {
                 PayoutMessage(
                     payoutStatus = payoutStatus,
                     withdrawalState = withdrawalState,
-                    onboardingLink = onboardingLink
+                    onboardingLink = onboardingLink,
+                    payoutBanner = payoutBanner
                 )
             }
 
@@ -203,21 +205,21 @@ private fun WalletBalanceCard(
                     Icon(Icons.Filled.AccountBalance, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (payoutsEnabled) strings.withdrawToBank else if (hasAccount) "Continue payout setup" else "Set up payouts",
+                        if (payoutsEnabled) strings.withdrawToBank else if (hasAccount) strings.continuePayoutSetup else strings.setUpPayouts,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 if (payoutsEnabled) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Stripe payouts enabled. Withdrawals are manual.",
+                        text = strings.payoutSetupComplete,
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 12.sp
                     )
                 } else if (hasAccount) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Stripe needs a few more payout details",
+                        text = strings.payoutsAlmostThere,
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 12.sp
                     )
@@ -231,20 +233,22 @@ private fun WalletBalanceCard(
 private fun PayoutMessage(
     payoutStatus: UiState<PayoutStatus>,
     withdrawalState: UiState<Transaction>,
-    onboardingLink: UiState<PayoutOnboardingLink>
+    onboardingLink: UiState<PayoutOnboardingLink>,
+    payoutBanner: String?
 ) {
-    val message = when (withdrawalState) {
-        is UiState.Success -> "Withdrawal submitted. Check transaction history for the transfer record."
+    val strings = LocalStrings.current
+    val message = payoutBanner ?: when (withdrawalState) {
+        is UiState.Success -> strings.withdrawalSuccessful
         is UiState.Error -> withdrawalState.message
         else -> when (payoutStatus) {
             is UiState.Success -> {
                 val requirements = payoutStatus.data.requirements
                 when {
-                    payoutStatus.data.payoutsEnabled -> "Minimum withdrawal: RM ${formatWalletMoney(payoutStatus.data.minimumWithdrawalAmount)}"
-                    requirements?.pastDue?.isNotEmpty() == true -> "Stripe needs urgent payout details: ${requirements.pastDue.take(2).joinToString()}"
-                    requirements?.currentlyDue?.isNotEmpty() == true -> "Stripe needs payout details: ${requirements.currentlyDue.take(2).joinToString()}"
-                    payoutStatus.data.accountId != null -> "Continue Stripe setup to enable withdrawals and online driving."
-                    else -> "Set up Stripe payouts before going online or withdrawing earnings."
+                    payoutStatus.data.payoutsEnabled -> "${strings.payoutSetupComplete}. Minimum withdrawal: RM ${formatWalletMoney(payoutStatus.data.minimumWithdrawalAmount)}"
+                    requirements?.pastDue?.isNotEmpty() == true -> "${strings.updatePayoutDetails}: ${requirements.pastDue.take(2).joinToString()}"
+                    requirements?.currentlyDue?.isNotEmpty() == true -> "${strings.updatePayoutDetails}: ${requirements.currentlyDue.take(2).joinToString()}"
+                    payoutStatus.data.accountId != null -> strings.continuePayoutSetup
+                    else -> strings.stripePayoutSetupRequired
                 }
             }
             is UiState.Error -> payoutStatus.message

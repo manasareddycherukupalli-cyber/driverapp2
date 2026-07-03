@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -53,6 +54,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -79,6 +81,7 @@ import com.company.carryon.data.model.DeliveryJob
 import com.company.carryon.data.model.EarningsSummary
 import com.company.carryon.data.model.JobStatus
 import com.company.carryon.data.model.LatLng
+import com.company.carryon.data.model.OnlineGateBlocker
 import com.company.carryon.data.model.UiState
 import com.company.carryon.data.model.displayDurationMinutes
 import com.company.carryon.data.model.remainingOfferMillis
@@ -129,6 +132,8 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
     val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
     val isInServiceArea by viewModel.isInServiceArea.collectAsState()
     val isTogglingOnline by viewModel.isTogglingOnline.collectAsState()
+    val onlineGateBlocker by viewModel.onlineGateBlocker.collectAsState()
+    val showStripeInterstitial by viewModel.showStripeInterstitial.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var hasLocationAccess by remember { mutableStateOf(hasLocationPermission()) }
     var locationWaitTimedOut by remember { mutableStateOf(false) }
@@ -261,11 +266,36 @@ fun HomeScreen(navigator: AppNavigator, viewModel: HomeViewModel) {
             onLiveNavigationClick = { showLiveQueue = true },
             onViewAll = { navigator.switchToJobsTab(2) }
         )
+        if (showStripeInterstitial) {
+            StripePayoutInterstitial(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = 16.dp, vertical = 78.dp),
+                onSetup = { navigator.navigateTo(Screen.Wallet) },
+                onSkip = { viewModel.skipStripeInterstitial() }
+            )
+        }
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(16.dp)
+        )
+    }
+
+    onlineGateBlocker?.let { blocker ->
+        OnlineGateDialog(
+            blocker = blocker,
+            onDismiss = { viewModel.dismissOnlineGate() },
+            onPrimary = {
+                viewModel.dismissOnlineGate()
+                when (blocker) {
+                    is OnlineGateBlocker.StripePayoutsDisabled -> navigator.navigateTo(Screen.Wallet)
+                    is OnlineGateBlocker.DocumentMissing,
+                    is OnlineGateBlocker.DocumentExpired -> navigator.navigateTo(Screen.DriverOnboarding)
+                    is OnlineGateBlocker.AdminApprovalRequired -> Unit
+                }
+            }
         )
     }
 }
@@ -575,6 +605,92 @@ private fun LocationMapOverlay(
             }
         }
     }
+}
+
+@Composable
+private fun StripePayoutInterstitial(
+    modifier: Modifier = Modifier,
+    onSetup: () -> Unit,
+    onSkip: () -> Unit
+) {
+    val strings = LocalStrings.current
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(strings.stripePayoutSetupRequired, color = Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "Set up payouts to receive your withdrawals.",
+                color = Black.copy(alpha = 0.68f),
+                fontSize = 13.sp,
+                lineHeight = 18.sp
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(
+                    onClick = onSetup,
+                    colors = ButtonDefaults.buttonColors(containerColor = HomeBlue, contentColor = White),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(strings.setUpPayouts, fontWeight = FontWeight.SemiBold)
+                }
+                TextButton(onClick = onSkip) {
+                    Text(strings.skipForNow, color = HomeBlue, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnlineGateDialog(
+    blocker: OnlineGateBlocker,
+    onDismiss: () -> Unit,
+    onPrimary: () -> Unit
+) {
+    val strings = LocalStrings.current
+    val title = when (blocker) {
+        is OnlineGateBlocker.AdminApprovalRequired -> "Approval required"
+        is OnlineGateBlocker.DocumentMissing -> "Document required"
+        is OnlineGateBlocker.DocumentExpired -> "Document expired"
+        is OnlineGateBlocker.StripePayoutsDisabled -> strings.stripePayoutSetupRequired
+    }
+    val primaryLabel = when (blocker) {
+        is OnlineGateBlocker.StripePayoutsDisabled -> strings.setUpPayouts
+        is OnlineGateBlocker.DocumentMissing,
+        is OnlineGateBlocker.DocumentExpired -> "Update documents"
+        is OnlineGateBlocker.AdminApprovalRequired -> strings.ok
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, fontWeight = FontWeight.Bold) },
+        text = {
+            Text(
+                blocker.message,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        confirmButton = {
+            Button(onClick = onPrimary, colors = ButtonDefaults.buttonColors(containerColor = HomeBlue)) {
+                Text(primaryLabel)
+            }
+        },
+        dismissButton = {
+            if (blocker !is OnlineGateBlocker.AdminApprovalRequired) {
+                TextButton(onClick = onDismiss) {
+                    Text(strings.cancel)
+                }
+            }
+        }
+    )
 }
 
 private fun formatTwoDecimals(value: Double): String {

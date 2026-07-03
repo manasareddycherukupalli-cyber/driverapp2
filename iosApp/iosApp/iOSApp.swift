@@ -8,9 +8,7 @@ struct iOSApp: App {
         WindowGroup {
             ContentView()
                 .onOpenURL { url in
-                    // Handle Supabase OAuth callback deep links
-                    // The supabase-kt SDK automatically handles the URL
-                    // when the Auth plugin is configured with scheme/host
+                    DeepLinkHandler.shared.handle(uri: url.absoluteString)
                 }
         }
     }

@@ -2,6 +2,7 @@ package com.company.carryon.data.repository
 
 import com.company.carryon.data.api.*
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.ApiException
 import com.company.carryon.data.network.AuthSessionManager
 import com.company.carryon.data.network.clearPushToken
 import com.company.carryon.data.network.SupabaseConfig
@@ -9,6 +10,10 @@ import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 // ============================================================
 // AUTH REPOSITORY
@@ -121,7 +126,10 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         result.getOrNull()?.let {
             _currentDriver.value = _currentDriver.value?.copy(isOnline = isOnline)
         }
-        return result
+        return result.fold(
+            onSuccess = { Result.success(it) },
+            onFailure = { Result.failure(mapOnlineGateFailure(it)) }
+        )
     }
 
     override suspend fun updateFcmToken(fcmToken: String): Result<Boolean> {
@@ -157,6 +165,53 @@ class AuthRepositoryImpl(private val api: AuthApi) : AuthRepository {
         _currentDriver.value = null
         _isLoggedIn.value = false
     }
+}
+
+private fun mapOnlineGateFailure(error: Throwable): Throwable {
+    val apiError = error as? ApiException ?: return error
+    val details = apiError.details ?: return error
+    val blockers = parseOnlineGateBlockers(details)
+    if (blockers.isEmpty()) return error
+    return OnlineGateException(
+        blockers = blockers,
+        payoutRequirements = parsePayoutRequirements(details["payoutRequirements"] as? JsonObject),
+        message = apiError.message ?: "Driver cannot go online yet."
+    )
+}
+
+private fun parseOnlineGateBlockers(details: JsonObject): List<OnlineGateBlocker> {
+    val rawBlockers = details["blockers"] as? JsonArray ?: return emptyList()
+    return rawBlockers.mapNotNull { element ->
+        val obj = element as? JsonObject ?: return@mapNotNull null
+        val code = obj["code"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        val message = obj["message"]?.jsonPrimitive?.contentOrNull ?: "Complete setup before going online."
+        val documentType = obj["documentType"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        when (code) {
+            "ADMIN_APPROVAL_REQUIRED" -> OnlineGateBlocker.AdminApprovalRequired(message)
+            "REQUIRED_DOCUMENT_MISSING" -> OnlineGateBlocker.DocumentMissing(documentType, message)
+            "REQUIRED_DOCUMENT_EXPIRED" -> OnlineGateBlocker.DocumentExpired(documentType, message)
+            "STRIPE_PAYOUTS_DISABLED" -> OnlineGateBlocker.StripePayoutsDisabled(
+                requiresSetup = true,
+                message = message
+            )
+            else -> null
+        }
+    }
+}
+
+private fun parsePayoutRequirements(value: JsonObject?): PayoutRequirements? {
+    val requirements = value?.get("requirements") as? JsonObject ?: return null
+    fun list(name: String): List<String> {
+        return (requirements[name] as? JsonArray)
+            ?.mapNotNull { it.jsonPrimitive.contentOrNull }
+            .orEmpty()
+    }
+    return PayoutRequirements(
+        currentlyDue = list("currentlyDue"),
+        eventuallyDue = list("eventuallyDue"),
+        pastDue = list("pastDue"),
+        disabledReason = requirements["disabledReason"]?.jsonPrimitive?.contentOrNull
+    )
 }
 
 // ============================================================
@@ -234,9 +289,11 @@ interface EarningsRepository {
     suspend fun getTransactions(): Result<List<Transaction>>
     suspend fun getWalletInfo(): Result<WalletInfo>
     suspend fun requestWithdrawal(amount: Double): Result<Transaction>
+    suspend fun createAccount(): Result<AccountInfo>
     suspend fun getPayoutStatus(): Result<PayoutStatus>
     suspend fun createPayoutOnboardingLink(): Result<PayoutOnboardingLink>
     suspend fun getInvoiceUrl(transactionId: String): Result<InvoiceLink>
+    suspend fun getPayoutReceiptUrl(transactionId: String): Result<InvoiceLink>
 }
 
 class EarningsRepositoryImpl(private val api: EarningsApi) : EarningsRepository {
@@ -244,9 +301,11 @@ class EarningsRepositoryImpl(private val api: EarningsApi) : EarningsRepository 
     override suspend fun getTransactions() = api.getTransactionHistory("")
     override suspend fun getWalletInfo() = api.getWalletInfo("")
     override suspend fun requestWithdrawal(amount: Double) = api.requestWithdrawal("", amount)
+    override suspend fun createAccount() = api.createAccount()
     override suspend fun getPayoutStatus() = api.getPayoutStatus()
     override suspend fun createPayoutOnboardingLink() = api.createPayoutOnboardingLink()
     override suspend fun getInvoiceUrl(transactionId: String) = api.getInvoiceUrl(transactionId)
+    override suspend fun getPayoutReceiptUrl(transactionId: String) = api.getPayoutReceiptUrl(transactionId)
 }
 
 // ============================================================

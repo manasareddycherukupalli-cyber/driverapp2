@@ -63,9 +63,11 @@ interface EarningsApi {
     suspend fun getTransactionHistory(driverId: String): Result<List<Transaction>>
     suspend fun getWalletInfo(driverId: String): Result<WalletInfo>
     suspend fun requestWithdrawal(driverId: String, amount: Double): Result<Transaction>
+    suspend fun createAccount(): Result<AccountInfo>
     suspend fun getPayoutStatus(): Result<PayoutStatus>
     suspend fun createPayoutOnboardingLink(): Result<PayoutOnboardingLink>
     suspend fun getInvoiceUrl(transactionId: String): Result<InvoiceLink>
+    suspend fun getPayoutReceiptUrl(transactionId: String): Result<InvoiceLink>
 }
 
 /**

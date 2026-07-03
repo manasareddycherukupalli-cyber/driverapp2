@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -19,6 +22,7 @@ import com.company.carryon.data.model.InvoiceLink
 import com.company.carryon.data.model.Transaction
 import com.company.carryon.data.model.TransactionType
 import com.company.carryon.data.model.UiState
+import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 
@@ -35,6 +39,7 @@ fun TransactionDetailScreen(navigator: AppNavigator) {
     val transactionsState by viewModel.transactions.collectAsState()
     val invoiceLinkState by viewModel.invoiceLink.collectAsState()
     val uriHandler = LocalUriHandler.current
+    val clipboardManager = LocalClipboardManager.current
 
     val transactionId = navigator.selectedTransactionId ?: ""
     val transaction = (transactionsState as? UiState.Success)?.data
@@ -63,7 +68,14 @@ fun TransactionDetailScreen(navigator: AppNavigator) {
             TransactionDetailContent(
                 transaction = transaction,
                 invoiceLinkState = invoiceLinkState,
-                onDownloadInvoice = { viewModel.fetchInvoiceUrl(transaction.id) }
+                onDownloadInvoice = {
+                    if (transaction.type == TransactionType.WITHDRAWAL) {
+                        viewModel.fetchPayoutReceiptUrl(transaction.id)
+                    } else {
+                        viewModel.fetchInvoiceUrl(transaction.id)
+                    }
+                },
+                onCopyStripeId = { clipboardManager.setText(AnnotatedString(it)) }
             )
         } else {
             Box(
@@ -80,7 +92,8 @@ fun TransactionDetailScreen(navigator: AppNavigator) {
 private fun TransactionDetailContent(
     transaction: Transaction,
     invoiceLinkState: UiState<InvoiceLink>,
-    onDownloadInvoice: () -> Unit
+    onDownloadInvoice: () -> Unit,
+    onCopyStripeId: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -147,6 +160,13 @@ private fun TransactionDetailContent(
             }
         }
 
+        if (transaction.type == TransactionType.WITHDRAWAL) {
+            PayoutBreakdownSection(
+                transaction = transaction,
+                onCopyStripeId = onCopyStripeId
+            )
+        }
+
         Spacer(Modifier.weight(1f))
 
         // Download invoice button
@@ -165,7 +185,7 @@ private fun TransactionDetailContent(
 
         Button(
             onClick = onDownloadInvoice,
-            enabled = !isLoading && transaction.type != TransactionType.WITHDRAWAL,
+            enabled = !isLoading,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = DetailBlue)
@@ -185,7 +205,7 @@ private fun TransactionDetailContent(
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                text = if (isLoading) "Preparing invoice…" else "Download Invoice",
+                text = if (isLoading) "Preparing invoice..." else "Download Invoice",
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp
             )
@@ -196,7 +216,52 @@ private fun TransactionDetailContent(
 }
 
 @Composable
-private fun DetailRow(label: String, value: String) {
+private fun PayoutBreakdownSection(
+    transaction: Transaction,
+    onCopyStripeId: (String) -> Unit
+) {
+    val strings = LocalStrings.current
+    val requestedAmount = transaction.requestedAmount
+        .takeIf { it > 0.0 }
+        ?: transaction.grossAmount.takeIf { it > 0.0 }
+        ?: kotlin.math.abs(transaction.amount)
+    val feeAmount = transaction.feeAmount
+        .takeIf { it > 0.0 }
+        ?: transaction.platformFeeAmount
+    val transferAmount = transaction.transferAmount
+        .takeIf { it > 0.0 }
+        ?: maxOf(0.0, requestedAmount - feeAmount)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(strings.payoutBreakdownTitle, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            DetailRow(strings.requestedAmount, "RM ${formatDetailMoney(requestedAmount)}")
+            if (feeAmount > 0.0) {
+                DetailRow(strings.feeAmount, "RM ${formatDetailMoney(feeAmount)}")
+            }
+            DetailRow(strings.transferAmount, "RM ${formatDetailMoney(transferAmount)}", highlight = true)
+            transaction.stripeTransferId?.takeIf { it.isNotBlank() }?.let { transferId ->
+                CopyableDetailRow(strings.stripeTransferId, transferId, onCopyStripeId)
+            }
+            if (transaction.status.name == "FAILED" && !transaction.failureMessage.isNullOrBlank()) {
+                DetailRow(strings.failureReason, transaction.failureMessage, isError = true)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailRow(label: String, value: String, highlight: Boolean = false, isError: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -204,14 +269,63 @@ private fun DetailRow(label: String, value: String) {
     ) {
         Text(
             text = label,
+            modifier = Modifier.weight(0.42f),
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value,
+            modifier = Modifier.weight(0.58f),
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
+            color = when {
+                isError -> MaterialTheme.colorScheme.error
+                highlight -> DetailBlue
+                else -> MaterialTheme.colorScheme.onSurface
+            },
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
     }
+}
+
+@Composable
+private fun CopyableDetailRow(label: String, value: String, onCopy: (String) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.weight(0.42f),
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier.weight(0.58f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End
+        ) {
+            Text(
+                text = value,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            IconButton(onClick = { onCopy(value) }, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Filled.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
+private fun formatDetailMoney(value: Double): String {
+    val cents = kotlin.math.round(value * 100.0).toLong()
+    val whole = cents / 100
+    val fraction = (kotlin.math.abs(cents) % 100).toString().padStart(2, '0')
+    return "$whole.$fraction"
 }

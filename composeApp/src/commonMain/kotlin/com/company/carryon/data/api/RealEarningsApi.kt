@@ -40,6 +40,13 @@ class RealEarningsApi : EarningsApi {
         response.data ?: throw Exception("Withdrawal failed")
     }
 
+    override suspend fun createAccount(): Result<AccountInfo> = runCatching {
+        val response: ApiResponse<AccountInfo> = client.post("/api/driver/payouts/account") {
+            withAuth()
+        }.body()
+        response.data ?: throw Exception(response.message ?: "Failed to create payout account")
+    }
+
     override suspend fun getPayoutStatus(): Result<PayoutStatus> = runCatching {
         val response: ApiResponse<PayoutStatus> = client.get("/api/driver/payouts/status") {
             withAuth()
@@ -59,5 +66,12 @@ class RealEarningsApi : EarningsApi {
             withAuth()
         }.body()
         response.data ?: throw Exception(response.message ?: "Failed to get invoice")
+    }
+
+    override suspend fun getPayoutReceiptUrl(transactionId: String): Result<InvoiceLink> = runCatching {
+        val response: ApiResponse<InvoiceLink> = client.get("/api/driver/payouts/receipt/$transactionId") {
+            withAuth()
+        }.body()
+        response.data ?: throw Exception(response.message ?: "Failed to get payout receipt")
     }
 }

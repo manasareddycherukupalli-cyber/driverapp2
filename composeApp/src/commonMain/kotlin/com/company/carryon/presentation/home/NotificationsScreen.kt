@@ -142,6 +142,9 @@ private fun NotificationCard(notification: AppNotification, onTap: () -> Unit) {
         NotificationType.JOB_REQUEST -> "📦" to Orange500
         NotificationType.JOB_UPDATE -> "🔄" to Blue500
         NotificationType.PAYMENT -> "💰" to Green500
+        NotificationType.PAYOUT_PAID -> "💰" to Green500
+        NotificationType.PAYOUT_FAILED -> "⚠️" to Red500
+        NotificationType.PAYOUT_SETUP_NEEDED -> "🏦" to Orange500
         NotificationType.PROMO -> "🎉" to Yellow500
         NotificationType.SYSTEM -> "⚙️" to Gray500
         NotificationType.ALERT -> "⚠️" to Red500

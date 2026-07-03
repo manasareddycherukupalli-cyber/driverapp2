@@ -8,6 +8,8 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -16,6 +18,12 @@ import kotlinx.serialization.json.jsonPrimitive
  * UI layers should catch this to redirect the user to the login screen.
  */
 class AuthenticationException(message: String = "Authentication required") : Exception(message)
+
+class ApiException(
+    val statusCode: Int,
+    message: String,
+    val details: JsonObject? = null
+) : Exception(message)
 
 object HttpClientFactory {
     val json = Json {
@@ -65,13 +73,19 @@ object HttpClientFactory {
                     }
                     if (response.status.value >= 400) {
                         val body = response.bodyAsText()
+                        val parsed = try {
+                            json.parseToJsonElement(body).jsonObject
+                        } catch (_: Exception) {
+                            null
+                        }
                         val message = try {
-                            json.parseToJsonElement(body).jsonObject["message"]?.jsonPrimitive?.content
+                            parsed?.get("message")?.jsonPrimitive?.contentOrNull
                                 ?: "Request failed"
                         } catch (_: Exception) {
                             "Request failed (${response.status.value})"
                         }
-                        throw Exception(message)
+                        val details = parsed?.get("details") as? JsonObject
+                        throw ApiException(response.status.value, message, details)
                     }
                 }
             }

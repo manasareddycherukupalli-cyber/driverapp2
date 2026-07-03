@@ -17,12 +17,22 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        PayoutRefreshGuard.shared.reset()
         configureFirebaseIfAvailable()
         requestNotificationAuthorization(application: application)
 
         if let userInfo = launchOptions?[.remoteNotification] as? [AnyHashable: Any] {
-            persistIncomingJob(userInfo: userInfo)
+            handlePushEvent(userInfo: userInfo)
         }
+        return true
+    }
+
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
+        DeepLinkHandler.shared.handle(uri: url.absoluteString)
         return true
     }
 
@@ -47,6 +57,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        handlePushEvent(userInfo: notification.request.content.userInfo)
         completionHandler([.banner, .sound, .list])
     }
 
@@ -55,7 +66,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        persistIncomingJob(userInfo: response.notification.request.content.userInfo)
+        handlePushEvent(userInfo: response.notification.request.content.userInfo)
         completionHandler()
     }
 
@@ -71,12 +82,21 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         }
     }
 
-    private func persistIncomingJob(userInfo: [AnyHashable: Any]) {
+    private func handlePushEvent(userInfo: [AnyHashable: Any]) {
         let type = (userInfo["type"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard type == "JOB_REQUEST" else { return }
+        if type == "JOB_REQUEST" {
+            UserDefaults.standard.set(true, forKey: pendingIncomingJobDefaultsKey)
+            IncomingJobSignal.shared.signalIncomingJob()
+            return
+        }
 
-        UserDefaults.standard.set(true, forKey: pendingIncomingJobDefaultsKey)
-        IncomingJobSignal.shared.signalIncomingJob()
+        if type == "PAYOUT_PAID" || type == "PAYOUT_FAILED" || type == "PAYOUT_SETUP_NEEDED" {
+            DeepLinkBus.shared.emitPayoutUpdate(
+                notificationType: type,
+                payoutId: userInfo["payoutId"] as? String,
+                transactionId: userInfo["transactionId"] as? String
+            )
+        }
     }
 
     private func configureFirebaseIfAvailable() {

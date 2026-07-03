@@ -25,7 +25,10 @@ class LanguageCoverageTest {
             assertTrue(strings.appName.isNotBlank())
             assertTrue(strings.continueText.isNotBlank())
             assertTrue(strings.selectYourLanguage.isNotBlank())
+            assertTrue(strings.setUpPayouts.isNotBlank())
+            assertTrue(strings.continuePayoutSetup.isNotBlank())
+            assertTrue(strings.payoutBreakdownTitle.isNotBlank())
+            assertTrue(strings.withdrawalFailed.isNotBlank())
         }
     }
 }
-

@@ -62,6 +62,10 @@ data class Driver(
     @SerialName("vehicle") val vehicleDetails: VehicleDetails? = null,
     val documents: List<Document> = emptyList(),
     val emergencyContact: String = "",
+    val stripeConnectAccountId: String? = null,
+    val stripePayoutsEnabled: Boolean = false,
+    val stripeDetailsSubmitted: Boolean = false,
+    val stripeRequirements: PayoutRequirements? = null,
     val onboardingSubmittedAt: String? = null,
     val createdAt: String? = null
 )
@@ -505,6 +509,15 @@ data class Transaction(
     val id: String = "",
     val type: TransactionType = TransactionType.DELIVERY_EARNING,
     val amount: Double = 0.0,
+    val grossAmount: Double = 0.0,
+    val platformFeeAmount: Double = 0.0,
+    val requestedAmount: Double = 0.0,
+    val feeAmount: Double = 0.0,
+    val transferAmount: Double = 0.0,
+    val currency: String? = null,
+    val stripeTransferId: String? = null,
+    val stripePayoutId: String? = null,
+    val failureMessage: String? = null,
     val description: String = "",
     @SerialName("createdAt") val timestamp: String? = null,
     val jobId: String? = null,
@@ -522,7 +535,7 @@ enum class TransactionType(val displayName: String) {
 }
 
 @Serializable
-enum class TransactionStatus { PENDING, COMPLETED, FAILED }
+enum class TransactionStatus { PENDING, TRANSFERRED, COMPLETED, FAILED }
 
 @Serializable
 data class WalletInfo(
@@ -536,7 +549,21 @@ data class WalletInfo(
     val stripeAccountId: String? = null,
     val stripeDetailsSubmitted: Boolean = false,
     val stripePayoutsEnabled: Boolean = false,
-    val stripeRequirements: PayoutRequirements? = null
+    val stripeRequirements: PayoutRequirements? = null,
+    val minimumWithdrawalAmount: Double = 50.0,
+    val withdrawalFeeFlat: Double = 0.0,
+    val withdrawalFeeRate: Double = 0.0
+)
+
+@Serializable
+data class AccountInfo(
+    val accountId: String? = null,
+    val detailsSubmitted: Boolean = false,
+    val payoutsEnabled: Boolean = false,
+    val requirements: PayoutRequirements? = null,
+    val minimumWithdrawalAmount: Double = 50.0,
+    val withdrawalFeeFlat: Double = 0.0,
+    val withdrawalFeeRate: Double = 0.0
 )
 
 @Serializable
@@ -587,7 +614,7 @@ data class AppNotification(
 
 @Serializable
 enum class NotificationType {
-    JOB_REQUEST, JOB_UPDATE, PAYMENT, PROMO, SYSTEM, ALERT
+    JOB_REQUEST, JOB_UPDATE, PAYMENT, PAYOUT_PAID, PAYOUT_FAILED, PAYOUT_SETUP_NEEDED, PROMO, SYSTEM, ALERT
 }
 
 // ============================================================

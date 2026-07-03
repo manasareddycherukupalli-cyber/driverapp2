@@ -93,8 +93,8 @@ android {
         applicationId = "com.company.carryon.driver"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 5
-        versionName = "1.0.1"
+        versionCode = 8
+        versionName = "1.0.2"
 
         val localProperties = Properties().apply {
             val file = rootProject.file("local.properties")

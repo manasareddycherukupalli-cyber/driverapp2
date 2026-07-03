@@ -3,6 +3,7 @@ package com.company.carryon
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
@@ -17,6 +18,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import com.company.carryon.data.network.initLocationProvider
+import com.company.carryon.data.network.DeepLinkHandler
+import com.company.carryon.data.network.PayoutRefreshGuard
 import com.company.carryon.data.network.handleLocationPermissionResult
 import com.company.carryon.data.network.initTokenStorage
 import com.company.carryon.data.network.savePushToken
@@ -25,6 +28,8 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.company.carryon.update.initAppUpdatePlatform
 
 class MainActivity : ComponentActivity() {
+    private var lastHandledDeepLink: String? = null
+    private var lastHandledDeepLinkAt: Long = 0L
 
     private val permissionPrefs by lazy {
         getSharedPreferences("carryon_permissions", MODE_PRIVATE)
@@ -45,6 +50,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PayoutRefreshGuard.reset()
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(Color.WHITE, Color.WHITE),
             navigationBarStyle = SystemBarStyle.light(Color.WHITE, Color.WHITE)
@@ -57,10 +63,17 @@ class MainActivity : ComponentActivity() {
             requestInitialPermissionsIfNeeded()
         }
         retrieveFcmToken()
+        handleDeepLinkIntent(intent)
 
         setContent {
             App()
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLinkIntent(intent)
     }
 
     override fun onRequestPermissionsResult(
@@ -154,6 +167,15 @@ class MainActivity : ComponentActivity() {
                 Log.w("MainActivity", "Failed to get FCM token", task.exception)
             }
         }
+    }
+
+    private fun handleDeepLinkIntent(intent: Intent?) {
+        val uri = intent?.dataString ?: return
+        val now = System.currentTimeMillis()
+        if (uri == lastHandledDeepLink && now - lastHandledDeepLinkAt < 1_000L) return
+        lastHandledDeepLink = uri
+        lastHandledDeepLinkAt = now
+        DeepLinkHandler.handle(uri)
     }
 
     private companion object {

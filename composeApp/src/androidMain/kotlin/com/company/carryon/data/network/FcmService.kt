@@ -46,11 +46,18 @@ class FcmService : FirebaseMessagingService() {
         super.onMessageReceived(message)
         Log.d("FcmService", "FCM message received: ${message.data}")
 
-        // Wake the in-app fetch path immediately when a ride request push arrives.
-        if (message.data["type"] == "JOB_REQUEST") {
+        // Wake in-app fetch paths immediately when actionable data pushes arrive.
+        val type = message.data["type"]
+        if (type == "JOB_REQUEST") {
             initTokenStorage(applicationContext)
             markPendingIncomingJob()
             IncomingJobSignal.signalIncomingJob()
+        } else if (type == "PAYOUT_PAID" || type == "PAYOUT_FAILED" || type == "PAYOUT_SETUP_NEEDED") {
+            DeepLinkBus.emitPayoutUpdate(
+                notificationType = type,
+                payoutId = message.data["payoutId"],
+                transactionId = message.data["transactionId"]
+            )
         }
 
         // Extract title/body from notification payload, falling back to data payload

@@ -3,6 +3,9 @@ package com.company.carryon.presentation.earnings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.company.carryon.data.model.*
+import com.company.carryon.data.network.DeepLinkBus
+import com.company.carryon.data.network.DeepLinkEvent
+import com.company.carryon.data.network.PayoutRefreshGuard
 import com.company.carryon.di.ServiceLocator
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -47,6 +50,9 @@ class EarningsViewModel : ViewModel() {
     private val _invoiceLink = MutableStateFlow<UiState<InvoiceLink>>(UiState.Idle)
     val invoiceLink: StateFlow<UiState<InvoiceLink>> = _invoiceLink.asStateFlow()
 
+    private val _payoutBanner = MutableStateFlow<String?>(null)
+    val payoutBanner: StateFlow<String?> = _payoutBanner.asStateFlow()
+
     // Selected time period
     private val _selectedPeriod = MutableStateFlow(EarningsPeriod.THIS_WEEK)
     val selectedPeriod: StateFlow<EarningsPeriod> = _selectedPeriod.asStateFlow()
@@ -76,7 +82,46 @@ class EarningsViewModel : ViewModel() {
     )
 
     init {
+        observeDeepLinks()
         loadAll()
+    }
+
+    private fun observeDeepLinks() {
+        viewModelScope.launch {
+            DeepLinkBus.events.collect { event ->
+                when (event) {
+                    DeepLinkEvent.OnboardingReturn -> {
+                        _onboardingLink.value = UiState.Idle
+                        _payoutBanner.value = "Checking payout setup status..."
+                        loadPayoutStatus()
+                        loadWallet()
+                        loadTransactions()
+                    }
+                    DeepLinkEvent.Refresh -> {
+                        val currentStatus = (_payoutStatus.value as? UiState.Success)?.data
+                        if (currentStatus?.payoutsEnabled == true) {
+                            _payoutBanner.value = "Payout setup is already active."
+                        } else if (PayoutRefreshGuard.tryRecord()) {
+                            _payoutBanner.value = "Opening a fresh payout setup link..."
+                            createPayoutOnboardingLink()
+                        } else {
+                            _payoutBanner.value = "Payout setup link expired. Tap Continue payout setup to try again."
+                        }
+                    }
+                    is DeepLinkEvent.PayoutUpdate -> {
+                        _payoutBanner.value = when (event.notificationType) {
+                            "PAYOUT_PAID" -> "Withdrawal successful."
+                            "PAYOUT_FAILED" -> "Withdrawal failed. Amount refunded to wallet."
+                            "PAYOUT_SETUP_NEEDED" -> "Stripe needs updated payout details."
+                            else -> "Payout status updated."
+                        }
+                        loadPayoutStatus()
+                        loadWallet()
+                        loadTransactions()
+                    }
+                }
+            }
+        }
     }
 
     fun loadAll() {
@@ -109,7 +154,18 @@ class EarningsViewModel : ViewModel() {
         viewModelScope.launch {
             _walletInfo.value = UiState.Loading
             repository.getWalletInfo()
-                .onSuccess { _walletInfo.value = UiState.Success(it) }
+                .onSuccess {
+                    _walletInfo.value = UiState.Success(it)
+                    if (it.stripeAccountId == null) {
+                        viewModelScope.launch {
+                            repository.createAccount()
+                                .onSuccess {
+                                    loadPayoutStatus()
+                                    loadWallet()
+                                }
+                        }
+                    }
+                }
                 .onFailure { _walletInfo.value = UiState.Error(it.message ?: "Failed to load wallet") }
         }
     }
@@ -171,8 +227,21 @@ class EarningsViewModel : ViewModel() {
         }
     }
 
+    fun fetchPayoutReceiptUrl(transactionId: String) {
+        viewModelScope.launch {
+            _invoiceLink.value = UiState.Loading
+            repository.getPayoutReceiptUrl(transactionId)
+                .onSuccess { _invoiceLink.value = UiState.Success(it) }
+                .onFailure { _invoiceLink.value = UiState.Error(it.message ?: "Failed to get payout receipt") }
+        }
+    }
+
     fun resetInvoiceLink() {
         _invoiceLink.value = UiState.Idle
+    }
+
+    fun clearPayoutBanner() {
+        _payoutBanner.value = null
     }
 }
 
