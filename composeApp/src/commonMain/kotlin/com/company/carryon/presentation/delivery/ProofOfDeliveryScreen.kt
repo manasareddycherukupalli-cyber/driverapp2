@@ -42,7 +42,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -75,6 +77,15 @@ private val PODCard = CarryBlueLight
 private val PODWhite = Color.White
 private val PODBlack = Gray900
 private val PODBackIcon = Color(0xFF5E6470)
+
+private fun Modifier.podCardShadow(shape: Shape): Modifier =
+    shadow(
+        elevation = 12.dp,
+        shape = shape,
+        clip = false,
+        ambientColor = Color.Black.copy(alpha = 0.35f),
+        spotColor = Color.Black.copy(alpha = 0.35f)
+    )
 
 @Composable
 fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel) {
@@ -301,10 +312,14 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel)
             }
         }
 
+        val confirmationShape = RoundedCornerShape(14.dp)
         Card(
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = PODCard),
-            modifier = Modifier.fillMaxWidth()
+            shape = confirmationShape,
+            colors = CardDefaults.cardColors(containerColor = PODWhite),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .podCardShadow(confirmationShape)
         ) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Delivery Confirmation", color = PODBlue, fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -424,10 +439,14 @@ fun ProofOfDeliveryScreen(navigator: AppNavigator, viewModel: DeliveryViewModel)
 private fun RecipientContactCard(name: String, phone: String?) {
     val uriHandler = LocalUriHandler.current
     val telUri = telUriFor(phone)
+    val contactShape = RoundedCornerShape(14.dp)
     Card(
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = PODSoft),
-        modifier = Modifier.fillMaxWidth()
+        shape = contactShape,
+        colors = CardDefaults.cardColors(containerColor = PODWhite),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .podCardShadow(contactShape)
     ) {
         Row(
             modifier = Modifier
@@ -458,12 +477,15 @@ private fun RecipientContactCard(name: String, phone: String?) {
 
 @Composable
 private fun ConfirmChecklistRow(label: String, checked: Boolean, onToggle: () -> Unit) {
+    val rowShape = RoundedCornerShape(16.dp)
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onToggle() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = PODWhite)
+        shape = rowShape,
+        colors = CardDefaults.cardColors(containerColor = PODWhite),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, PODBlue.copy(alpha = 0.35f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
