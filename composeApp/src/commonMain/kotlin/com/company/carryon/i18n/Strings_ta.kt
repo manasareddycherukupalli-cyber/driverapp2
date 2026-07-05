@@ -318,7 +318,7 @@ object TaDriverStrings : DriverStrings {
     override val stillNeedHelp = "இன்னும் உதவி தேவையா?"
     override val logisticSupportAvailable = "எங்கள் லாஜிஸ்டிக் ஆதரவு குழு 24/7 செயலில் உள்ள பாதை சிக்கல்கள் அல்லது கணக்கு விசாரணைகளுக்கு உதவ கிடைக்கிறது."
     override val contactSupport = "ஆதரவை தொடர்பு கொள்"
-    override val averageWaitTime = "சராசரி காத்திருப்பு நேரம்: 1 நிமிடம்"
+    override val averageWaitTime = "சராசரி காத்திருப்பு நேரம்: 2 மணிநேரம்"
     override val supportResources = "ஆதரவு வளங்கள்"
     override val driverHandbook = "ஓட்டுநர் கையேடு PDF"
     override val videoTutorials = "வீடியோ பயிற்சிகள்"

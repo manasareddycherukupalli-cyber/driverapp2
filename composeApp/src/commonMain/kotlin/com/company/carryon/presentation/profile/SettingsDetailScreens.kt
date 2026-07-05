@@ -521,21 +521,6 @@ fun VehicleInfoScreen(navigator: AppNavigator) {
                 }
             }
             Spacer(Modifier.height(14.dp))
-            Button(
-                onClick = { },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF034094))
-            ) { Text("Track Vehicle Location", fontWeight = FontWeight.SemiBold) }
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = { navigator.navigateTo(Screen.DocumentsHub) },
-                modifier = Modifier.fillMaxWidth().height(48.dp).cardSurfaceShadow(RoundedCornerShape(10.dp)),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = BrandBlue),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
-            ) { Text("View Vehicle Manifest", fontWeight = FontWeight.SemiBold) }
-            Spacer(Modifier.height(14.dp))
         }
         DriveAppBottomBar(navigator = navigator, items = rememberDriveBottomNavItems())
     }
@@ -565,13 +550,23 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
     LaunchedEffect(Unit) { viewModel.refreshDocumentsForHub() }
     val requiredTypes = remember {
         listOf(
+            DocumentType.MYKAD_FRONT,
+            DocumentType.MYKAD_BACK,
+            DocumentType.SELFIE,
             DocumentType.DRIVERS_LICENSE,
+            DocumentType.DRIVERS_LICENSE_BACK,
             DocumentType.VEHICLE_REGISTRATION,
-            DocumentType.INSURANCE,
-            DocumentType.ID_PROOF
+            DocumentType.VEHICLE_PHOTO_FRONT,
+            DocumentType.VEHICLE_PHOTO_BACK
         )
     }
     val docsByType = remember(hubDocuments) { hubDocuments.associateBy { it.type } }
+    val displayedTypes = remember(requiredTypes, hubDocuments) {
+        requiredTypes + hubDocuments
+            .map { it.type }
+            .filterNot { it in requiredTypes }
+            .distinct()
+    }
     val approvedCount = requiredTypes.count { docsByType[it]?.status == DocumentStatus.APPROVED }
     val pendingCount = requiredTypes.count { docsByType[it]?.status == DocumentStatus.PENDING }
     val rejectedCount = requiredTypes.count { docsByType[it]?.status == DocumentStatus.REJECTED }
@@ -596,7 +591,12 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
                     Text("Compliance Status", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, lineHeight = 34.sp, color = Color(0xFF242C3E))
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Your required document compliance is $compliancePercent%. Upload missing items and resolve rejected documents to avoid dispatch interruptions.",
+                        when {
+                            actionNeededCount == 0 -> "Your onboarding documents are approved. You are clear for dispatch document checks."
+                            rejectedCount > 0 -> "Your required document compliance is $compliancePercent%. Resolve rejected documents to avoid dispatch interruptions."
+                            pendingCount > 0 -> "Your required document compliance is $compliancePercent%. Some documents are still waiting for admin review."
+                            else -> "Your required document compliance is $compliancePercent%. Upload missing items to avoid dispatch interruptions."
+                        },
                         color = Color(0xFF6D7890),
                         lineHeight = 18.sp,
                         fontSize = 12.sp
@@ -607,7 +607,12 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
                         Spacer(Modifier.width(12.dp))
                         Text(actionNeededCount.toString(), color = Color(0xFF034094), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
                         Spacer(Modifier.width(4.dp))
-                        Text("ACTION NEEDED", color = Color(0xFF7B88A2), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (actionNeededCount == 0) "ALL CLEAR" else "ACTION NEEDED",
+                            color = Color(0xFF7B88A2),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
@@ -657,7 +662,7 @@ fun DocumentsHubScreen(navigator: AppNavigator) {
             Spacer(Modifier.height(14.dp))
             Text("REQUIRED DOCUMENTATION", color = Color(0xFF6D7890), fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp, fontSize = 10.sp)
             Spacer(Modifier.height(8.dp))
-            requiredTypes.forEach { type ->
+            displayedTypes.forEach { type ->
                 DocumentRow(type = type, document = docsByType[type])
             }
             Spacer(Modifier.height(16.dp))

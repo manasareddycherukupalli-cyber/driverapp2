@@ -318,7 +318,7 @@ object MsDriverStrings : DriverStrings {
     override val stillNeedHelp = "Masih perlukan bantuan?"
     override val logisticSupportAvailable = "Pasukan sokongan logistik kami tersedia 24/7 untuk membantu masalah laluan aktif atau pertanyaan akaun."
     override val contactSupport = "Hubungi Sokongan"
-    override val averageWaitTime = "MASA TUNGGU PURATA: 1 MINIT"
+    override val averageWaitTime = "MASA TUNGGU PURATA: 2 JAM"
     override val supportResources = "Sumber Sokongan"
     override val driverHandbook = "PDF Buku Panduan Pemandu"
     override val videoTutorials = "Tutorial Video"

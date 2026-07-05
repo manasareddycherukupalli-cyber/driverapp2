@@ -318,7 +318,7 @@ object ZhDriverStrings : DriverStrings {
     override val stillNeedHelp = "仍需帮助？"
     override val logisticSupportAvailable = "我们的物流支持团队全天候提供协助，解决活跃路线问题或账户查询。"
     override val contactSupport = "联系支持"
-    override val averageWaitTime = "平均等待时间：1分钟"
+    override val averageWaitTime = "平均等待时间：2小时"
     override val supportResources = "支持资源"
     override val driverHandbook = "司机手册PDF"
     override val videoTutorials = "视频教程"
