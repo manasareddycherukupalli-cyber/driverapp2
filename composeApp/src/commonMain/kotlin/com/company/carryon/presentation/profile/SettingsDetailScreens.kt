@@ -27,6 +27,7 @@ import com.company.carryon.data.model.Document
 import com.company.carryon.data.model.DocumentStatus
 import com.company.carryon.data.model.DocumentType
 import com.company.carryon.data.api.DriverOnboardingApi
+import com.company.carryon.data.network.JobRingPreference
 import com.company.carryon.data.model.DriverProfileUpdateRequest
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.i18n.SupportedLanguages
@@ -79,6 +80,7 @@ fun NotificationPreferencesScreen(navigator: AppNavigator) {
     var orders by remember { mutableStateOf(true) }
     var earnings by remember { mutableStateOf(false) }
     var promos by remember { mutableStateOf(false) }
+    val jobRing by JobRingPreference.enabled.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Row(
@@ -116,6 +118,13 @@ fun NotificationPreferencesScreen(navigator: AppNavigator) {
                 Res.drawable.notify_push_notifications,
                 push
             ) { push = it }
+
+            NotificationCard(
+                "Job Request Sound",
+                "Play a loud ringtone\nwhen a new job\nrequest arrives so you\nnever miss an order.",
+                Res.drawable.notify_order_updates,
+                jobRing
+            ) { JobRingPreference.set(it) }
 
             NotificationCard(
                 "Order Updates",

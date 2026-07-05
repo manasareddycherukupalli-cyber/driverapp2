@@ -60,6 +60,12 @@ class FcmService : FirebaseMessagingService() {
             )
         }
 
+        // In the foreground the in-app looping ring already handles job requests;
+        // skip the tray notification so its channel sound doesn't double up.
+        if (type == "JOB_REQUEST" && AppLifecycleState.foregrounded.value) {
+            return
+        }
+
         // Extract title/body from notification payload, falling back to data payload
         val title = message.notification?.title
             ?: message.data["title"]
@@ -76,7 +82,11 @@ class FcmService : FirebaseMessagingService() {
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(this, "carryon_notifications")
+        // Job requests ring on their dedicated custom-sound channel; everything
+        // else uses the general channel.
+        val channelId = if (type == "JOB_REQUEST") "carryon_job_requests" else "carryon_notifications"
+
+        val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(body)

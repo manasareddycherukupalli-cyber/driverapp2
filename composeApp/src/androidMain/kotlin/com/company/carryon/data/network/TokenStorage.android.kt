@@ -28,6 +28,7 @@ private const val KEY_PUSH_TOKEN = "push_token"
 private const val KEY_PUSH_DEVICE_ID = "push_device_id"
 private const val KEY_PENDING_INCOMING_JOB = "pending_incoming_job"
 private const val KEY_ASKED_NOTIFICATION_PERMISSION = "asked_notification_permission"
+private const val KEY_JOB_RING_ENABLED = "job_ring_enabled"
 
 private var securePrefs: SharedPreferences? = null
 private var plainPrefs: SharedPreferences? = null
@@ -176,6 +177,14 @@ actual fun hasAskedNotificationPermission(): Boolean {
 
 actual fun markAskedNotificationPermission() {
     plainPrefs?.edit()?.putBoolean(KEY_ASKED_NOTIFICATION_PERMISSION, true)?.apply()
+}
+
+actual fun saveJobRingEnabled(enabled: Boolean) {
+    plainPrefs?.edit()?.putBoolean(KEY_JOB_RING_ENABLED, enabled)?.apply()
+}
+
+actual fun getJobRingEnabled(): Boolean {
+    return plainPrefs?.getBoolean(KEY_JOB_RING_ENABLED, true) ?: true
 }
 
 private fun putEncrypted(key: String, value: String): Boolean {

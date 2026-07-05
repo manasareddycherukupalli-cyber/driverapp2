@@ -69,6 +69,26 @@ fun AppNavHost(
         }
     }
 
+    // If the customer cancels the booking while the driver is on an active job,
+    // drop the job and return the driver to Home.
+    LaunchedEffect(deliveryViewModel) {
+        deliveryViewModel.customerCancelledEvents.collect {
+            navigator.clearPersistedDeliveryState()
+            navigator.navigateAndClearStack(Screen.Home)
+        }
+    }
+
+    // Watch the active job for a customer cancellation only while the driver is
+    // inside the delivery flow; stop polling once they leave it.
+    LaunchedEffect(currentScreen, navigator.selectedJobId) {
+        val jobId = navigator.selectedJobId
+        if (currentScreen in deliveryFlowScreens && jobId != null) {
+            deliveryViewModel.watchActiveJob(jobId)
+        } else {
+            deliveryViewModel.stopActiveJobWatch()
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
     ) { paddingValues ->

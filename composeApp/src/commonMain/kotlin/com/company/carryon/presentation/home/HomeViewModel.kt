@@ -6,7 +6,10 @@ import com.company.carryon.data.model.*
 import com.company.carryon.data.network.AuthenticationException
 import com.company.carryon.data.network.DeepLinkBus
 import com.company.carryon.data.network.DeepLinkEvent
+import com.company.carryon.data.audio.JobRingtonePlayer
+import com.company.carryon.data.network.AppLifecycleState
 import com.company.carryon.data.network.IncomingJobSignal
+import com.company.carryon.data.network.JobRingPreference
 import com.company.carryon.data.network.LocationApi
 import kotlin.math.*
 import com.company.carryon.data.network.RealtimeJobService
@@ -105,6 +108,9 @@ class HomeViewModel : ViewModel() {
     private val _acceptInFlight = MutableStateFlow(false)
     val acceptInFlight: StateFlow<Boolean> = _acceptInFlight.asStateFlow()
 
+    // Foreground job-request ringtone preference (persisted, shared; default ON).
+    val jobRingEnabled: StateFlow<Boolean> = JobRingPreference.enabled
+
     // Flag to prevent initOnlineStatusFromDriver from overriding _isOnline during a toggle request
     private val _isTogglingOnline = MutableStateFlow(false)
     val isTogglingOnline: StateFlow<Boolean> = _isTogglingOnline.asStateFlow()
@@ -141,6 +147,7 @@ class HomeViewModel : ViewModel() {
         collectRealtimeJobs()
         collectIncomingSignals()
         collectPayoutSignals()
+        collectRingtoneState()
         initOnlineStatusFromDriver()
         loadMapConfig()
         refreshDriverLocation()
@@ -490,6 +497,31 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Drives the foreground ringtone. The ring plays iff there is at least one
+     * incoming offer, the mute toggle is on, AND the app is foregrounded.
+     * Backgrounding stops the foreground ring and lets the FCM notification
+     * sound take over (see feature spec).
+     */
+    private fun collectRingtoneState() {
+        viewModelScope.launch {
+            combine(
+                _incomingJobs.map { it.isNotEmpty() }.distinctUntilChanged(),
+                JobRingPreference.enabled,
+                AppLifecycleState.foregrounded
+            ) { hasOffers, enabled, foregrounded ->
+                hasOffers && enabled && foregrounded
+            }.distinctUntilChanged().collect { shouldRing ->
+                if (shouldRing) JobRingtonePlayer.start() else JobRingtonePlayer.stop()
+            }
+        }
+    }
+
+    /** Persist and apply the foreground ringtone on/off preference. */
+    fun setJobRingEnabled(enabled: Boolean) {
+        JobRingPreference.set(enabled)
+    }
+
     private fun collectRealtimeJobs() {
         viewModelScope.launch {
             RealtimeJobService.incomingJobs.collect { job ->
@@ -568,6 +600,7 @@ class HomeViewModel : ViewModel() {
         stopLocationTracking()
         stopJobPolling()
         stopOfferExpiryLoop()
+        JobRingtonePlayer.stop()
         viewModelScope.launch {
             RealtimeJobService.stopListening()
         }
