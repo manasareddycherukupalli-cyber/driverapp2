@@ -53,6 +53,15 @@ fun AppNavHost(
     val authViewModel = remember { AuthViewModel() }
     val onboardingViewModel = remember(authViewModel) { DriverOnboardingViewModel(authViewModel) }
     val deliveryViewModel = remember { DeliveryViewModel() }
+    // Hoist HomeViewModel and MapViewModel to the AppNavHost top level so a single
+    // instance survives navigation across tabs/delivery screens. Previously these
+    // were created with `remember { ... }` inside the per-screen `when` branches,
+    // which allocated a fresh ViewModel on every re-entry (and AnimatedContent's
+    // cross-fade kept old instances alive briefly). That left several HomeViewModels
+    // running in parallel, each spawning its own job/location/earnings pollers and
+    // hammering the backend 6–10× per cycle.
+    val homeViewModel = remember { HomeViewModel() }
+    val mapViewModel = remember { MapViewModel() }
     val bottomNavItems = rememberDriveBottomNavItems()
 
     LaunchedEffect(deliveryViewModel) {
@@ -147,7 +156,6 @@ fun AppNavHost(
 
                     // ---- Main Tabs ----
                     Screen.Home -> {
-                        val homeViewModel = remember { HomeViewModel() }
                         HomeScreen(navigator, homeViewModel)
                     }
                     Screen.Jobs -> JobsListScreen(navigator)
@@ -159,12 +167,12 @@ fun AppNavHost(
                     Screen.ActiveDelivery -> ActiveDeliveryScreen(navigator, deliveryViewModel)
                     Screen.PickupInstructions -> PickupInstructionsScreen(navigator, deliveryViewModel)
                     Screen.StartDelivery -> StartDeliveryScreen(navigator, deliveryViewModel)
-                    Screen.InTransitNavigation -> InTransitScreen(navigator, deliveryViewModel)
+                    Screen.InTransitNavigation -> InTransitScreen(navigator, deliveryViewModel, mapViewModel)
                     Screen.ArrivedAtDrop -> ArrivedAtDropScreen(navigator, deliveryViewModel)
                     Screen.ProofOfDelivery -> ProofOfDeliveryScreen(navigator, deliveryViewModel)
                     Screen.DeliveryComplete -> DeliveryCompleteScreen(navigator, deliveryViewModel)
                     Screen.JobReceipt -> JobReceiptScreen(navigator, deliveryViewModel)
-                    Screen.MapNavigation -> MapScreen(navigator, deliveryViewModel)
+                    Screen.MapNavigation -> MapScreen(navigator, deliveryViewModel, mapViewModel)
                     Screen.Wallet -> WalletScreen(navigator)
                     Screen.TransactionHistory -> WalletScreen(navigator)
                     Screen.TransactionDetail -> TransactionDetailScreen(navigator)
