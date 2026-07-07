@@ -5,6 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -201,6 +203,7 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel, vie
             Box(modifier = Modifier.fillMaxSize().background(NavSoft.copy(alpha = 0.1f)))
         }
 
+        Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -266,7 +269,7 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel, vie
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 72.dp),
+                .padding(horizontal = 16.dp),
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(containerColor = NavBlue)
         ) {
@@ -353,43 +356,21 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel, vie
             }
         }
 
-        Image(
-            painter = painterResource(Res.drawable.ic_nav_arrow),
-            contentDescription = "Your location",
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(top = 80.dp)
-                .size(48.dp)
-                .graphicsLayer { rotationZ = animatedHeading }
-        )
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 14.dp, top = 210.dp)
-                .size(40.dp)
-                .background(NavWhite, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Filled.MyLocation,
-                contentDescription = null,
-                tint = NavBlue,
-                modifier = Modifier
-                    .size(18.dp)
-                    .clickable { viewModel.refreshLocation() }
-            )
-        }
-
         Card(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 14.dp),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = NavWhite)
         ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     ChipText("ORDER ID")
                     ChipText("PICKUP TASK")
@@ -482,6 +463,35 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel, vie
                     }
                 }
             }
+        }
+        }
+
+        Image(
+            painter = painterResource(Res.drawable.ic_nav_arrow),
+            contentDescription = "Your location",
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(top = 80.dp)
+                .size(48.dp)
+                .graphicsLayer { rotationZ = animatedHeading }
+        )
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 14.dp, top = 210.dp)
+                .size(40.dp)
+                .background(NavWhite, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Filled.MyLocation,
+                contentDescription = null,
+                tint = NavBlue,
+                modifier = Modifier
+                    .size(18.dp)
+                    .clickable { viewModel.refreshLocation() }
+            )
         }
 
     }

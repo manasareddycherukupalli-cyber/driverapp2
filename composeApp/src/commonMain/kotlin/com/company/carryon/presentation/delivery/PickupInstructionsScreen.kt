@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.LocalShipping
@@ -45,8 +48,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,6 +63,8 @@ import com.company.carryon.presentation.components.ErrorState
 import com.company.carryon.presentation.components.LoadingScreen
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.util.rememberImagePickerLauncher
+import com.company.carryon.presentation.util.toImageBitmap
 
 private val PickBlue = Color(0xFF034094)
 private val PickSoft = Color(0x4DA6D2F3)
@@ -69,10 +76,14 @@ fun PickupInstructionsScreen(navigator: AppNavigator, viewModel: DeliveryViewMod
     val jobState by viewModel.currentJob.collectAsState()
     val otpVerifying by viewModel.otpVerifying.collectAsState()
     val cancelState by viewModel.cancelState.collectAsState()
+    val pickupPhotoUploadState by viewModel.pickupPhotoUploadState.collectAsState()
     val jobId = navigator.selectedJobId
 
     LaunchedEffect(jobId) {
-        jobId?.let { viewModel.loadJob(it) }
+        jobId?.let {
+            viewModel.loadJob(it)
+            viewModel.preparePickupProof(it)
+        }
     }
     LaunchedEffect(viewModel) {
         viewModel.cancelCompletedEvents.collect {
@@ -112,7 +123,9 @@ fun PickupInstructionsScreen(navigator: AppNavigator, viewModel: DeliveryViewMod
             isCancelling = cancelState is UiState.Loading,
             canVerifyPickup = viewModel.canRun(DeliveryLifecycleCommand.VERIFY_PICKUP_OTP, state.data),
             canCancelPickup = viewModel.canCancelBeforePickup(state.data),
-            onConfirm = { viewModel.confirmPickup(state.data.id) },
+            photoUploadState = pickupPhotoUploadState,
+            onCapturePhoto = { bytes -> viewModel.uploadPickupPhoto(state.data.id, bytes) },
+            onConfirm = { photoUrl -> viewModel.confirmPickup(state.data.id, photoUrl) },
             onCancelPickup = { viewModel.cancelJob(state.data.id) }
         )
     }
@@ -127,11 +140,15 @@ private fun PickupInstructionsContent(
     isCancelling: Boolean,
     canVerifyPickup: Boolean,
     canCancelPickup: Boolean,
-    onConfirm: () -> Unit,
+    photoUploadState: UiState<ProofPhotoUpload>,
+    onCapturePhoto: (ByteArray) -> Unit,
+    onConfirm: (String?) -> Unit,
     onCancelPickup: () -> Unit
 ) {
     val checks = remember(job.id) { mutableStateListOf(false, false, false, false) }
     var showCancelDialog by remember(job.id) { mutableStateOf(false) }
+    var photoBytes by remember(job.id) { mutableStateOf<ByteArray?>(null) }
+    var captureError by remember(job.id) { mutableStateOf<String?>(null) }
     val allChecksComplete = checks.all { it }
     val displayOrderId = remember(job.id, job.displayOrderId) {
         job.displayOrderId.takeIf { it.isNotBlank() }
@@ -142,6 +159,17 @@ private fun PickupInstructionsContent(
         ?.takeIf { it.isNotBlank() }
         ?: job.notes?.takeIf { it.isNotBlank() }
         ?: "No special instructions provided."
+
+    val imagePicker = rememberImagePickerLauncher(
+        onImagePicked = { bytes ->
+            photoBytes = bytes
+            captureError = null
+            onCapturePhoto(bytes)
+        },
+        onImagePickFailed = { message -> captureError = message }
+    )
+    val uploadedPhotoUrl = (photoUploadState as? UiState.Success)?.data?.takeIf { it.jobId == job.id }?.url
+    val hasPhoto = photoBytes != null || uploadedPhotoUrl != null
 
     LaunchedEffect(canCancelPickup) {
         if (!canCancelPickup) {
@@ -276,9 +304,80 @@ private fun PickupInstructionsContent(
             }
         }
 
+        Card(
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = PickWhite),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.5.dp, PickBlue, RoundedCornerShape(14.dp))
+        ) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Proof of Pickup", color = PickBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(PickSoft)
+                        .clickable(enabled = photoUploadState !is UiState.Loading) {
+                            captureError = null
+                            imagePicker.launch()
+                        }
+                ) {
+                    if (photoBytes != null) {
+                        androidx.compose.foundation.Image(
+                            bitmap = photoBytes!!.toImageBitmap(),
+                            contentDescription = "Pickup proof photo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Box(modifier = Modifier.size(44.dp).background(PickWhite, CircleShape), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = PickBlue)
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text("Tap to capture the package", color = PickBlack.copy(alpha = 0.7f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    if (photoUploadState is UiState.Loading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(PickBlack.copy(alpha = 0.45f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = PickWhite, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
+                        }
+                    } else if (uploadedPhotoUrl != null) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp)
+                                .size(24.dp)
+                                .background(Color(0xFF2E7D32), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Check, contentDescription = null, tint = PickWhite, modifier = Modifier.size(14.dp))
+                        }
+                    }
+                }
+                when {
+                    !captureError.isNullOrBlank() -> Text(captureError!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    photoUploadState is UiState.Error -> Text(photoUploadState.message, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    hasPhoto -> Text("Photo captured. Tap to retake.", color = PickBlack.copy(alpha = 0.6f), fontSize = 12.sp)
+                    else -> Text("Required before starting delivery.", color = PickBlack.copy(alpha = 0.6f), fontSize = 12.sp)
+                }
+            }
+        }
+
         Button(
-            onClick = onConfirm,
-            enabled = canVerifyPickup && allChecksComplete && !otpVerifying && !isCancelling,
+            onClick = { onConfirm(uploadedPhotoUrl) },
+            enabled = canVerifyPickup && allChecksComplete && uploadedPhotoUrl != null && !otpVerifying && !isCancelling,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),

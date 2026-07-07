@@ -44,6 +44,11 @@ class DeliveryViewModel : ViewModel() {
     private val _photoUploadState = MutableStateFlow<UiState<ProofPhotoUpload>>(UiState.Idle)
     val photoUploadState: StateFlow<UiState<ProofPhotoUpload>> = _photoUploadState.asStateFlow()
 
+    // Proof-of-pickup photo upload state — kept separate from [photoUploadState] (proof of
+    // delivery) since both are scoped by the same jobId and would otherwise collide.
+    private val _pickupPhotoUploadState = MutableStateFlow<UiState<ProofPhotoUpload>>(UiState.Idle)
+    val pickupPhotoUploadState: StateFlow<UiState<ProofPhotoUpload>> = _pickupPhotoUploadState.asStateFlow()
+
     private val _extraChargeProofState = MutableStateFlow<UiState<String>>(UiState.Idle)
     val extraChargeProofState: StateFlow<UiState<String>> = _extraChargeProofState.asStateFlow()
 
@@ -209,6 +214,13 @@ class DeliveryViewModel : ViewModel() {
         _proofState.value = UiState.Idle
     }
 
+    fun preparePickupProof(jobId: String) {
+        val currentUpload = (_pickupPhotoUploadState.value as? UiState.Success)?.data
+        if (currentUpload?.jobId != jobId) {
+            _pickupPhotoUploadState.value = UiState.Idle
+        }
+    }
+
     fun resetExtraChargeForm() {
         _extraChargeProofState.value = UiState.Idle
         _extraChargeSubmitState.value = UiState.Idle
@@ -290,11 +302,15 @@ class DeliveryViewModel : ViewModel() {
         }
     }
 
-    fun confirmPickup(jobId: String) {
+    fun confirmPickup(jobId: String, photoUrl: String? = null) {
         viewModelScope.launch {
             _otpError.value = null
             _otpVerifying.value = true
-            executeLifecycle(jobId, DeliveryLifecycleCommand.VERIFY_PICKUP_OTP)
+            executeLifecycle(
+                jobId,
+                DeliveryLifecycleCommand.VERIFY_PICKUP_OTP,
+                lifecyclePayload(proof = photoUrl?.let { DeliveryLifecycleProof(photoUrl = it) })
+            )
                 .onSuccess {
                     _otpVerifying.value = false
                     emitNavigation(Screen.StartDelivery)
@@ -343,6 +359,20 @@ class DeliveryViewModel : ViewModel() {
                     _cancelCompletedEvents.tryEmit(Unit)
                 }
                 .onFailure { _cancelState.value = UiState.Error(it.message ?: "Failed to cancel job") }
+        }
+    }
+
+    /** Upload proof-of-pickup photo immediately after capture */
+    fun uploadPickupPhoto(jobId: String, photoBytes: ByteArray) {
+        _pickupPhotoUploadState.value = UiState.Loading
+        viewModelScope.launch {
+            DriverUploadApi.uploadProofImage(photoBytes)
+                .onSuccess { url ->
+                    _pickupPhotoUploadState.value = UiState.Success(ProofPhotoUpload(jobId, url))
+                }
+                .onFailure { error ->
+                    _pickupPhotoUploadState.value = UiState.Error(error.message ?: "Failed to upload photo")
+                }
         }
     }
 
