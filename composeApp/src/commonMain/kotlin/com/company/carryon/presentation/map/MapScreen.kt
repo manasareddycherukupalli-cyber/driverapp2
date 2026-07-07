@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -288,7 +289,7 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
                         Spacer(Modifier.height(12.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             OutlinedButton(
                                 onClick = {
@@ -302,13 +303,15 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = NavWhite)
                             ) {
-                                Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
+                                Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
                                 Text(
-                                    "Navigate",
+                                    "Directions",
                                     fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp,
                                     maxLines = 1,
                                     softWrap = false,
                                     overflow = TextOverflow.Ellipsis
@@ -321,11 +324,19 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
                                 enabled = destinationTelUri != null,
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = NavWhite)
                             ) {
-                                Icon(Icons.Filled.Phone, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Call", fontWeight = FontWeight.SemiBold)
+                                Icon(Icons.Filled.Phone, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    "Call",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
