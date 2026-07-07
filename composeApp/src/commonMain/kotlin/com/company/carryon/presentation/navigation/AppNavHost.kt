@@ -53,6 +53,15 @@ fun AppNavHost(
     val authViewModel = remember { AuthViewModel() }
     val onboardingViewModel = remember(authViewModel) { DriverOnboardingViewModel(authViewModel) }
     val deliveryViewModel = remember { DeliveryViewModel() }
+    // Hoist HomeViewModel and MapViewModel to the AppNavHost top level so a single
+    // instance survives navigation across tabs/delivery screens. Previously these
+    // were created with `remember { ... }` inside the per-screen `when` branches,
+    // which allocated a fresh ViewModel on every re-entry (and AnimatedContent's
+    // cross-fade kept old instances alive briefly). That left several HomeViewModels
+    // running in parallel, each spawning its own job/location/earnings pollers and
+    // hammering the backend 6–10× per cycle.
+    val homeViewModel = remember { HomeViewModel() }
+    val mapViewModel = remember { MapViewModel() }
     val bottomNavItems = rememberDriveBottomNavItems()
 
     LaunchedEffect(deliveryViewModel) {
@@ -66,6 +75,26 @@ fun AppNavHost(
                     }
                 }
             }
+        }
+    }
+
+    // If the customer cancels the booking while the driver is on an active job,
+    // drop the job and return the driver to Home.
+    LaunchedEffect(deliveryViewModel) {
+        deliveryViewModel.customerCancelledEvents.collect {
+            navigator.clearPersistedDeliveryState()
+            navigator.navigateAndClearStack(Screen.Home)
+        }
+    }
+
+    // Watch the active job for a customer cancellation only while the driver is
+    // inside the delivery flow; stop polling once they leave it.
+    LaunchedEffect(currentScreen, navigator.selectedJobId) {
+        val jobId = navigator.selectedJobId
+        if (currentScreen in deliveryFlowScreens && jobId != null) {
+            deliveryViewModel.watchActiveJob(jobId)
+        } else {
+            deliveryViewModel.stopActiveJobWatch()
         }
     }
 
@@ -127,7 +156,6 @@ fun AppNavHost(
 
                     // ---- Main Tabs ----
                     Screen.Home -> {
-                        val homeViewModel = remember { HomeViewModel() }
                         HomeScreen(navigator, homeViewModel)
                     }
                     Screen.Jobs -> JobsListScreen(navigator)
@@ -139,12 +167,12 @@ fun AppNavHost(
                     Screen.ActiveDelivery -> ActiveDeliveryScreen(navigator, deliveryViewModel)
                     Screen.PickupInstructions -> PickupInstructionsScreen(navigator, deliveryViewModel)
                     Screen.StartDelivery -> StartDeliveryScreen(navigator, deliveryViewModel)
-                    Screen.InTransitNavigation -> InTransitScreen(navigator, deliveryViewModel)
+                    Screen.InTransitNavigation -> InTransitScreen(navigator, deliveryViewModel, mapViewModel)
                     Screen.ArrivedAtDrop -> ArrivedAtDropScreen(navigator, deliveryViewModel)
                     Screen.ProofOfDelivery -> ProofOfDeliveryScreen(navigator, deliveryViewModel)
                     Screen.DeliveryComplete -> DeliveryCompleteScreen(navigator, deliveryViewModel)
                     Screen.JobReceipt -> JobReceiptScreen(navigator, deliveryViewModel)
-                    Screen.MapNavigation -> MapScreen(navigator, deliveryViewModel)
+                    Screen.MapNavigation -> MapScreen(navigator, deliveryViewModel, mapViewModel)
                     Screen.Wallet -> WalletScreen(navigator)
                     Screen.TransactionHistory -> WalletScreen(navigator)
                     Screen.TransactionDetail -> TransactionDetailScreen(navigator)

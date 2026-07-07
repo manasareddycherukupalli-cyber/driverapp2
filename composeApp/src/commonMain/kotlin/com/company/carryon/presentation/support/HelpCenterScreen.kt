@@ -230,18 +230,6 @@ fun HelpCenterScreen(navigator: AppNavigator) {
                 }
             }
 
-            Card(
-                modifier = Modifier.fillMaxWidth().cardSurfaceShadow(RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(strings.supportResources, color = Color(0xFF6E7991), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    ResourceRow(strings.driverHandbook) { navigator.navigateTo(Screen.HelpDriverHandbook) }
-                    ResourceRow(strings.videoTutorials) { }
-                }
-            }
-
             Spacer(Modifier.height(8.dp))
         }
     }
@@ -403,7 +391,7 @@ fun ContactSupportScreen(navigator: AppNavigator) {
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Phone", color = Color(0xFF6E7991), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Text("+60 3-9212 7740", color = Color(0xFF2C3852), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("+60 14-396-0385", color = Color(0xFF2C3852), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Text("Operations support: 8:00 AM - 10:00 PM MYT. For emergencies, use SOS.", color = Color(0xFF7B88A2), fontSize = 12.sp, lineHeight = 16.sp)
                 }
             }

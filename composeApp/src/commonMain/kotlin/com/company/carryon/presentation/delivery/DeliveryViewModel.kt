@@ -12,7 +12,10 @@ import com.company.carryon.presentation.components.MarkerColor
 import com.company.carryon.presentation.navigation.Screen
 import com.company.carryon.presentation.navigation.deliveryFlowScreens
 import com.company.carryon.presentation.navigation.mapJobStatusToResumeScreen
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
@@ -63,6 +66,15 @@ class DeliveryViewModel : ViewModel() {
 
     private val _cancelCompletedEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val cancelCompletedEvents: SharedFlow<Unit> = _cancelCompletedEvents.asSharedFlow()
+
+    // Emitted when the active job is cancelled by someone other than this driver
+    // (i.e. the customer). Observers should drop the job and return to Home.
+    private val _customerCancelledEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val customerCancelledEvents: SharedFlow<Unit> = _customerCancelledEvents.asSharedFlow()
+
+    // Background poller that watches the active job for a customer cancellation.
+    private var activeJobWatchJob: Job? = null
+    private var watchedJobId: String? = null
 
     // Route geometry for map polyline
     private val _routeGeometry = MutableStateFlow<List<LatLng>?>(null)
@@ -125,6 +137,40 @@ class DeliveryViewModel : ViewModel() {
 
     fun resetCancelState() {
         _cancelState.value = UiState.Idle
+    }
+
+    /**
+     * Poll the active job while the driver is inside the delivery flow so we can
+     * react when the customer cancels the booking out from under the driver.
+     *
+     * The backend maps a customer cancellation to [JobStatus.CANCELLED]. A driver's
+     * own pre-pickup cancel instead reopens the job (SEARCHING_DRIVER → PENDING),
+     * so seeing CANCELLED here always means the booking was ended by someone else.
+     */
+    fun watchActiveJob(jobId: String) {
+        if (jobId.isBlank()) return
+        if (activeJobWatchJob?.isActive == true && watchedJobId == jobId) return
+        activeJobWatchJob?.cancel()
+        watchedJobId = jobId
+        activeJobWatchJob = viewModelScope.launch {
+            while (isActive) {
+                delay(5000)
+                jobRepository.getJobDetails(jobId)
+                    .onSuccess { job ->
+                        _currentJob.value = UiState.Success(job)
+                        if (job.status == JobStatus.CANCELLED) {
+                            _customerCancelledEvents.tryEmit(Unit)
+                            return@launch
+                        }
+                    }
+            }
+        }
+    }
+
+    fun stopActiveJobWatch() {
+        activeJobWatchJob?.cancel()
+        activeJobWatchJob = null
+        watchedJobId = null
     }
 
     /** Load job details for active delivery */

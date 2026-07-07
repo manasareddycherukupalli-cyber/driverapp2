@@ -323,7 +323,7 @@ interface DriverStrings {
     val stillNeedHelp: String get() = "Still need help?"
     val logisticSupportAvailable: String get() = "Our logistic support team is available 24/7 to assist with active route issues or account inquiries."
     val contactSupport: String get() = "Contact Support"
-    val averageWaitTime: String get() = "AVERAGE WAIT TIME: 1 MIN"
+    val averageWaitTime: String get() = "AVERAGE WAIT TIME: 2 HOURS"
     val supportResources: String get() = "Support Resources"
     val driverHandbook: String get() = "Driver Handbook PDF"
     val videoTutorials: String get() = "Video Tutorials"

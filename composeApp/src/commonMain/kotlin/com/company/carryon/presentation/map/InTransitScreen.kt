@@ -66,10 +66,9 @@ private val ITBlack = Color(0xFF000000)
 private val DefaultCenter = LatLng(12.9716, 77.5946)
 
 @Composable
-fun InTransitScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
+fun InTransitScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel, viewModel: MapViewModel) {
     val strings = LocalStrings.current
     val jobId = navigator.selectedJobId
-    val viewModel = remember { MapViewModel() }
     val driverLocation by viewModel.driverLocation.collectAsState()
     val mapStyleUrl by viewModel.mapStyleUrl.collectAsState()
     val mapJob by viewModel.currentJob.collectAsState()

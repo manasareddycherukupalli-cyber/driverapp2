@@ -42,6 +42,7 @@ private const val KEY_PUSH_TOKEN = "push_token"
 private const val KEY_PUSH_DEVICE_ID = "push_device_id"
 private const val KEY_PENDING_INCOMING_JOB = "pending_incoming_job"
 private const val KEY_ASKED_NOTIFICATION_PERMISSION = "asked_notification_permission"
+private const val KEY_JOB_RING_ENABLED = "job_ring_enabled"
 
 @OptIn(ExperimentalForeignApi::class)
 private fun keychainSave(key: String, value: String) {
@@ -191,4 +192,15 @@ actual fun hasAskedNotificationPermission(): Boolean {
 
 actual fun markAskedNotificationPermission() {
     NSUserDefaults.standardUserDefaults.setBool(true, forKey = KEY_ASKED_NOTIFICATION_PERMISSION)
+}
+
+actual fun saveJobRingEnabled(enabled: Boolean) {
+    NSUserDefaults.standardUserDefaults.setBool(enabled, forKey = KEY_JOB_RING_ENABLED)
+}
+
+actual fun getJobRingEnabled(): Boolean {
+    val defaults = NSUserDefaults.standardUserDefaults
+    // Absent key => default to enabled (boolForKey would otherwise return false).
+    if (defaults.objectForKey(KEY_JOB_RING_ENABLED) == null) return true
+    return defaults.boolForKey(KEY_JOB_RING_ENABLED)
 }

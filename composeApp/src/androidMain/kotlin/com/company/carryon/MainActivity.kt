@@ -6,9 +6,11 @@ import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.media.AudioAttributes
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -22,6 +24,8 @@ import com.company.carryon.data.network.DeepLinkHandler
 import com.company.carryon.data.network.PayoutRefreshGuard
 import com.company.carryon.data.network.handleLocationPermissionResult
 import com.company.carryon.data.network.initTokenStorage
+import com.company.carryon.data.audio.initJobRingtonePlayer
+import com.company.carryon.data.network.AppLifecycleState
 import com.company.carryon.data.network.savePushToken
 import com.company.carryon.data.network.deliverNotificationPermissionResult
 import com.company.carryon.data.network.initNotificationPermissionHost
@@ -60,6 +64,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.light(Color.WHITE, Color.WHITE)
         )
         initTokenStorage(applicationContext)
+        initJobRingtonePlayer(applicationContext)
         initAppUpdatePlatform(applicationContext)
         initLocationProvider(this)
         initNotificationPermissionHost(applicationContext)
@@ -82,6 +87,16 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleDeepLinkIntent(intent)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        AppLifecycleState.setForegrounded(true)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        AppLifecycleState.setForegrounded(false)
     }
 
     override fun onRequestPermissionsResult(
@@ -132,6 +147,26 @@ class MainActivity : ComponentActivity() {
                 description = "Notifications for incoming delivery job requests"
             }
             manager.createNotificationChannel(jobChannel)
+
+            // Dedicated channel carrying the custom alert_sonar ringtone. A new id
+            // (not "job_requests") is required because channel sound is immutable
+            // once registered on a device.
+            val jobRequestSoundUri =
+                "android.resource://$packageName/${R.raw.alert_sonar}".toUri()
+            val jobRequestAudioAttrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            val jobRequestChannel = NotificationChannel(
+                "carryon_job_requests",
+                "Job Request Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Loud ringtone alerts for incoming delivery job requests"
+                setSound(jobRequestSoundUri, jobRequestAudioAttrs)
+                enableVibration(true)
+            }
+            manager.createNotificationChannel(jobRequestChannel)
 
             val generalChannel = NotificationChannel(
                 "carryon_notifications",

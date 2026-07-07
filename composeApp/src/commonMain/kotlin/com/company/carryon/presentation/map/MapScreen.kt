@@ -82,9 +82,8 @@ private val NavBlack = Color(0xFF000000)
 private val DefaultCenter = LatLng(12.9716, 77.5946)
 
 @Composable
-fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel) {
+fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel, viewModel: MapViewModel) {
     val jobId = navigator.selectedJobId
-    val viewModel = remember { MapViewModel() }
     val cancelState by deliveryViewModel.cancelState.collectAsState()
     val isCancelling = cancelState is UiState.Loading
     var showCancelMenu by remember { mutableStateOf(false) }

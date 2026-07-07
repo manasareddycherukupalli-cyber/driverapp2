@@ -21,3 +21,7 @@ expect fun markPendingIncomingJob()
 expect fun consumePendingIncomingJob(): Boolean
 expect fun hasAskedNotificationPermission(): Boolean
 expect fun markAskedNotificationPermission()
+
+/** Foreground job-request ringtone preference. Defaults to enabled. */
+expect fun saveJobRingEnabled(enabled: Boolean)
+expect fun getJobRingEnabled(): Boolean

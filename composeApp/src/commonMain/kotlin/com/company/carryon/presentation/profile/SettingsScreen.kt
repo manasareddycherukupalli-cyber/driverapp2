@@ -2,8 +2,10 @@ package com.company.carryon.presentation.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,20 +18,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.company.carryon.data.model.DocumentStatus
 import com.company.carryon.data.model.UiState
+import com.company.carryon.data.network.HttpClientFactory
 import com.company.carryon.data.network.getLanguage
 import com.company.carryon.i18n.LocalStrings
 import com.company.carryon.i18n.getLanguageDisplayName
-import com.company.carryon.presentation.components.AvatarCircle
 import com.company.carryon.presentation.components.DriveAppTopBar
 import com.company.carryon.presentation.navigation.AppNavigator
 import com.company.carryon.presentation.navigation.Screen
+import com.company.carryon.presentation.util.toImageBitmap
+import io.ktor.client.call.body
+import io.ktor.client.request.get
 
 private val SurfaceShadow = Color(0x26000000)
 private val CardStrokeColor = Color(0x1F034094)
@@ -106,7 +113,13 @@ fun SettingsScreen(
                 border = androidx.compose.foundation.BorderStroke(1.dp, CardStrokeColor)
             ) {
                 Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    AvatarCircle(initials = driverInitials, size = 72.dp)
+                    DriverProfileAvatar(
+                        initials = driverInitials,
+                        photoKey = driver?.profileImagePath,
+                        photoUrl = driver?.photoUrl,
+                        size = 72.dp,
+                        backgroundColor = blue
+                    )
                     Spacer(Modifier.width(16.dp))
                     Column {
                         Text(driver?.name?.ifBlank { "--" } ?: "--", fontWeight = FontWeight.Bold, fontSize = 22.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -157,12 +170,6 @@ fun SettingsScreen(
             ) {
                 Column(Modifier.padding(8.dp)) {
                     PrefComingSoonRow(strings.darkMode, Icons.Filled.Brightness2)
-                    UnitToggleRow(
-                        strings = strings,
-                        useMiles = useMiles,
-                        onMilesSelected = { useMiles = true },
-                        onKmSelected = { useMiles = false }
-                    )
                     TextButton(
                         onClick = { },
                         modifier = Modifier.fillMaxWidth(),
@@ -259,6 +266,74 @@ fun SettingsScreen(
             )
             Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun DriverProfileAvatar(
+    initials: String,
+    photoKey: String?,
+    photoUrl: String?,
+    size: androidx.compose.ui.unit.Dp,
+    backgroundColor: Color
+) {
+    var bitmap by remember { mutableStateOf(DriverProfileImageCache.bitmapFor(photoKey)) }
+
+    LaunchedEffect(photoKey, photoUrl) {
+        val key = photoKey?.takeIf { it.isNotBlank() }
+        val url = photoUrl?.takeIf { it.isNotBlank() }
+        if (key == null || url == null) {
+            bitmap = null
+            return@LaunchedEffect
+        }
+        DriverProfileImageCache.bitmapFor(key)?.let {
+            bitmap = it
+            return@LaunchedEffect
+        }
+        runCatching {
+            HttpClientFactory.client.get(url).body<ByteArray>().toImageBitmap()
+        }.onSuccess {
+            bitmap = it
+            DriverProfileImageCache.put(key, it)
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(Color(0xFFEAF1FB)),
+        contentAlignment = Alignment.Center
+    ) {
+        val selectedBitmap = bitmap
+        if (selectedBitmap != null) {
+            Image(
+                bitmap = selectedBitmap,
+                contentDescription = "Driver profile photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Text(
+                text = initials,
+                color = backgroundColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = (size.value / 2.5).sp
+            )
+        }
+    }
+}
+
+private object DriverProfileImageCache {
+    private var key: String? = null
+    private var bitmap: ImageBitmap? = null
+
+    fun bitmapFor(nextKey: String?): ImageBitmap? =
+        if (!nextKey.isNullOrBlank() && key == nextKey) bitmap else null
+
+    fun put(nextKey: String, nextBitmap: ImageBitmap) {
+        key = nextKey
+        bitmap = nextBitmap
     }
 }
 
