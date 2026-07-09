@@ -465,11 +465,12 @@ private fun FinalHomeDashboard(
             }
         }
 
-        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = White), modifier = Modifier.fillMaxWidth()) {
+        val mapCardShape = RoundedCornerShape(22.dp)
+        Card(shape = mapCardShape, colors = CardDefaults.cardColors(containerColor = White), modifier = Modifier.fillMaxWidth()) {
             Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
                 if (driverLocation != null) {
                     MapViewComposable(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().clip(mapCardShape),
                         styleUrl = mapStyleUrl,
                         centerLat = driverLocation.first,
                         centerLng = driverLocation.second,
@@ -478,7 +479,7 @@ private fun FinalHomeDashboard(
                     )
                 } else {
                     MapViewComposable(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().clip(mapCardShape),
                         styleUrl = mapStyleUrl,
                         centerLat = DefaultCenter.lat,
                         centerLng = DefaultCenter.lng,
