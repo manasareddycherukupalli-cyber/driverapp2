@@ -235,75 +235,6 @@ private fun PickupInstructionsContent(
             }
         }
 
-        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PickWhite), modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("CURRENT ASSIGNMENT", color = PickBlack.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                Text("Order #$displayOrderId", color = PickBlack, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(30.dp).background(PickSoft, RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.LocationOn, contentDescription = null, tint = PickBlue, modifier = Modifier.size(16.dp))
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Column {
-                        Text("Destination", color = PickBlack.copy(alpha = 0.5f), fontSize = 11.sp)
-                        Text(destinationLabel, color = PickBlue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                    }
-                }
-            }
-        }
-
-        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PickBlue), modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("EST. EARNINGS", color = PickWhite.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                Text("RM ${job.estimatedEarnings.toInt()}", color = PickWhite, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-            }
-        }
-
-        val instructionsShape = RoundedCornerShape(14.dp)
-        Card(
-            shape = instructionsShape,
-            colors = CardDefaults.cardColors(containerColor = PickWhite),
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(
-                    elevation = 10.dp,
-                    shape = instructionsShape,
-                    ambientColor = Color.Black.copy(alpha = 0.35f),
-                    spotColor = Color.Black.copy(alpha = 0.35f)
-                )
-        ) {
-            Row(modifier = Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(modifier = Modifier.size(30.dp).background(PickBlue.copy(alpha = 0.15f), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.WarningAmber, contentDescription = null, tint = PickBlue, modifier = Modifier.size(16.dp))
-                }
-                Column {
-                    Text("Special Instructions", color = PickBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text(
-                        instructionsLabel,
-                        color = PickBlack.copy(alpha = 0.75f),
-                        fontSize = 14.sp,
-                        lineHeight = 19.sp
-                    )
-                }
-            }
-        }
-
-        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PickWhite), modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Verification Checklist", color = PickBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Spacer(Modifier.width(8.dp))
-                    Box(modifier = Modifier.background(PickBlue, RoundedCornerShape(999.dp)).padding(horizontal = 8.dp, vertical = 2.dp)) {
-                        Text("MANDATORY", color = PickWhite, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-                CheckRow("Package sealed securely", checks[0]) { checks[0] = !checks[0] }
-                CheckRow("Label information correct", checks[1]) { checks[1] = !checks[1] }
-                CheckRow("Fragile sticker attached", checks[2]) { checks[2] = !checks[2] }
-                CheckRow("Sender confirms package handover", checks[3]) { checks[3] = !checks[3] }
-            }
-        }
-
         Card(
             shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = PickWhite),
@@ -372,6 +303,75 @@ private fun PickupInstructionsContent(
                     hasPhoto -> Text("Photo captured. Tap to retake.", color = PickBlack.copy(alpha = 0.6f), fontSize = 12.sp)
                     else -> Text("Required before starting delivery.", color = PickBlack.copy(alpha = 0.6f), fontSize = 12.sp)
                 }
+            }
+        }
+
+        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PickWhite), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("CURRENT ASSIGNMENT", color = PickBlack.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                Text("Order #$displayOrderId", color = PickBlack, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(30.dp).background(PickSoft, RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.LocationOn, contentDescription = null, tint = PickBlue, modifier = Modifier.size(16.dp))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text("Destination", color = PickBlack.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text(destinationLabel, color = PickBlue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
+        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PickBlue), modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("EST. EARNINGS", color = PickWhite.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text("RM ${job.estimatedEarnings.toInt()}", color = PickWhite, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+            }
+        }
+
+        val instructionsShape = RoundedCornerShape(14.dp)
+        Card(
+            shape = instructionsShape,
+            colors = CardDefaults.cardColors(containerColor = PickWhite),
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = 10.dp,
+                    shape = instructionsShape,
+                    ambientColor = Color.Black.copy(alpha = 0.35f),
+                    spotColor = Color.Black.copy(alpha = 0.35f)
+                )
+        ) {
+            Row(modifier = Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(modifier = Modifier.size(30.dp).background(PickBlue.copy(alpha = 0.15f), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.WarningAmber, contentDescription = null, tint = PickBlue, modifier = Modifier.size(16.dp))
+                }
+                Column {
+                    Text("Special Instructions", color = PickBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text(
+                        instructionsLabel,
+                        color = PickBlack.copy(alpha = 0.75f),
+                        fontSize = 14.sp,
+                        lineHeight = 19.sp
+                    )
+                }
+            }
+        }
+
+        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PickWhite), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Verification Checklist", color = PickBlue, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Box(modifier = Modifier.background(PickBlue, RoundedCornerShape(999.dp)).padding(horizontal = 8.dp, vertical = 2.dp)) {
+                        Text("MANDATORY", color = PickWhite, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                CheckRow("Package sealed securely", checks[0]) { checks[0] = !checks[0] }
+                CheckRow("Label information correct", checks[1]) { checks[1] = !checks[1] }
+                CheckRow("Fragile sticker attached", checks[2]) { checks[2] = !checks[2] }
+                CheckRow("Sender confirms package handover", checks[3]) { checks[3] = !checks[3] }
             }
         }
 

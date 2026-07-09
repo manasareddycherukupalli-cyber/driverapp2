@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
@@ -28,7 +29,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -158,10 +158,13 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel, vie
             showCancelDialog = false
         }
     }
+    val isPickupLeg = currentJob?.let { job -> job.status.ordinal <= JobStatus.ARRIVED_AT_PICKUP.ordinal } ?: true
     val destination = currentJob?.let { job ->
         if (job.status.ordinal <= JobStatus.ARRIVED_AT_PICKUP.ordinal) job.pickup else job.dropoff
     }
     val destinationLabel = destination?.shortAddress?.ifBlank { destination.address } ?: "--"
+    val pickupAddressLabel = currentJob?.pickup?.let { it.shortAddress.ifBlank { it.address } } ?: "--"
+    val dropoffAddressLabel = currentJob?.dropoff?.let { it.shortAddress.ifBlank { it.address } } ?: "--"
     val orderIdLabel = currentJob?.displayOrderId
         ?.takeIf { it.isNotBlank() }
         ?: currentJob?.id?.takeLast(8)?.uppercase()
@@ -358,7 +361,6 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel, vie
 
         Card(
             modifier = Modifier
-                .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 14.dp),
             shape = RoundedCornerShape(24.dp),
@@ -366,7 +368,6 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel, vie
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -376,10 +377,21 @@ fun MapScreen(navigator: AppNavigator, deliveryViewModel: DeliveryViewModel, vie
                     ChipText("PICKUP TASK")
                 }
                 Text("#$orderIdLabel", color = NavBlack, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Route, contentDescription = null, tint = NavBlue, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(destinationLabel, color = NavBlue, fontWeight = FontWeight.SemiBold)
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    RouteStop(
+                        label = "PICKUP",
+                        address = pickupAddressLabel,
+                        highlight = NavBlue,
+                        isActive = isPickupLeg,
+                        isLast = false
+                    )
+                    RouteStop(
+                        label = "DROP-OFF",
+                        address = dropoffAddressLabel,
+                        highlight = NavBlue,
+                        isActive = !isPickupLeg,
+                        isLast = true
+                    )
                 }
 
                 Button(
@@ -504,6 +516,44 @@ private fun formatOneDecimal(value: Double): String {
     val fraction = absScaled % 10
     val sign = if (scaled < 0) "-" else ""
     return "$sign$whole.$fraction"
+}
+
+@Composable
+private fun RouteStop(
+    label: String,
+    address: String,
+    highlight: Color,
+    isActive: Boolean,
+    isLast: Boolean
+) {
+    Row(verticalAlignment = Alignment.Top) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(if (isActive) highlight else highlight.copy(alpha = 0.3f))
+            )
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(28.dp)
+                        .background(highlight.copy(alpha = 0.25f))
+                )
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text(label, color = NavBlack.copy(alpha = 0.45f), fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
+            Text(
+                address,
+                color = if (isActive) NavBlue else NavBlack.copy(alpha = 0.75f),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp
+            )
+        }
+    }
 }
 
 @Composable

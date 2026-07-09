@@ -107,6 +107,13 @@ fun DriverVerificationStatusScreen(
                 OutlinedButton(onClick = { viewModel.refreshVerificationStatus() }) {
                     Text("Refresh")
                 }
+                OutlinedButton(onClick = {
+                    viewModel.logout {
+                        navigator.navigateAndClearStack(Screen.Login)
+                    }
+                }) {
+                    Text("Sign out")
+                }
             }
         }
 
